@@ -7,10 +7,38 @@ from sys import argv, exit, exc_info, stdin, stderr
 import inspect
 import simplejson as json
 
-# for EC COMMANDS
-import os, platform, psutil, re, hashlib
+# :TODO: Move to config
+PROTECTED_FILES = [
+    '/etc/shadow',
+]
 
 class ECMBase(SMPlugin):
+
+    def cmd_agent_ping(self, *argv, **kwargs):
+        return True
+        
+    def cmd_file_cat(self, *argv, **kwargs):
+        file = kwargs.get('file',None)
+        if not file:
+            raise Exception('Invalid arguments')
+            
+        if not os.path.exists(file):
+            raise Exception('File not found')
+
+        file = os.path.abspath(file)
+
+        # don't cat protected files
+        if file in PROTECTED_FILES:
+            raise Exception('Not allowed')
+
+        try:
+            file = open(file,"r")
+            filecontent = file.read()
+            file.close()
+            return(filecontent)
+               
+        except:
+            raise Exception('Unable to read file')
 
     def cmd_system_hostname(self, *argv, **kwargs):
         return platform.node()
