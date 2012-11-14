@@ -29,13 +29,9 @@
 
 from smplugin import SMPlugin
 
-from sys import argv, exit, exc_info, stdin, stderr
-from subprocess import call, Popen, PIPE, STDOUT
+from sys import stderr
 
 import socket
-import platform
-import simplejson as json
-import base64
 
 class ECMCollectd(SMPlugin):
 

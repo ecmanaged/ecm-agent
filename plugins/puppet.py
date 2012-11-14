@@ -2,14 +2,12 @@
 
 from smplugin import SMPlugin
 
-from sys import argv, exit, exc_info, stdin, stderr
-from subprocess import call, Popen, PIPE, STDOUT
+from subprocess import call, Popen, PIPE
 from tempfile import mkdtemp
 import urllib2
 
 import tarfile
 import platform
-import simplejson as json
 from shutil import rmtree
 import base64
 

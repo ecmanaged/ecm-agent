@@ -1,14 +1,8 @@
 # -*- coding:utf-8 -*-
 
 from smplugin import SMPlugin
-from time import sleep
 
-from sys import argv, exit, exc_info, stdin, stderr
-import inspect
-import simplejson as json
-
-# for EC COMMANDS
-import os, platform, psutil, re, hashlib
+import os, platform, psutil
 
 # :TODO: Move to config
 PROTECTED_FILES = [

@@ -2,13 +2,11 @@
 
 from smplugin import SMPlugin
 
-from sys import argv, exit, exc_info, stdin, stderr, exit
-from subprocess import call, Popen, PIPE, STDOUT
+from subprocess import Popen, PIPE
 from shlex import split
 from tempfile import mkdtemp
 
 import os
-import math
 import twisted.python.procutils as procutils
 import urllib2
 import simplejson as json
@@ -108,8 +106,7 @@ class Deploy(object):
     def _mkdir_p(self,path):
         try:
             os.makedirs(path)
-        except OSError as exc: # Python >2.5
-            if exc.errno == errno.EEXIST:
+        except OSError as e:
                 pass
 
     def _utime(self):
