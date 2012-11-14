@@ -90,6 +90,7 @@ class Connection:
 
 from smplugin import SMPlugin
 import simplejson as json
+import inspect
 
 class ECMloadb(SMPlugin):
 	def __init__(self, *argv, **kwargs):
@@ -97,10 +98,9 @@ class ECMloadb(SMPlugin):
 		username	= kwargs.get('username','admin')
 		password	= kwargs.get('password',None)
 
-		if not url: raise Exception("Invalid data")
-
-		# Make connection
-		self.conn = self._connect(url,username,password)
+		# Make connection (but not for run())
+		if not 'run()' in str(inspect.stack()[1][4]):
+			self.conn = self._connect(url,username,password)
 
 	def cmd_loadb_info(self, *argv, **kwargs):
 		retval = self._get_resource('GET','/')
@@ -151,8 +151,13 @@ class ECMloadb(SMPlugin):
 		return self._return(retval)
 
 	def _connect(self,url,user,password):
-		conn = Connection(url,user,password)
-		return conn
+		try:
+			# connect and test get info
+			conn = Connection(url,user,password)
+			conn.cmd_loadb_info()
+			return conn
+		except:
+			raise Exception("Unable to connect to %s" % url)
 
 	def _get_resource(self,method,resource,data = None):
 		retval = None
@@ -186,15 +191,12 @@ ECMloadb().run()
 #test = ECMloadb(url='http://localhost:5002',password='*EQ%0O%C2R5DT7)HRHZA#%3R^UXL*D(OKDKK)#GS5NU#T0NGWWO8THA(RW0X')
 #test_info_pre =  test.cmd_loadb_info()
 #print test.cmd_loadb_service_add(service_id = 'www2', service_ip = '1.2.3.255', service_port = '99')
-#print test.cmd_loadb_node_add(service_id = 'www2', node_id='maikel', node_ip = '1.2.3.255', node_port = '99')
-#print test.cmd_loadb_node_delete(service_id = 'www2', node_id='maikel')
+#print test.cmd_loadb_node_add(service_id = 'www2', node_id='test', node_ip = '1.2.3.255', node_port = '99')
+#print test.cmd_loadb_node_delete(service_id = 'www2', node_id='test')
 #print test.cmd_loadb_service_delete(service_id = 'www2')
 #test_info_post = test.cmd_loadb_info()
 #if test_info_pre == test_info_post:
 #	print "OK: \n%s" % test_info_post
-
-
-#cmd_loadb_service_delete
 
 
 
