@@ -180,7 +180,6 @@ class ECMloadb(SMPlugin):
 		except:
 			raise Exception("Unknown response error: %s" % retval)
 
-
 ECMloadb().run()
 
 ## Test
