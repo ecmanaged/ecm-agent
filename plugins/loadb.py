@@ -198,6 +198,3 @@ ECMloadb().run()
 #if test_info_pre == test_info_post:
 #	print "OK: \n%s" % test_info_post
 
-
-
-

@@ -3,6 +3,7 @@
 from sys import argv, exit, exc_info, stdin, stderr
 import inspect
 import simplejson as json
+import os, string, random
 
 E_RUNNING_COMMAND = 253
 E_COMMAND_NOT_DEFINED = 252
@@ -54,3 +55,31 @@ class SMPlugin():
             command_name = argv[1]
             exit(self._runCommand(command_name))
 
+    def _file_write(self,file,content=None):
+        try:
+            _path = os.path.dirname(file)
+            if not os.path.exists(_path):
+                os.mkdir(_path)
+
+            f  = open(file,'w')
+            if content:
+                f.write(content)
+            f.close()
+
+        except:
+            raise Exception("Unable to write file: %s" % file)
+
+    def _file_read(self,file):
+        try:
+            if os.path.isfile(file):
+                f  = open(file,'r')
+                retval = f.read()
+                f.close()
+                return retval
+
+        except:
+            raise Exception("Unable to read file: %s" % file)
+
+    def _secret_gen(self):
+        chars = string.ascii_uppercase + string.digits  + '!@#$%^&*()'
+        return ''.join(random.choice(chars) for x in range(60))

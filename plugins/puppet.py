@@ -12,7 +12,6 @@ from shutil import rmtree
 import base64
 
 class ECMPuppet(SMPlugin):
-
     def cmd_puppet_available(self, *argv, **kwargs):
         if call(['which','puppet'], stdout=PIPE, stderr=PIPE):
             raise Exception("Not found")
@@ -28,7 +27,7 @@ class ECMPuppet(SMPlugin):
         
         try:
             manifest = base64.b64decode(manifest_base64)
-        except Exception as e:
+        except:
             raise Exception("Unable to decode manifest")
 
         try:
@@ -49,7 +48,7 @@ class ECMPuppet(SMPlugin):
                     
             return ret
                 
-        except Exception as e:
+        except:
             raise Exception("Error running puppet apply")
 
     def cmd_puppet_apply_pson(self, *argv, **kwargs):
@@ -68,7 +67,7 @@ class ECMPuppet(SMPlugin):
             fh.write(base64.b64decode(manifest_pson_base64))
             fh.close()
 
-        except Exception as e:
+        except:
             rmtree(manifest_path, ignore_errors = True)
             raise Exception("Unable to decode manifest")
            
@@ -106,7 +105,7 @@ class ECMPuppet(SMPlugin):
             else:
                 raise Exception("Unable to download file")
                     
-        except Exception as e:
+        except:
             raise Exception("Unable get manifest")
 
         finally:
@@ -118,13 +117,13 @@ class ECMPuppet(SMPlugin):
             # raises an exception if not found
             if self.cmd_puppet_available(*argv, **kwargs):
                 return False
-        except Exception as e:
+        except:
             pass
             
         try:
-       	    (distrib,version,tmp)=platform.dist()
+            (distrib,version,tmp)=platform.dist()
             ret_code = 2
-       	
+           
             if distrib.lower() == 'debian' or distrib.lower() == 'ubuntu':
                 ret_code = call(['apt-get','-y','-qq','update'])
                 ret_code = call(['apt-get','-y','-qq','install','puppet-common'])
@@ -140,13 +139,13 @@ class ECMPuppet(SMPlugin):
         
             return ret_code
             
-        except Exception as e:
+        except:
             raise Exception("Error installing puppet")
             
 
     def _downloadfile(self,url,file):
 
-	try:
+        try:
             req = urllib2.urlopen(url.replace("'",""))
             total_size = int(req.info().getheader('Content-Length').strip())
             downloaded = 0
@@ -157,7 +156,7 @@ class ECMPuppet(SMPlugin):
                     downloaded += len(chunk)
                     if not chunk: break
                     fp.write(chunk)
-        except Exception as e:
+        except:
             return False
 
         return file
@@ -185,7 +184,7 @@ class ECMPuppet(SMPlugin):
                     
             return ret
                 
-        except Exception as e:
+        except:
             # Try old --apply
             return self._run_puppet_old_apply(manifest_file,manifest_path,module_path)
 
@@ -216,7 +215,7 @@ class ECMPuppet(SMPlugin):
                     
             return ret
                 
-        except Exception as e:
+        except:
             raise Exception("Error running puppet apply")
 
         finally:

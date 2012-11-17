@@ -17,7 +17,7 @@ from shutil import move, rmtree
 try:
     import tarfile
     import zipfile
-except Exception as e:
+except:
     pass
 
 class ECMsource(SMPlugin):
@@ -77,7 +77,7 @@ class ECMsource(SMPlugin):
             output['out']    = ret.get('status',1)
             output['stderr'] = ret.get('stderr','')
             output['stdout'] = ret.get('stdout','')
-        except Exception as e:
+        except:
             output['out']    = 1
             output['stderr'] = ret.get('stderr','')
             output['stdout'] = ret.get('stdout','')
@@ -261,7 +261,7 @@ class File:
                 cfile.extractall(self.working_dir)
             cfile.close()
                 
-        except Exception as e:
+        except:
             raise Exception("Could not extract file")
     
         ret = {}
@@ -299,7 +299,7 @@ class File:
                     downloaded += len(chunk)
                     if not chunk: break
                     fp.write(chunk)
-        except Exception as e:
+        except:
             return False
 
         return file
@@ -316,7 +316,7 @@ class Aux:
                 for envar in envars:
                     if not envars[envar]: envars[envar] = ''
                     os.environ[envar] = envars[envar]
-        except Exception as e:
+        except:
             # Ignore it
             pass
 

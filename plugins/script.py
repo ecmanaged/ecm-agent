@@ -31,7 +31,7 @@ class ECMscript(SMPlugin):
 			fh.write(b64decode(script_base64))
 			fh.close()
 
-		except Exception as e:
+		except:
 			rmtree(tmp_dir, ignore_errors = True)
 			raise Exception("Unable to decode script")
 
@@ -55,7 +55,7 @@ class ECMscript(SMPlugin):
 				for envar in script_envars:
 					if not script_envars[envar]: script_envars[envar] = ''
 					environ[envar] = script_envars[envar]
-		except Exception as e:
+		except:
 			# Ignore it
 			pass
 		
