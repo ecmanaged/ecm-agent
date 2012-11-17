@@ -21,18 +21,18 @@ class ECMBase(SMPlugin):
     def cmd_set_env(self, *argv, **kwargs):
         """ Set ECManaged environment variables """
 
-        env_vars = kwargs.get('env_vars',None)
-        if not env_vars:
+        envars = kwargs.get('envars',None)
+        if not envars:
             raise Exception('Invalid arguments')
 
         content = ''
         try:
-            env_vars = base64.b64decode(env_vars)
-            env_vars = json.loads(env_vars)
+            envars = base64.b64decode(envars)
+            envars = json.loads(envars)
 
-            for var in env_vars.keys():
+            for var in envars.keys():
                 # Set export VAR string (:FIXME: for win)
-                content += "export " + str(var) + '="' + str(env_vars[var]) + "\"\n"
+                content += "export " + str(var) + '="' + str(envars[var]) + "\"\n"
             self._file_write(ENV_FILE,content)
             return True
 
