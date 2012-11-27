@@ -5,6 +5,8 @@ from smplugin import SMPlugin
 from subprocess import Popen, PIPE
 from shlex import split
 from tempfile import mkdtemp
+from base64 import b64decode
+from urlparse import urlparse
 
 import os
 import twisted.python.procutils as procutils
@@ -22,55 +24,35 @@ except:
 
 class ECMsource(SMPlugin):
     def cmd_source_run(self, *argv, **kwargs):
+
+        self.path   = kwargs.get('path',None)
+        self.source = kwargs.get('source',None)
+        self.envars = kwargs.get('envars',None)
+        self.user   = kwargs.get('username',None)
+        self.passwd = kwargs.get('password',None)
+
+        if (not self.path or not self.source):
+            raise Exception("Invalid parameters")
+
         type = kwargs.get('type',None)
 
-        if type and type.upper() == 'URI':
-            ret = self._cmd_source_file_download(*argv, **kwargs)
-        elif type and type.upper() == 'FILE':
-            ret = self._cmd_source_file_download(*argv, **kwargs)
+        if type and type.upper() in ('URI','FILE'):
+            source = File(self.path)
+
         elif type and type.upper() == 'GIT':
-            ret = self._cmd_source_git_clone(*argv, **kwargs)
+            source = Git(self.path)
+
         elif type and type.upper() == 'SVN':
-            ret = self._cmd_source_svn_co(*argv, **kwargs)
+            source = Svn(self.path)
+
         else:
             raise Exception("Unknown source")
-            
-        return self._return(ret)
+
+        retval = source.clone(url=self.source, envars=self.envars, \
+                              username=self.user, password=self.passwd)
+
+        return self._return(retval)
     
-    def _cmd_source_git_clone(self, *argv, **kwargs):
-        path   = kwargs.get('path',None)
-        source = kwargs.get('source',None)
-        envars = kwargs.get('envars',None)
-
-        if (not path or not source):
-            raise Exception("Invalid parameters")
-        
-        git = Git(path)
-        return git.clone(git_url=source, envars=envars)
-
-    def _cmd_source_svn_co(self, *argv, **kwargs):
-        path   = kwargs.get('path',None)
-        source = kwargs.get('source',None)
-        envars = kwargs.get('envars',None)
-
-        if (not path or not source):
-            raise Exception("Invalid parameters")
-        
-        svn = Svn(path)
-        return svn.clone(svn_url=source, envars=envars)
-
-
-    def _cmd_source_file_download(self, *argv, **kwargs):
-        path   = kwargs.get('path',None)
-        source = kwargs.get('source',None)
-        envars = kwargs.get('envars',None)
-        
-        if (not path or not source):
-            raise Exception("Invalid parameters")
-        
-        file = File(path)
-        return file.download_extract(file_url=source,envars=envars)
-        
     def _return(self,ret):
         output = {}
         try:
@@ -124,99 +106,108 @@ class Git(object):
         deploy = Deploy(self.working_dir)
         self.old_dir = deploy.rotate()
 
-	which_posix  = procutils.which('git')
-	which_win    = procutils.which('git.cmd')
+        which_posix  = procutils.which('git')
+        which_win    = procutils.which('git.cmd')
 
-	try: self.git_cmd = which_posix[0]
+        try: self.git_cmd = which_posix[0]
         except IndexError:
             try: self.git_cmd = which_win[0]
             except IndexError:
                 raise Exception("Unable to find git on path")
-        
-    def clone(self, git_url, envars, user='git', password='nopass'):
+
+    def clone(self, url, envars, username, password):
+
+        command = self.git_cmd + " clone --quiet --verbose '" + url + "' ."
+
         # Create git command with user and password
-        command = self.git_cmd + " clone --quiet --verbose '" + git_url + "' ."
-#        command = command.replace('://','://' + user + ':' + password + '@')
-        
+        if username and password:
+            parsed = urlparse(url)
+            if parsed.scheme in ('http','https'):
+                command = command.replace('://','://' + username + ':' + password + '@')
+            elif parsed.scheme == 'ssh':
+                command = command.replace('://','://' + username + '@')
+
+
         result_exec = Aux().myexec(command,path=self.working_dir,envars=envars)
         extra_msg = ''
         if not result_exec['status']:
-            extra_msg = "Origin deployed successfully to '%s'\n" % self.working_dir
+            extra_msg = "Source deployed successfully to '%s'\n" % self.working_dir
             if self.old_dir:
                 extra_msg += "Old source files moved to '%s'\n" % self.old_dir
             result_exec['stdout'] = extra_msg
-        
+
         return result_exec
-        
 
 class Svn(object):
     def __init__(self, working_dir = None):
         if not working_dir:
             raise Exception("Invalid path")
         self.working_dir = working_dir
-        
+
         # Create or rename working_dir
         deploy = Deploy(self.working_dir)
         self.old_dir = deploy.rotate()
 
-	which_posix  = procutils.which('svn')
-	which_win    = procutils.which('svn.cmd')
+        which_posix  = procutils.which('svn')
+        which_win    = procutils.which('svn.cmd')
 
-	try: self.svn_cmd = which_posix[0]
+        try: self.svn_cmd = which_posix[0]
         except IndexError:
             try: self.svn_cmd = which_win[0]
             except IndexError:
                 raise Exception("Unable to find svn on path")
-        
-    def clone(self, svn_url, envars, user='svn', password='nopass'):
-        # Create svn command with user and password
-        command = self.svn_cmd + " co '" + svn_url + "' ."
-#        command = command.replace('://','://' + user + ':' + password + '@')
-        
+
+    def clone(self, url, envars, username, password):
+
+        # Add username and password to url
+        if username and password:
+            url = url.replace('://','://' + username + ':' + password + '@')
+
+        command = self.svn_cmd + " co '" + url + "' ."
+
         result_exec = Aux().myexec(command,path=self.working_dir,envars=envars)
-        extra_msg = ''
+
         if not result_exec['status']:
-            extra_msg = "Origin deployed successfully to '%s'\n" % self.working_dir
+            extra_msg = "Source deployed successfully to '%s'\n" % self.working_dir
             if self.old_dir:
                 extra_msg += "Old source files moved to '%s'\n" % self.old_dir
             if result_exec['stdout']:
                 result_exec['stdout'] = extra_msg + result_exec['stdout']
             else:
                 result_exec['stdout'] = extra_msg
-        
+
         return result_exec
-                                                
 
 class File:
     def __init__(self,working_dir = None):
         if not working_dir:
             raise Exception("Invalid path")
         self.working_dir = working_dir
-        
+
         # Create or rename working_dir
         deploy = Deploy(self.working_dir)
         self.old_dir = deploy.rotate()
- 
-    def download_extract(self, envars, file_url, user='anonymous', password='nopass'):
-        # Add username and password to url (FIXME)
-#        file_url = file_url.replace('://','://' + user + ':' + password + '@')
-        
-        extract = {}
-        ret = {}
+
+    def clone(self, envars, url, username, password):
+
+        # Add username and password to url
+        if username and password:
+            url = url.replace('://','://' + username + ':' + password + '@')
+
         file_name = 'downloaded.file'
         tmp_dir = mkdtemp()
-        
+
         file_downloaded = self._download(
-            url = file_url, 
+            url = url,
             file = tmp_dir + '/' + file_name
         )
         if file_downloaded:
             extract = self._extract(file_downloaded)
             if extract:
                 extract['head'] = ''
-                if extract.get('stdout',None): 
-                    extract['head']  = "Origin deployed successfully to '%s'\n" % self.working_dir
-                if extract.get('stdout',None) and self.old_dir: 
+                if extract.get('stdout',None):
+                    extract['head']  = "Source deployed successfully to '%s'\n" % self.working_dir
+                if extract.get('stdout',None) and self.old_dir:
                     extract['head'] += "Old source files moved to '%s'\n" % self.old_dir
 
         else:
@@ -225,11 +216,12 @@ class File:
 
         # Clean and output
         rmtree(tmp_dir, ignore_errors = True)
+        ret = {}
         ret['stdout'] = extract.get('head','') + extract.get('stdout','')
         ret['stderr'] = extract.get('stderr','Unable to download file')
         ret['status'] = extract.get('status',1)
         return ret
-     
+
     def _extract(self, file):
         try:
             file_type = self._get_file_type(file)
@@ -239,12 +231,12 @@ class File:
                 opener, mode = tarfile.open, 'r:gz'
             elif file_type == 'bz2':
                 opener, mode = tarfile.open, 'r:bz2'
-            else: 
+            else:
                 raise Exception("Unsupported file compression")
 
             first_path = None
             cfile = opener(file, mode)
-            
+
             # if first member is dir, skip 1st container path
             members = cfile.getmembers()
             if members[0].isdir():
@@ -260,10 +252,10 @@ class File:
             else:
                 cfile.extractall(self.working_dir)
             cfile.close()
-                
+
         except:
             raise Exception("Could not extract file")
-    
+
         ret = {}
         ret['status'] = 0
         ret['stderr'] = ''
@@ -277,26 +269,23 @@ class File:
             "\x42\x5a\x68": "bz2",
             "\x50\x4b\x03\x04": "zip"
             }
-            
+
         max_len = max(len(x) for x in magic_dict)
         with open(file) as f:
             file_start = f.read(max_len)
             for magic, filetype in magic_dict.items():
                 if file_start.startswith(magic):
                     return filetype
-        return False    
+        return False
 
 
     def _download(self, url, file):
-	try:
+        try:
             req = urllib2.urlopen(url.replace("'",""))
-            total_size = int(req.info().getheader('Content-Length').strip())
-            downloaded = 0
             CHUNK = 256 * 10240
             with open(file, 'wb') as fp:
                 while True:
                     chunk = req.read(CHUNK)
-                    downloaded += len(chunk)
                     if not chunk: break
                     fp.write(chunk)
         except:

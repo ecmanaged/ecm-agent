@@ -15,9 +15,9 @@ import os
 import sys
 from platform import system
 import simplejson as json
+import zlib, base64
 
 AGENT_VERSION = 1
-
 
 class SMAgent:
     def __init__(self, config):
@@ -308,13 +308,14 @@ class IqMessage:
         msg['to'] = self.to
         if self.type == 'result':
             ecm_message = msg.addElement('ecm_message')
-            ecm_message['version'] = '1'
+            ecm_message['version'] = AGENT_VERSION
             ecm_message['command'] = self.command
             result = ecm_message.addElement('result')
             result['retvalue'] = str(self.retvalue)
             result['timed_out'] = self.timed_out
-            result.addElement('stdout').addContent(self.stdout)
-            result.addElement('stderr').addContent(self.stderr)
+            result.addElement('gzip_stdout').addContent(base64.b64encode(zlib.compress(self.stdout)))
+            result.addElement('gzip_stderr').addContent(base64.b64encode(zlib.compress(self.stderr)))
+
         return msg
 
     def toXml(self):

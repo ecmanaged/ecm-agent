@@ -24,6 +24,7 @@ class SMPlugin():
         except:
             print >> stderr, "Command not defined (%s)" % command_name
             exit(E_COMMAND_NOT_DEFINED)
+
         #TODO:Rewrite argument checking with key requeriments parsing the json.
         #args_num = len(inspect.getargspec(command)[0][1:])
         #if (len(command_args) != args_num):
