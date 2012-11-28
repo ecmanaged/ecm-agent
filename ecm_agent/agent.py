@@ -272,8 +272,7 @@ class IqMessage:
                 self.version = el_ecm_message['version']
 
                 if(int(self.version) > AGENT_VERSION):
-                    raise Exception("Message format  (%s) is greater\
-     than supported version (%s)" % (self.version, AGENT_VERSION))
+                    raise Exception("Message format  (%s) is greater than supported version (%s)" % (self.version, AGENT_VERSION))
 
                 self.type = elem['type']
                 self.id = elem['id']
@@ -308,10 +307,10 @@ class IqMessage:
         msg['to'] = self.to
         if self.type == 'result':
             ecm_message = msg.addElement('ecm_message')
-            ecm_message['version'] = AGENT_VERSION
+            ecm_message['version'] = str(AGENT_VERSION)
             ecm_message['command'] = self.command
             result = ecm_message.addElement('result')
-            result['retvalue'] = str(self.retvalue)
+            result['retvalue']  = self.retvalue
             result['timed_out'] = self.timed_out
             result.addElement('gzip_stdout').addContent(base64.b64encode(zlib.compress(self.stdout)))
             result.addElement('gzip_stderr').addContent(base64.b64encode(zlib.compress(self.stderr)))
@@ -327,7 +326,7 @@ class IqMessage:
         """
         self.from_, self.to = self.to, self.from_
         self.type = 'result'
-        self.retvalue = retvalue
-        self.stdout = stdout
-        self.stderr = stderr
+        self.retvalue  = str(retvalue)
+        self.stdout    = str(stdout)
+        self.stderr    = str(stderr)
         self.timed_out = str(timed_out)
