@@ -7,10 +7,11 @@ from shlex import split
 from tempfile import mkdtemp
 from base64 import b64decode
 from urlparse import urlparse
+import urllib2
 
 import os
 import twisted.python.procutils as procutils
-import urllib2
+
 import simplejson as json
 
 from time import time
@@ -48,11 +49,11 @@ class ECMsource(SMPlugin):
         else:
             raise Exception("Unknown source")
 
-        retval = source.clone(url=self.source, envars=self.envars, \
+        retval = source.clone(url=self.source, envars=self.envars,\
                               username=self.user, password=self.passwd)
 
         return self._return(retval)
-    
+
     def _return(self,ret):
         output = {}
         try:
@@ -76,32 +77,32 @@ class Deploy(object):
         if os.path.isdir(self.working_dir):
             to_dir = self.working_dir + '_rotated_' + self._utime()
             move(self.working_dir,to_dir)
-            
+
         # create working dir
         self._mkdir_p(self.working_dir)
         return to_dir
-    
+
     def rollback(self,path):
         # to be done
         pass
-        
+
     def _mkdir_p(self,path):
         try:
             os.makedirs(path)
         except OSError as e:
-                pass
+            pass
 
     def _utime(self):
         str_time = str(time()).replace('.','_')
         return str_time
-        
+
 
 class Git(object):
     def __init__(self, working_dir = None):
         if not working_dir:
             raise Exception("Invalid path")
         self.working_dir = working_dir
-        
+
         # Create or rename working_dir
         deploy = Deploy(self.working_dir)
         self.old_dir = deploy.rotate()
@@ -197,10 +198,11 @@ class File:
         file_name = 'downloaded.file'
         tmp_dir = mkdtemp()
 
-        file_downloaded = self._download(
+        file_downloaded = self._download_file(
             url = url,
             file = tmp_dir + '/' + file_name
         )
+
         if file_downloaded:
             extract = self._extract(file_downloaded)
             if extract:
@@ -240,12 +242,14 @@ class File:
             # if first member is dir, skip 1st container path
             members = cfile.getmembers()
             if members[0].isdir():
-               is_packed = members[0].name
+                is_packed = members[0].name
 
             stdout = ''
             if is_packed:
                 for member in members:
                     member.name = member.name.replace(is_packed,'.')
+                    if member.name.endswith('/.'): continue
+                    if member.name == './': continue
                     if member.name == '.': continue
                     stdout +=  "Extracted " + member.name + "\n"
                     cfile.extract(member,self.working_dir)
@@ -253,8 +257,8 @@ class File:
                 cfile.extractall(self.working_dir)
             cfile.close()
 
-        except:
-            raise Exception("Could not extract file")
+        except Exception as e:
+            raise Exception("Could not extract file: %s" % e)
 
         ret = {}
         ret['status'] = 0
@@ -268,7 +272,7 @@ class File:
             "\x1f\x8b\x08": "gz",
             "\x42\x5a\x68": "bz2",
             "\x50\x4b\x03\x04": "zip"
-            }
+        }
 
         max_len = max(len(x) for x in magic_dict)
         with open(file) as f:
@@ -278,8 +282,7 @@ class File:
                     return filetype
         return False
 
-
-    def _download(self, url, file):
+    def _download_file(self, url, file):
         try:
             req = urllib2.urlopen(url.replace("'",""))
             CHUNK = 256 * 10240
@@ -293,10 +296,9 @@ class File:
 
         return file
 
-
 class Aux:
     def myexec(self, command, path=None, envars=None):
-    
+
         # Set environment variables before execute
         try:
             if envars:
@@ -311,12 +313,12 @@ class Aux:
 
         if path: path = os.path.abspath(path)
         p = Popen(split(command),
-            cwd=path,
-            stdin=None,
-            stderr=PIPE,
-            stdout=PIPE,
-            close_fds=(os.name=='posix') # unsupported on linux
-            )
+                  cwd=path,
+                  stdin=None,
+                  stderr=PIPE,
+                  stdout=PIPE,
+                  close_fds=(os.name=='posix') # unsupported on linux
+        )
         _stdout, _stderr = p.communicate()
 
         ret = {}
