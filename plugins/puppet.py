@@ -89,10 +89,10 @@ class ECMPuppet(SMPlugin):
                 raise Exception("Unable to download file")
 
         except:
-                raise Exception("Unable to get recipe")
+            raise Exception("Unable to get recipe")
 
         finally:
-                rmtree(recipe_path, ignore_errors = True)
+            rmtree(recipe_path, ignore_errors = True)
 
     def cmd_puppet_install(self, *argv, **kwargs):
 
@@ -106,45 +106,38 @@ class ECMPuppet(SMPlugin):
         self._install_package('puppet')
 
     def _run_puppet_catalog(self,recipe_file,recipe_path,module_path='/etc/puppet/modules'):
-        try: retval = self._run_puppet(recipe_file,recipe_path,'catalog')
-        except:
-            # Try old way
-            try: retval = self._run_puppet(recipe_file,recipe_path,'apply')
-            except: raise
+        retval = self._run_puppet(recipe_file,recipe_path,'catalog')
+
+        # Try old way
+        if 'invalid option' in retval.get('stdout',''):
+            retval = self._run_puppet(recipe_file,recipe_path,'apply')
 
         return retval
 
     def _run_puppet(self,recipe_file,recipe_path,catalog_cmd = 'catalog',module_path='/etc/puppet/modules'):
 
-        try:
-            ret = {}
-            debug_command = ''
-            if self.debug: debug_command = '--debug'
+        ret = {}
+        debug_command = ''
+        if self.debug: debug_command = '--debug'
 
-            p = Popen(['puppet', 'apply', '--detailed-exitcodes',
-                       '--modulepath',module_path,
-                       '--' + catalog_cmd,recipe_file,debug_command],
-                      cwd=recipe_path,
-                      stdin=None, stdout=PIPE, stderr=PIPE, universal_newlines=True)
-            stdout, stderr = p.communicate()
+        p = Popen(['puppet', 'apply', '--detailed-exitcodes',
+                   '--modulepath',module_path,
+                   '--' + catalog_cmd,recipe_file,debug_command],
+                  cwd=recipe_path,
+                  stdin=None, stdout=PIPE, stderr=PIPE, universal_newlines=True)
+        stdout, stderr = p.communicate()
 
-            ret['out'] = p.wait()
-            ret['stdout'] = self._clean_stdout(stdout)
-            ret['stderr'] = self._clean_stdout(stderr)
+        ret['out'] = p.wait()
+        ret['stdout'] = self._clean_stdout(stdout)
+        ret['stderr'] = self._clean_stdout(stderr)
 
-            # exit code of '2' means there were changes
-            if ret['out'] == 2: ret['out'] = 0
+        # exit code of '2' means there were changes
+        if ret['out'] == 2: ret['out'] = 0
 
-            if ret['out']:
-                raise Exception("Error applying recipe: %s" % ret['stderr'])
+        # clean up
+        rmtree(recipe_path, ignore_errors = True)
 
-            return ret
+        return ret
 
-        except:
-            raise Exception("Error applying recipe: %s" % ret['stderr'])
-
-        finally:
-            # Clean working dir
-            rmtree(recipe_path, ignore_errors = True)
 
 ECMPuppet().run()

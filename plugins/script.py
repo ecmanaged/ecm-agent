@@ -54,7 +54,7 @@ class ECMscript(SMPlugin):
 				script_envars = json.loads(script_envars)
 				for envar in script_envars:
 					if not script_envars[envar]: script_envars[envar] = ''
-					environ[envar] = script_envars[envar]
+					environ[envar] = str(script_envars[envar])
 		except:
 			# Ignore it
 			pass

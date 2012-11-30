@@ -306,7 +306,7 @@ class Aux:
                 envars = json.loads(envars)
                 for envar in envars:
                     if not envars[envar]: envars[envar] = ''
-                    os.environ[envar] = envars[envar]
+                    os.environ[envar] = str(envars[envar])
         except:
             # Ignore it
             pass
