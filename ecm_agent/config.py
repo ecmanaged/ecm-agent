@@ -45,8 +45,7 @@ class SMConfigObj(ConfigObj):
                 self.write()
             returnValue(True)
         else:
-            l.error("ERROR: Could not obtain UUID,\
- please set up XMPP manually in %s" % self.filename)
+            l.error("ERROR: Could not obtain UUID, please set up XMPP manually in %s" % self.filename)
             returnValue(False)
 
     def _getUUID(self):
@@ -59,11 +58,13 @@ class SMConfigObj(ConfigObj):
                 if type(v) == dict and v['dmi_type'] == 1:
                     if (v['data']['UUID']):
                         return str((v['data']['UUID'])).lower()
-        
-            # Try to get via web (EC2 or ECM)
-            retr = self._getUUIDViaWeb()
-            if retr: return retr
-            
+
+            # Try to configure via URL
+            for i in range(20):
+                # Try to get via web (EC2 or ECM)
+                retr = self._getUUIDViaWeb()
+                if retr: return retr
+
             # Try by dmidecode command
             return self._getUUIDViaCommand()
 
