@@ -11,9 +11,8 @@ import base64
 
 class ECMPuppet(SMPlugin):
     def __init__(self, *argv, **kwargs):
-        arg_debug = kwargs.get('debug','0')
-        self.debug = False
-        if arg_debug == '1': self.debug = True
+        self.debug = kwargs.get('debug',False)
+        self.module_path = kwargs.get('module_path','/etc/puppet/modules')
 
     def cmd_puppet_available(self, *argv, **kwargs):
         if call(['which','puppet'], stdout=PIPE, stderr=PIPE):
@@ -21,7 +20,7 @@ class ECMPuppet(SMPlugin):
         return True
 
     def cmd_puppet_apply(self, *argv, **kwargs):
-        recipe_base64 = kwargs.get('recipe',None)
+        recipe_base64 = kwargs.get('recipe_code',None)
 
         if not recipe_base64:
             raise Exception("Invalid argument")
@@ -34,10 +33,12 @@ class ECMPuppet(SMPlugin):
         try:
             ret = {}
             debug_command = ''
-            if self.debug: debug_command = '--debug'
+            if self.debug != False: debug_command = '--debug'
 
-            p = Popen(['puppet', 'apply', '--detailed-exitcodes', debug_command],
-                      stdin=PIPE, stdout=PIPE, stderr=PIPE, universal_newlines=True)
+            p = Popen(['puppet', 'apply', '--modulepath', self.module_path,
+                       '--detailed-exitcodes', debug_command],
+                       stdin=PIPE, stdout=PIPE, stderr=PIPE,
+                       universal_newlines=True)
             stdout, stderr = p.communicate(input=recipe)
 
             ret['out'] = p.wait()
@@ -56,9 +57,7 @@ class ECMPuppet(SMPlugin):
             raise Exception("Error running puppet apply")
 
     def cmd_puppet_apply_file(self, *argv, **kwargs):
-
-        recipe_url = kwargs.get('recipe_url',None)
-
+        recipe_url  = kwargs.get('recipe_url',None)
         recipe_file = None
         recipe_path = None
 
@@ -95,7 +94,6 @@ class ECMPuppet(SMPlugin):
             rmtree(recipe_path, ignore_errors = True)
 
     def cmd_puppet_install(self, *argv, **kwargs):
-
         try:
             # raises an exception if not found
             if self.cmd_puppet_available(*argv, **kwargs):
@@ -105,7 +103,7 @@ class ECMPuppet(SMPlugin):
 
         self._install_package('puppet')
 
-    def _run_puppet_catalog(self,recipe_file,recipe_path,module_path='/etc/puppet/modules'):
+    def _run_puppet_catalog(self,recipe_file,recipe_path):
         retval = self._run_puppet(recipe_file,recipe_path,'catalog')
 
         # Try old way
@@ -114,14 +112,13 @@ class ECMPuppet(SMPlugin):
 
         return retval
 
-    def _run_puppet(self,recipe_file,recipe_path,catalog_cmd = 'catalog',module_path='/etc/puppet/modules'):
-
+    def _run_puppet(self,recipe_file,recipe_path,catalog_cmd = 'catalog'):
         ret = {}
         debug_command = ''
-        if self.debug: debug_command = '--debug'
+        if self.debug != False: debug_command = '--debug'
 
         p = Popen(['puppet', 'apply', '--detailed-exitcodes',
-                   '--modulepath',module_path,
+                   '--modulepath', self.module_path,
                    '--' + catalog_cmd,recipe_file,debug_command],
                   cwd=recipe_path,
                   stdin=None, stdout=PIPE, stderr=PIPE, universal_newlines=True)
@@ -136,7 +133,6 @@ class ECMPuppet(SMPlugin):
 
         # clean up
         rmtree(recipe_path, ignore_errors = True)
-
         return ret
 
 
