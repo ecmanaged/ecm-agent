@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from sys import argv, exit, exc_info, stdin, stderr
+from sys import argv, exit, exc_info, stdin, stdout, stderr
 import inspect
 import simplejson as json
 import os, string, random, re
@@ -46,10 +46,11 @@ class SMPlugin():
             # conver returned data to json
             ret = command(**command_args)
             ret = json.dumps(ret)
-            print ret
+            print >> stdout, ret
             return
-        except:
-            print >> stderr, "Error running command", exc_info()[:2]
+        except Exception, e:
+            et, ei, tb = exc_info()
+            print >> stderr, "%s" %e
             return E_RUNNING_COMMAND
 
     def run(self):

@@ -10,9 +10,6 @@ from shutil import rmtree
 import base64
 
 class ECMPuppet(SMPlugin):
-    def __init__(self, *argv, **kwargs):
-        self.debug = kwargs.get('debug',False)
-        self.module_path = kwargs.get('module_path','/etc/puppet/modules')
 
     def cmd_puppet_available(self, *argv, **kwargs):
         if call(['which','puppet'], stdout=PIPE, stderr=PIPE):
@@ -25,22 +22,23 @@ class ECMPuppet(SMPlugin):
         if not recipe_base64:
             raise Exception("Invalid argument")
 
+        self._parse_common_args(*argv, **kwargs)
+
         try:
-            recipe = base64.b64decode(recipe_base64)
+            # Create temp file
+            catalog = base64.b64decode(recipe_base64)
         except:
             raise Exception("Unable to decode recipe")
 
         try:
+            command = ['puppet', 'apply', '--modulepath', self.module_path,
+                       '--detailed-exitcodes']
+            if self.debug: command.append('--debug')
+
+            p = Popen(command,stdin=PIPE, stdout=PIPE, stderr=PIPE, universal_newlines=True)
+            stdout, stderr = p.communicate(input=catalog)
+
             ret = {}
-            debug_command = ''
-            if self.debug != False: debug_command = '--debug'
-
-            p = Popen(['puppet', 'apply', '--modulepath', self.module_path,
-                       '--detailed-exitcodes', debug_command],
-                       stdin=PIPE, stdout=PIPE, stderr=PIPE,
-                       universal_newlines=True)
-            stdout, stderr = p.communicate(input=recipe)
-
             ret['out'] = p.wait()
             ret['stdout'] = self._clean_stdout(stdout)
             ret['stderr'] = self._clean_stdout(stderr)
@@ -49,12 +47,13 @@ class ECMPuppet(SMPlugin):
             if ret['out'] == 2: ret['out'] = 0
 
             if ret['out']:
-                raise Exception("Error applying recipe: %s" % ret['stderr'])
+                raise Exception("%s" % ret['stderr'])
 
             return ret
 
-        except:
-            raise Exception("Error running puppet apply")
+        except Exception as e:
+            raise Exception("Error running puppet apply: %s" %e)
+
 
     def cmd_puppet_apply_file(self, *argv, **kwargs):
         recipe_url  = kwargs.get('recipe_url',None)
@@ -64,11 +63,9 @@ class ECMPuppet(SMPlugin):
         if not recipe_url:
             raise Exception("Invalid argument")
 
-        try:
-            # Download recipe url
-            recipe_path = mkdtemp()
-            tmp_file = recipe_path + '/recipe.tar.gz'
+        self._parse_common_args(*argv, **kwargs)
 
+        try:
             if self._download_file(url=recipe_url,file=tmp_file):
                 # decompress
                 if tarfile.is_tarfile(tmp_file):
@@ -113,17 +110,18 @@ class ECMPuppet(SMPlugin):
         return retval
 
     def _run_puppet(self,recipe_file,recipe_path,catalog_cmd = 'catalog'):
-        ret = {}
-        debug_command = ''
-        if self.debug != False: debug_command = '--debug'
+        self._parse_common_args(*argv, **kwargs)
 
-        p = Popen(['puppet', 'apply', '--detailed-exitcodes',
-                   '--modulepath', self.module_path,
-                   '--' + catalog_cmd,recipe_file,debug_command],
-                  cwd=recipe_path,
-                  stdin=None, stdout=PIPE, stderr=PIPE, universal_newlines=True)
+        command = ['puppet', 'apply', '--detailed-exitcodes',
+                   '--modulepath', self.module_path, '--' + catalog_cmd]
+        if self.debug: command.append('--debug')
+        command.append(recipe_file)
+
+        p = Popen(command, cwd=recipe_path, stdin=None,
+                  stdout=PIPE, stderr=PIPE, universal_newlines=True)
         stdout, stderr = p.communicate()
 
+        ret = {}
         ret['out'] = p.wait()
         ret['stdout'] = self._clean_stdout(stdout)
         ret['stderr'] = self._clean_stdout(stderr)
@@ -134,6 +132,12 @@ class ECMPuppet(SMPlugin):
         # clean up
         rmtree(recipe_path, ignore_errors = True)
         return ret
+
+    def _parse_common_args(self,*argv,**kwargs):
+        self.debug = kwargs.get('debug',False)
+        if self.debug == '0': self.debug = False
+        self.module_path = kwargs.get('module_path','/etc/puppet/modules')
+
 
 
 ECMPuppet().run()

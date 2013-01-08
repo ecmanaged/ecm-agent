@@ -240,6 +240,7 @@ class File:
             cfile = opener(file, mode)
 
             # if first member is dir, skip 1st container path
+            is_packed = None
             members = cfile.getmembers()
             if members[0].isdir():
                 is_packed = members[0].name
