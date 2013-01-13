@@ -65,6 +65,7 @@ class ECMPackage(object):
         packages_b64 = kwargs.get('packages',None)
 
         if not packages_b64: raise Exception("Invalid argument")
+
         try: str_packages = base64.b64decode(packages_b64)
         except: raise Exception("Invalid b64 received")
 
@@ -97,13 +98,5 @@ class ECMPackage(object):
 
         return parsed
 
-
 ECMPackage().run()
 
-depend = 'apache2-mpm-worker (= 2.2.16-6+squeeze7) | apache2-mpm-prefork (= 2.2.16-6+squeeze7) | apache2-mpm-event (= 2.2.16-6+squeeze7) | apache2-mpm-itk (= 2.2.16-6+squeeze7), apache2.2-common (= 2.2.16-6+squeeze7)'
-depend = 'joe | nano, pepe, apache2'
-depend = 'debconf (>= 0.5) | debconf-2.0, python, lsb-base (>= 3.2-13), debconf, python-twisted-core, python-protocols, python-twisted-web, python-configobj, python-dmidecode, dmidecode, python-twisted-words, python-psutil, python-libxml2, python-simplejson, python-apt, collectd-core, puppet-common | puppet, git, subversion, python-httplib2'
-ret = PkgRelation.parse_relations(depend)
-
-import json
-print(json.dumps(ret,indent=4))
