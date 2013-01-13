@@ -60,12 +60,14 @@ class ECMPuppet(SMPlugin):
         recipe_file = None
         recipe_path = None
 
-        if not recipe_url:
-            raise Exception("Invalid argument")
-
+        if not recipe_url: raise Exception("Invalid argument")
         self._parse_common_args(*argv, **kwargs)
 
         try:
+            # Download recipe url
+            recipe_path = mkdtemp()
+            tmp_file = recipe_path + '/recipe.tar.gz'
+
             if self._download_file(url=recipe_url,file=tmp_file):
                 # decompress
                 if tarfile.is_tarfile(tmp_file):
@@ -75,6 +77,7 @@ class ECMPuppet(SMPlugin):
                     for file_name in tar.getnames():
                         if  file_name.endswith('.catalog.pson'):
                             recipe_file = file_name
+
                     tar.close()
 
                     # Apply puppet
@@ -110,11 +113,11 @@ class ECMPuppet(SMPlugin):
         return retval
 
     def _run_puppet(self,recipe_file,recipe_path,catalog_cmd = 'catalog'):
-        self._parse_common_args(*argv, **kwargs)
-
         command = ['puppet', 'apply', '--detailed-exitcodes',
-                   '--modulepath', self.module_path, '--' + catalog_cmd]
+                   '--modulepath', self.module_path]
+
         if self.debug: command.append('--debug')
+        command.append('--' + catalog_cmd)
         command.append(recipe_file)
 
         p = Popen(command, cwd=recipe_path, stdin=None,
@@ -133,11 +136,10 @@ class ECMPuppet(SMPlugin):
         rmtree(recipe_path, ignore_errors = True)
         return ret
 
-    def _parse_common_args(self,*argv,**kwargs):
+    def _parse_common_args(self, *argv, **kwargs):
         self.debug = kwargs.get('debug',False)
         if self.debug == '0': self.debug = False
         self.module_path = kwargs.get('module_path','/etc/puppet/modules')
-
 
 
 ECMPuppet().run()
