@@ -183,7 +183,7 @@ class ECMBase(SMPlugin):
     def cmd_command_exists(self, *argv, **kwargs):
 
         command = kwargs.get('command',None)
-        if not command: raise Exceptio("Invalid params")
+        if not command: raise Exception("Invalid params")
 
         return call(['type', command],
                     stdout=PIPE, stderr=PIPE) == 0

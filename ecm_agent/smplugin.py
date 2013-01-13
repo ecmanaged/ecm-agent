@@ -110,21 +110,26 @@ class SMPlugin():
 
         return file
 
-    def _install_package(self,package):
+    def _install_package(self,package,update = True):
         """ Try to install package
         """
         try:
             (distribution,version,tmp)=platform.dist()
 
             if distribution.lower() == 'debian' or distribution.lower() == 'ubuntu':
-                call(['apt-get','-y','-qq','update'])
-                ret_code = call(['apt-get','-y','-qq','install',package])
+                # export DEBIAN_FRONTEND=noninteractive
+                if update: call(['apt-get','-y','-qq','update'])
+                ret_code = call(['apt-get','--allow-unauthenticated','--force-yes',
+                                 '-y','-qq','install',package])
 
             elif distribution.lower() == 'centos' or distribution.lower() == 'redhat':
-                ret_code = call(['yum','-y','install',package])
+                if update: call(['yum','-y','clean','all'])
+                ret_code = call(['yum','-y','--nogpgcheck','install',package])
 
             elif distribution.lower() == 'arch':
-                ret_code = call(['pacman','-y','install',package])
+                if update: call(['pacman','-Sy'])
+                if update: call(['pacman','-S','--noconfirm','pacman'])
+                ret_code = call(['pacman','-S','--noconfirm',package])
 
             else:
                 raise Exception("Distribution not supported: " + distribution)
