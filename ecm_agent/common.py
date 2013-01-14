@@ -64,8 +64,10 @@ class ECMCommon():
 
             if distribution.lower() == 'debian' or distribution.lower() == 'ubuntu':
                 os.environ['DEBIAN_FRONTEND'] = 'noninteractive'
+
                 if update: call(['apt-get','-y','-qq','update'])
-                ret_code = call(['apt-get','--allow-unauthenticated','--force-yes',
+                ret_code = call(['apt-get','-o','Dpkg::Options::=--force-confold'
+                                '--allow-unauthenticated','--force-yes',
                                  '-y','-qq','install',package])
 
             elif distribution.lower() == 'centos' or distribution.lower() == 'redhat':

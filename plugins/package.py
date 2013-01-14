@@ -71,6 +71,11 @@ class ECMPackage(ECMPlugin):
         except: raise Exception("Invalid b64 received")
 
         packages = self._parse_package_string(str_packages)
+
+        # Invalid package list
+        if not packages: return False
+
+        # apt-get update or yum clean on first time
         pkg_update = True
 
         for i in range(0,100):
@@ -89,7 +94,7 @@ class ECMPackage(ECMPlugin):
 
             if not pending: break
 
-        return True
+        #return True
 
     def _parse_package_string(self, packages):
         """ Parse packages like:

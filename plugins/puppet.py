@@ -126,11 +126,18 @@ class ECMPuppet(ECMPlugin):
         ret['stdout'] = self._clean_stdout(stdout)
         ret['stderr'] = self._clean_stdout(stderr)
 
-        # exit code of '2' means there were changes
-        if ret['out'] == 2: ret['out'] = 0
+        # --detailed-exitcodes
+        # Provide transaction information via exit codes. If this is enabled,
+        # an exit code of '2' means there were changes,
+        # an exit code of '4' means there were failures during the transaction,
+        # and an exit code of '6' means there were both changes and failures.
 
-        # clean up
-        rmtree(recipe_path, ignore_errors = True)
+        # bug in exitcodes in some version even with errors return 0
+        # http://projects.puppetlabs.com/issues/6322
+
+        if ret['out'] == 2: ret['out'] = 0
+        if "\nError: " in ret['stderr']: ret['out'] = 4
+
         return ret
 
     def _parse_common_args(self, *argv, **kwargs):
