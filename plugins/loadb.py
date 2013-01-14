@@ -88,11 +88,11 @@ class Connection:
 		return {u'headers':resp, u'body':content.decode('UTF-8')}
 
 
-from smplugin import SMPlugin
+from ecmplugin import ECMPlugin
 import simplejson as json
 import inspect
 
-class ECMloadb(SMPlugin):
+class ECMLoadb(ECMPlugin):
 	def __init__(self, *argv, **kwargs):
 		url			= kwargs.get('url',     None)
 		username	= kwargs.get('username','admin')
@@ -185,7 +185,7 @@ class ECMloadb(SMPlugin):
 		except:
 			raise Exception("Unknown response error: %s" % retval)
 
-ECMloadb().run()
+ECMLoadb().run()
 
 ## Test
 #test = ECMloadb(url='http://localhost:5002',password='*EQ%0O%C2R5DT7)HRHZA#%3R^UXL*D(OKDKK)#GS5NU#T0NGWWO8THA(RW0X')

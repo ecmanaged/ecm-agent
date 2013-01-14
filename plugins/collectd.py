@@ -27,14 +27,13 @@
 #    misrepresented as being the original software.
 # 3. This notice may not be removed or altered from any source distribution.
 
-from smplugin import SMPlugin
+from ecmplugin import ECMPlugin
 
 from sys import stderr
 
 import socket
 
-class ECMCollectd(SMPlugin):
-
+class ECMCollectd(ECMPlugin):
     def cmd_collectd_get(self, *argv, **kwargs):
         sock_file = kwargs.get('sock_file',None)
         if not sock_file: sock_file = '/var/run/collectd-unixsock'

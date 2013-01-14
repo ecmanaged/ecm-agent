@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 
-from smplugin import SMPlugin
+from ecmplugin import ECMPlugin
 
 from subprocess import Popen, PIPE
 from shlex import split
@@ -23,9 +23,8 @@ try:
 except:
     pass
 
-class ECMsource(SMPlugin):
+class ECMSource(ECMPlugin):
     def cmd_source_run(self, *argv, **kwargs):
-
         self.path   = kwargs.get('path',None)
         self.source = kwargs.get('source',None)
         self.envars = kwargs.get('envars',None)
@@ -329,4 +328,4 @@ class Aux:
 
         return ret
 
-ECMsource().run()
+ECMSource().run()

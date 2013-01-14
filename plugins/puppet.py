@@ -1,16 +1,15 @@
 # -*- coding:utf-8 -*-
 
-from smplugin import SMPlugin
+from ecmplugin import ECMPlugin
 
 from subprocess import call, Popen, PIPE
 from tempfile import mkdtemp
+from shutil import rmtree
 
 import tarfile
-from shutil import rmtree
 import base64
 
-class ECMPuppet(SMPlugin):
-
+class ECMPuppet(ECMPlugin):
     def cmd_puppet_available(self, *argv, **kwargs):
         if call(['which','puppet'], stdout=PIPE, stderr=PIPE):
             raise Exception("Not found")

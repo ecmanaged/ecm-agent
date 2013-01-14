@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 
-from smplugin import SMPlugin
+from ecmplugin import ECMPlugin
 
 from subprocess import Popen, PIPE
 from shlex import split
@@ -13,9 +13,8 @@ from os import chmod, environ
 import simplejson as json
 import stat
 	
-class ECMscript(SMPlugin):
+class ECMScript(ECMPlugin):
 	def cmd_script_run(self, *argv, **kwargs):
-	
 		script_base64		= kwargs.get('script',None)
 		script_executable	= kwargs.get('executable',None)
 		script_envars		= kwargs.get('envars',None)
@@ -41,7 +40,7 @@ class ECMscript(SMPlugin):
 			# Add executable to comand
 			cmd = split(script_executable)
 		else:
-			# Set as executable by owner if not excplicit executable
+			# Set as executable by owner if not explicit executable
 			chmod(tmp_file, stat.S_IEXEC)
 			
 		# Add temp file as last argument (or first if not executable)
@@ -74,4 +73,4 @@ class ECMscript(SMPlugin):
 
 		return ret
 
-ECMscript().run()
+ECMScript().run()

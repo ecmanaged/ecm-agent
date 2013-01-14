@@ -1,10 +1,12 @@
 # -*- coding:utf-8 -*-
 
-from smplugin import SMPlugin
+from ecmplugin import ECMPlugin
 
 import os, platform, psutil
 import simplejson as json
 import base64
+
+from subprocess import call
 
 DIR = '/etc/ecmanaged'
 ENV_FILE = DIR + '/ecm_env'
@@ -14,7 +16,7 @@ PROTECTED_FILES = [
     '/etc/shadow',
     ]
 
-class ECMBase(SMPlugin):
+class ECMBase(ECMPlugin):
     def cmd_agent_ping(self, *argv, **kwargs):
         return True
 

@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 
-from smplugin import SMPlugin
+from ecmplugin import ECMPlugin
 
 import re
 import base64
@@ -59,13 +59,12 @@ class PkgRelation(object):
         cnf = map(cls.__pipe_sep_RE.split, tl_deps)
         return [[parse_rel(or_dep) for or_dep in or_deps] for or_deps in cnf]
 
-class ECMPackage(object):
 
+class ECMPackage(ECMPlugin):
     def cmd_packages_install(self, *argv, **kwargs):
         packages_b64 = kwargs.get('packages',None)
 
         if not packages_b64: raise Exception("Invalid argument")
-
         try: str_packages = base64.b64decode(packages_b64)
         except: raise Exception("Invalid b64 received")
 
