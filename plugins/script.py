@@ -37,7 +37,7 @@ class ECMScript(ECMPlugin):
 
 		cmd = []
 		if script_executable: 
-			# Add executable to comand
+			# Add executable to command
 			cmd = split(script_executable)
 		else:
 			# Set as executable by owner if not explicit executable
@@ -46,7 +46,7 @@ class ECMScript(ECMPlugin):
 		# Add temp file as last argument (or first if not executable)
 		cmd.append(tmp_file)
 			
-		# Set environment variables before execute
+		# Set environment variables before execution
 		try:
 			if script_envars:
 				script_envars = b64decode(script_envars)
@@ -70,7 +70,7 @@ class ECMScript(ECMPlugin):
 		
 		# Clean
 		rmtree(tmp_dir, ignore_errors = True)
-
 		return ret
+
 
 ECMScript().run()

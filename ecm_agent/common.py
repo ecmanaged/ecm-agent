@@ -63,7 +63,7 @@ class ECMCommon():
             (distribution,version,tmp)=platform.dist()
 
             if distribution.lower() == 'debian' or distribution.lower() == 'ubuntu':
-                # export DEBIAN_FRONTEND=noninteractive
+                os.environ['DEBIAN_FRONTEND'] = 'noninteractive'
                 if update: call(['apt-get','-y','-qq','update'])
                 ret_code = call(['apt-get','--allow-unauthenticated','--force-yes',
                                  '-y','-qq','install',package])

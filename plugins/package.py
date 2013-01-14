@@ -62,6 +62,8 @@ class PkgRelation(object):
 
 class ECMPackage(ECMPlugin):
     def cmd_packages_install(self, *argv, **kwargs):
+        """ Install packages received in csv or in debian packages "Depends" format
+        """
         packages_b64 = kwargs.get('packages',None)
 
         if not packages_b64: raise Exception("Invalid argument")
@@ -69,6 +71,7 @@ class ECMPackage(ECMPlugin):
         except: raise Exception("Invalid b64 received")
 
         packages = self._parse_package_string(str_packages)
+        pkg_update = True
 
         for i in range(0,100):
             pending = False
@@ -78,10 +81,11 @@ class ECMPackage(ECMPlugin):
                     try:
                         package_name = depend[i]['name']
                     except KeyError:
-                        raise Exception("Unable to install all packages")
+                        raise Exception("Unable to install some packages")
 
-                    if not self._install_package(package_name):
+                    if not self._install_package(package_name,pkg_update):
                         depend[0]['installed'] = 1
+                        pkg_update = False
 
             if not pending: break
 

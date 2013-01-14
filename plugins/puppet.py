@@ -45,8 +45,8 @@ class ECMPuppet(ECMPlugin):
             # exit code of '2' means there were changes
             if ret['out'] == 2: ret['out'] = 0
 
-            if ret['out']:
-                raise Exception("%s" % ret['stderr'])
+            #if ret['out']:
+            #    raise Exception("%s" % ret['stderr'])
 
             return ret
 
@@ -68,7 +68,6 @@ class ECMPuppet(ECMPlugin):
             tmp_file = recipe_path + '/recipe.tar.gz'
 
             if self._download_file(url=recipe_url,file=tmp_file):
-                # decompress
                 if tarfile.is_tarfile(tmp_file):
                     tar = tarfile.open(tmp_file)
                     tar.extractall(path=recipe_path)
@@ -76,7 +75,6 @@ class ECMPuppet(ECMPlugin):
                     for file_name in tar.getnames():
                         if  file_name.endswith('.catalog.pson'):
                             recipe_file = file_name
-
                     tar.close()
 
                     # Apply puppet
