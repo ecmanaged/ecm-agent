@@ -44,6 +44,7 @@ class ECMPuppet(ECMPlugin):
 
             # exit code of '2' means there were changes
             if ret['out'] == 2: ret['out'] = 0
+            if "\nError: " in ret['stderr']: ret['out'] = 4
 
             #if ret['out']:
             #    raise Exception("%s" % ret['stderr'])
