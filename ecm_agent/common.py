@@ -66,7 +66,7 @@ class ECMCommon():
                 os.environ['DEBIAN_FRONTEND'] = 'noninteractive'
 
                 if update: call(['apt-get','-y','-qq','update'])
-                ret_code = call(['apt-get','-o','Dpkg::Options::=--force-confold'
+                ret_code = call(['apt-get','-o','Dpkg::Options::=--force-confold',
                                 '--allow-unauthenticated','--force-yes',
                                  '-y','-qq','install',package])
 

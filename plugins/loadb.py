@@ -1,91 +1,61 @@
 # -*- coding:utf-8 -*-
 
-#####################################################
-# 3th party
-#####################################################
-
-"""
-    Copyright (C) 2008 Benjamin O'Steen
-
-    This file is part of python-fedoracommons.
-
-    python-fedoracommons is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    python-fedoracommons is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with python-fedoracommons.  If not, see <http://www.gnu.org/licenses/>.
-"""
-
-__license__ = 'GPL http://www.gnu.org/licenses/gpl.txt'
-__author__ = "Benjamin O'Steen <bosteen@gmail.com>"
-__version__ = '0.1'
-
 import httplib2
 import urlparse
 import urllib
 
-class Connection:
-	def __init__(self, base_url, username=None, password=None):
-		self.base_url = base_url
-		self.username = username
+class HTTPConnection:
+    def __init__(self, base_url, username=None, password=None):
+        self.base_url = base_url
+        self.username = username
 
-		self.url = urlparse.urlparse(base_url)
+        self.url = urlparse.urlparse(base_url)
+        (scheme, netloc, path, query, fragment) = urlparse.urlsplit(base_url)
 
-		(scheme, netloc, path, query, fragment) = urlparse.urlsplit(base_url)
+        self.scheme = scheme
+        self.host = netloc
+        self.path = path
 
-		self.scheme = scheme
-		self.host = netloc
-		self.path = path
+        self.h = httplib2.Http(".cache")
+        self.h.follow_all_redirects = True
+        if username and password:
+            self.h.add_credentials(username, password)
 
-		self.h = httplib2.Http(".cache")
-		self.h.follow_all_redirects = True
-		if username and password:
-			self.h.add_credentials(username, password)
+    def request_get(self, resource, args = None, headers={}):
+        return self.request(resource, "get", args, headers=headers)
 
-	def request_get(self, resource, args = None, headers={}):
-		return self.request(resource, "get", args, headers=headers)
+    def request_delete(self, resource, args = None, headers={}):
+        return self.request(resource, "delete", args, headers=headers)
 
-	def request_delete(self, resource, args = None, headers={}):
-		return self.request(resource, "delete", args, headers=headers)
+    def request_head(self, resource, args = None, headers={}):
+        return self.request(resource, "head", args, headers=headers)
 
-	def request_head(self, resource, args = None, headers={}):
-		return self.request(resource, "head", args, headers=headers)
+    def request_post(self, resource, args = None, body = None, headers={}):
+        return self.request(resource, "post", args , body = body, headers=headers)
 
-	def request_post(self, resource, args = None, body = None, headers={}):
-		return self.request(resource, "post", args , body = body, headers=headers)
+    def request_put(self, resource, args = None, body = None, headers={}):
+        return self.request(resource, "put", args , body = body, headers=headers)
 
-	def request_put(self, resource, args = None, body = None, headers={}):
-		return self.request(resource, "put", args , body = body, headers=headers)
+    def request(self, resource, method = "get", args = None, body = None, headers={}):
+        path = resource
+        headers['User-Agent'] = 'Basic Agent'
+        headers['Content-Type']='application/json'
 
-	def request(self, resource, method = "get", args = None, body = None, headers={}):
-		params = None
-		path = resource
-		headers['User-Agent'] = 'Basic Agent'
-		headers['Content-Type']='application/json'
+        if args: path += u"?" + urllib.urlencode(args)
 
-		if args:
-			path += u"?" + urllib.urlencode(args)
+        request_path = []
+        if self.path != "/":
+            if self.path.endswith('/'):
+                request_path.append(self.path[:-1])
+            else:
+                request_path.append(self.path)
+            if path.startswith('/'):
+                request_path.append(path[1:])
+            else:
+                request_path.append(path)
 
-		request_path = []
-		if self.path != "/":
-			if self.path.endswith('/'):
-				request_path.append(self.path[:-1])
-			else:
-				request_path.append(self.path)
-			if path.startswith('/'):
-				request_path.append(path[1:])
-			else:
-				request_path.append(path)
-
-		resp, content = self.h.request(u"%s://%s%s" % (self.scheme, self.host, u'/'.join(request_path)), method.upper(), body=body, headers=headers )
-		return {u'headers':resp, u'body':content.decode('UTF-8')}
+        resp, content = self.h.request(u"%s://%s%s" % (self.scheme, self.host, u'/'.join(request_path)), method.upper(), body=body, headers=headers )
+        return {u'headers':resp, u'body':content.decode('UTF-8')}
 
 
 from ecmplugin import ECMPlugin
@@ -93,97 +63,117 @@ import simplejson as json
 import inspect
 
 class ECMLoadb(ECMPlugin):
-	def __init__(self, *argv, **kwargs):
-		url			= kwargs.get('url',     None)
-		username	= kwargs.get('username','admin')
-		password	= kwargs.get('password',None)
+    def __init__(self, *argv, **kwargs):
+        url      = kwargs.get('url',     None)
+        username = kwargs.get('username','admin')
+        password = kwargs.get('password',None)
 
-		# Make connection (but not for run())
-		if not 'run()' in str(inspect.stack()[1][4]):
-			self.conn = self._connect(url,username,password)
+        # Make connection (but not for run())
+        if not 'run()' in str(inspect.stack()[1][4]):
+            self.conn = self._connect(url,username,password)
 
-	def cmd_loadb_info(self, *argv, **kwargs):
-		retval = self._get_resource('GET','/')
-		return self._return(retval)
+    def cmd_loadb_info(self, *argv, **kwargs):
+        retval = self._get_resource('GET','/')
 
-	def cmd_loadb_service_add(self, *argv, **kwargs):
-		service_id		= kwargs.get('service_id',  None)
-		service_ip		= kwargs.get('service_ip',  None)
-		service_port	= kwargs.get('service_port',None)
+        return self._return(retval)
 
-		if not (service_id and service_ip and service_port):
-			raise Exception("Invalid parameters")
+    def cmd_loadb_service_info(self, *argv, **kwargs):
+        service_id = kwargs.get('service_id',  None)
+            
+        if not service_id: raise Exception("Invalid parameters")
+        loadb_info = self.cmd_loadb_info()
+        # TODO: filter it
 
-		data = {'ip':service_ip,'port':service_port}
-		retval = self._get_resource('POST','/service/' + service_id + '/',data)
-		return self._return(retval)
+    def cmd_loadb_service_add(self, *argv, **kwargs):
+        service_id   = kwargs.get('service_id',  None)
+        service_ip   = kwargs.get('service_ip',  None)
+        service_port = kwargs.get('service_port',None)
 
-	def cmd_loadb_service_delete(self, *argv, **kwargs):
-		service_id		= kwargs.get('service_id',None)
+        if not (service_id and service_ip and service_port):
+            raise Exception("Invalid parameters")
 
-		if not service_id:
-			raise Exception("Invalid parameters")
+        data = {'ip':service_ip,'port':service_port}
+        retval = self._get_resource('POST','/service/' + service_id + '/',data)
 
-		retval = self._get_resource('DELETE','/service/' + service_id + '/')
-		return self._return(retval)
+        return self._return(retval)
 
-	def cmd_loadb_node_add(self, *argv, **kwargs):
-		service_id	= kwargs.get('service_id',None)
-		node_id		= kwargs.get('node_id',   None)
-		node_ip		= kwargs.get('node_ip',   None)
-		node_port	= kwargs.get('node_port', None)
+    def cmd_loadb_service_delete(self, *argv, **kwargs):
+        service_id = kwargs.get('service_id',None)
 
-		if not (service_id and node_id and node_ip and node_port):
-			raise Exception("Invalid parameters")
+        if not service_id:
+            raise Exception("Invalid parameters")
 
-		data = {'ip':node_ip,'port':node_port}
-		retval = self._get_resource('POST','/service/' + service_id + '/' + node_id + '/',data)
-		return self._return(retval)
+        retval = self._get_resource('DELETE','/service/' + service_id + '/')
 
-	def cmd_loadb_node_delete(self, *argv, **kwargs):
-		service_id	= kwargs.get('service_id',None)
-		node_id		= kwargs.get('node_id',   None)
+        return self._return(retval)
 
-		if not (node_id and service_id):
-			raise Exception("Invalid parameters")
+    def cmd_loadb_node_info(self, *argv, **kwargs):
+        node_id = kwargs.get('node_id',   None)
 
-		retval = self._get_resource('DELETE','/service/' + service_id + '/' + node_id + '/')
-		return self._return(retval)
+        if not node_id: raise Exception("Invalid parameters")
 
-	def _connect(self,url,user,password):
-		try:
-			# connect and test get info
-			conn = Connection(url,user,password)
-			conn.cmd_loadb_info()
-			return conn
-		except:
-			raise Exception("Unable to connect to %s" % url)
+        loadb_info = self.cmd_loadb_info()
+        # TODO: filter it
 
-	def _get_resource(self,method,resource,data = None):
-		retval = None
-		if method == 'GET':
-			retval = self.conn.request_get(resource)
-		elif method == 'DELETE':
-			retval = self.conn.request_delete(resource)
-		elif method == 'POST':
-			data = json.dumps(data)
-			retval = self.conn.request_post(resource,body=data)
-		else:
-			raise Exception("Invalid method requested")
+    def cmd_loadb_node_add(self, *argv, **kwargs):
+        service_id = kwargs.get('service_id',None)
+        node_id    = kwargs.get('node_id',   None)
+        node_ip    = kwargs.get('node_ip',   None)
+        node_port  = kwargs.get('node_port', None)
 
-		return retval
+        if not (service_id and node_id and node_ip and node_port):
+            raise Exception("Invalid parameters")
 
-	def _return(self,body):
-		retval = 'Unknown'
-		try:
-			retval = body['body']
-			retval = json.loads(retval)
-			if retval['status'] == 200:
-				return retval['message']
-			else:
-				raise Exception("Error: %s" % retval['message'])
-		except:
-			raise Exception("Unknown response error: %s" % retval)
+        data = {'ip':node_ip,'port':node_port}
+        retval = self._get_resource('POST','/service/' + service_id + '/' + node_id + '/',data)
+
+        return self._return(retval)
+
+    def cmd_loadb_node_delete(self, *argv, **kwargs):
+        service_id = kwargs.get('service_id',None)
+        node_id    = kwargs.get('node_id',   None)
+
+        if not (node_id and service_id):
+            raise Exception("Invalid parameters")
+
+        retval = self._get_resource('DELETE','/service/' + service_id + '/' + node_id + '/')
+
+        return self._return(retval)
+
+    def _connect(self,url,user,password):
+        try:
+            # connect and test get info
+            conn = HTTPConnection(url,user,password)
+            conn.cmd_loadb_info()
+            return conn
+        except:
+            raise Exception("Unable to connect to %s" % url)
+
+    def _get_resource(self,method,resource,data = None):
+        retval = None
+        if method == 'GET':
+            retval = self.conn.request_get(resource)
+        elif method == 'DELETE':
+            retval = self.conn.request_delete(resource)
+        elif method == 'POST':
+            data = json.dumps(data)
+            retval = self.conn.request_post(resource,body=data)
+        else:
+            raise Exception("Invalid method requested")
+
+        return retval
+
+    def _return(self,body):
+        retval = 'Unknown'
+        try:
+            retval = body['body']
+            retval = json.loads(retval)
+            if retval['status'] == 200:
+                return retval['message']
+            else:
+                raise Exception("Error: %s" % retval['message'])
+        except:
+            raise Exception("Unknown response error: %s" % retval)
 
 ECMLoadb().run()
 
@@ -196,5 +186,5 @@ ECMLoadb().run()
 #print test.cmd_loadb_service_delete(service_id = 'www2')
 #test_info_post = test.cmd_loadb_info()
 #if test_info_pre == test_info_post:
-#	print "OK: \n%s" % test_info_post
+#    print "OK: \n%s" % test_info_post
 

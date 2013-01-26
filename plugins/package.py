@@ -1,9 +1,10 @@
 # -*- coding:utf-8 -*-
 
-from ecmplugin import ECMPlugin
-
 import re
-import base64
+
+#####################################################
+# 3th party - From  python-debian package project
+#####################################################
 
 class PkgRelation(object):
     """ From  python-debian package project
@@ -59,6 +60,9 @@ class PkgRelation(object):
         cnf = map(cls.__pipe_sep_RE.split, tl_deps)
         return [[parse_rel(or_dep) for or_dep in or_deps] for or_deps in cnf]
 
+
+from ecmplugin import ECMPlugin
+import base64
 
 class ECMPackage(ECMPlugin):
     def cmd_packages_install(self, *argv, **kwargs):
