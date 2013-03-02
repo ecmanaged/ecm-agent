@@ -25,11 +25,17 @@ except:
 
 class ECMSource(ECMPlugin):
     def cmd_source_run(self, *argv, **kwargs):
-        self.path   = kwargs.get('path',None)
-        self.source = kwargs.get('source',None)
-        self.envars = kwargs.get('envars',None)
-        self.user   = kwargs.get('username',None)
-        self.passwd = kwargs.get('password',None)
+        self.path           = kwargs.get('path',None)
+        self.source         = kwargs.get('source',None)
+
+        self.envars         = kwargs.get('envars',None)
+
+        self.user           = kwargs.get('username',None)
+        self.passwd         = kwargs.get('password',None)
+        self.private_key    = kwargs.get('private_key',None)
+
+        self.chown_user     = kwargs.get('chown_user',None)
+        self.chown_group    = kwargs.get('chown_group',None)
 
         if (not self.path or not self.source):
             raise Exception("Invalid parameters")
@@ -45,11 +51,14 @@ class ECMSource(ECMPlugin):
         elif type and type.upper() == 'SVN':
             source = Svn(self.path)
 
-        else:
-            raise Exception("Unknown source")
+        else: raise Exception("Unknown source")
 
-        retval = source.clone(url=self.source, envars=self.envars,\
-                              username=self.user, password=self.passwd)
+        retval = source.clone(url=self.source, envars=self.envars, \
+            username=self.user, password=self.passwd, private_key=self.private_key)
+
+        # Chown to specified user/group
+        if self.chown_user and self.chown_group and os.path.isdir(self.path):
+            self._chown(self.path,self.chown_user,self.chown_group)
 
         return self._return(retval)
 
@@ -115,7 +124,7 @@ class Git(object):
             except IndexError:
                 raise Exception("Unable to find git on path")
 
-    def clone(self, url, envars, username, password):
+    def clone(self, url, envars, username, password, private_key):
 
         command = self.git_cmd + " clone --quiet --verbose '" + url + "' ."
 
@@ -157,7 +166,7 @@ class Svn(object):
             except IndexError:
                 raise Exception("Unable to find svn on path")
 
-    def clone(self, url, envars, username, password):
+    def clone(self, url, envars, username, password, private_key):
 
         # Add username and password to url
         if username and password:
@@ -188,7 +197,7 @@ class File:
         deploy = Deploy(self.working_dir)
         self.old_dir = deploy.rotate()
 
-    def clone(self, envars, url, username, password):
+    def clone(self, envars, url, username, password, private_key):
 
         # Add username and password to url
         if username and password:
@@ -240,9 +249,12 @@ class File:
 
             # if first member is dir, skip 1st container path
             is_packed = None
-            members = cfile.getmembers()
-            if members[0].isdir():
-                is_packed = members[0].name
+            if(file_type == 'zip'):
+                members = cfile.namelist()
+            else:
+                members = cfile.getmembers()
+                if members[0].isdir():
+                    is_packed = members[0].name
 
             stdout = ''
             if is_packed:
@@ -254,6 +266,10 @@ class File:
                     stdout +=  "Extracted " + member.name + "\n"
                     cfile.extract(member,self.working_dir)
             else:
+                for member in members:
+                    if(file_type == 'zip'): member_name = member
+                    else: member_name = member.name
+                    stdout +=  "Extracted " + member_name + "\n"
                 cfile.extractall(self.working_dir)
             cfile.close()
 

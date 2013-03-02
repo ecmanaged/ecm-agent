@@ -56,6 +56,37 @@ class ECMCommon():
 
         return file
 
+    def _chown(self, path, user, group, recursive = True):
+        try:
+            from pwd import getpwnam
+            from grp import getgrnam
+
+            uid = 0
+            gid = 0
+            try: uid = getpwnam(user)[2]
+            except KeyError: pass
+
+            try: gid = getgrnam(group)[2]
+            except KeyError: pass
+
+            if recursive:
+                # Recursive chown
+                if not os.path.isdir(path):
+                    return False
+
+                for root, dirs, files in os.walk(path):
+                    os.chown(os.path.join(path, root), uid, gid)
+                    for f in files:
+                        os.chown(os.path.join(path, root, f), uid, gid)
+            else:
+                # Just file or path
+                os.chown(path, uid, gid)
+
+        except:
+            return False
+
+        return True
+
     def _install_package(self,package,update = True):
         """ Try to install package
         """
