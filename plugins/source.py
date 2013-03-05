@@ -199,16 +199,14 @@ class File:
 
     def clone(self, envars, url, username, password, private_key):
 
-        # Add username and password to url
-        if username and password:
-            url = url.replace('://','://' + username + ':' + password + '@')
-
         file_name = 'downloaded.file'
         tmp_dir = mkdtemp()
 
         file_downloaded = self._download_file(
             url = url,
-            file = tmp_dir + '/' + file_name
+            file = tmp_dir + '/' + file_name,
+            user = username,
+            passwd = password
         )
 
         if file_downloaded:
@@ -298,8 +296,18 @@ class File:
                     return filetype
         return False
 
-    def _download_file(self, url, file):
+    def _download_file(self, url, file, user = None, passwd=None):
         try:
+            if user and passwd:
+                password_manager = urllib2.HTTPPasswordMgrWithDefaultRealm()
+                password_manager.add_password(None, url, user, passwd)
+
+                auth_manager = urllib2.HTTPBasicAuthHandler(password_manager)
+                opener = urllib2.build_opener(auth_manager)
+
+                # ...and install it globally so it can be used with urlopen.
+                urllib2.install_opener(opener)
+
             req = urllib2.urlopen(url.replace("'",""))
             CHUNK = 256 * 10240
             with open(file, 'wb') as fp:
