@@ -1,7 +1,8 @@
+# -*- coding:utf-8 -*-
 
 #Twisted
 from twisted.internet.defer import (inlineCallbacks, returnValue,
-        succeed, Deferred)
+                                    succeed, Deferred)
 from twisted.web.client import getPage
 from twisted.internet import reactor
 from twisted.internet.protocol import ProcessProtocol
@@ -26,7 +27,7 @@ import dmidecode
 
 class SMConfigObj(ConfigObj):
     """
-    A simple wrapper for ConfigObj that will check the UUID and try to
+    A simple wrapper for ConfigObj that will check the MAC and try to
     reconfigure if it has changed before launching the agent.
     """
     def __init__(self, filename):
@@ -34,18 +35,39 @@ class SMConfigObj(ConfigObj):
 
     @inlineCallbacks
     def checkUUID(self):
-        uuid = yield self._getUUID()
-        if uuid:
-            if uuid == self._getStoredUUID():
-                l.debug("UUID has not changed.")
+        mac = getnode()
+        if mac:
+            if str(mac) == str(self._getStoredMAC()):
+                l.debug("MAC has not changed. Skip UUID check")
             else:
-                l.info("UUID has changed, reconfiguring XMPP user/pass")
-                self['XMPP']['user'] = '@'.join((uuid, self['XMPP']['host']))
-                self['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
-                self.write()
+                uuid = yield self._getUUID()
+                if uuid:
+                    if str(uuid) == str(self._getStoredUUID()):
+                        l.debug("UUID has not changed.")
+
+                        # Update mac
+                        self['XMPP']['mac'] = mac
+                        self.write()
+
+                    else:
+                        l.info("UUID has changed, reconfiguring XMPP user/pass")
+                        self['XMPP']['user'] = '@'.join((uuid, self['XMPP']['host']))
+
+                        # try to use old password
+                        if not self['XMPP']['password']:
+                            self['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
+
+                        self['XMPP']['mac'] = mac
+                        self.write()
+
+                else:
+                    l.error("ERROR: Could not obtain UUID. please set up XMPP manually in %s" % self.filename)
+                    returnValue(False)
+
             returnValue(True)
+
         else:
-            l.error("ERROR: Could not obtain UUID, please set up XMPP manually in %s" % self.filename)
+            l.error("ERROR: Could not obtain MAC. please set up XMPP manually in %s" % self.filename)
             returnValue(False)
 
     def _getUUID(self):
@@ -76,18 +98,12 @@ class SMConfigObj(ConfigObj):
             if line and line.startswith('uuid:'):
                 returnValue(line.split(':')[1])
 
-        retr = yield getPage(
-               "http://169.254.169.254/latest/meta-data/instance-id")
-        for line in retr.splitlines():
-            if line and line.startswith('i-'):
-                returnValue(hashlib.sha1("%s:1" % (line)).hexdigest())
-
         returnValue('')
 
     def _getUUIDViaCommand(self):
         # using direct binary access
         exit_code, stdout, stderr = yield self._run("dmidecode",
-                                                "-s system-uuid")
+                                                    "-s system-uuid")
 
         match = re.match('^([\d|\w|\-]{30,50})$', stdout)
         if match and match.group(1):
@@ -97,6 +113,9 @@ class SMConfigObj(ConfigObj):
 
     def _getStoredUUID(self):
         return self['XMPP']['user'].split('@')[0]
+
+    def _getStoredMAC(self):
+        return self['XMPP']['mac']
 
     def _run(self, command, args):
         spp = SimpleProcessProtocol()
@@ -144,3 +163,4 @@ class SimpleProcessProtocol(ProcessProtocol):
         d = Deferred()
         self.deferreds.append(d)
         return d
+

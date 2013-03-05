@@ -4,9 +4,9 @@
 import sys
 sys.path.append(".")
 
-from sys import exit
 import random
 from os.path import join, dirname
+from uuid import getnode
 
 #Local
 from configobj import ConfigObj
@@ -32,6 +32,7 @@ except:
 
 config['XMPP']['user'] = '%s@%s' % (uuid, config['XMPP']['host'])
 config['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
+config['XMPP']['mac'] = str(getnode)
 config['XMPP']['manual'] = True
 
 config.write()
