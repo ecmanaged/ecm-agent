@@ -1,3 +1,5 @@
+# -*- coding:utf-8 -*-
+
 #Twisted
 from twisted.words.protocols.jabber import client, jid, xmlstream
 from twisted.words.xish.domish import Element

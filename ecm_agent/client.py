@@ -1,10 +1,7 @@
-#!/usr/bin/env python
+# -*- coding:utf-8 -*-
 
 #Twisted
-from twisted.internet import reactor
-from twisted.internet.task import LoopingCall
-from twisted.internet.defer import (Deferred,
-        maybeDeferred, DeferredSemaphore, fail, TimeoutError)
+from twisted.internet.defer import DeferredSemaphore
 from twisted.words.xish.domish import Element
 
 #Python
@@ -12,7 +9,6 @@ import logging as l
 
 #Local
 from core import BasicClient
-
 
 class Client(BasicClient):
     def __init__(self, config, observers, resource='XMPPClient'):

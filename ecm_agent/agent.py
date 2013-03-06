@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 
 #Twisted
 from twisted.internet.defer import Deferred

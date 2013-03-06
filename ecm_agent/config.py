@@ -1,8 +1,7 @@
 # -*- coding:utf-8 -*-
 
 #Twisted
-from twisted.internet.defer import (inlineCallbacks, returnValue,
-                                    succeed, Deferred)
+from twisted.internet.defer import (inlineCallbacks, returnValue, Deferred)
 from twisted.web.client import getPage
 from twisted.internet import reactor
 from twisted.internet.protocol import ProcessProtocol
@@ -13,11 +12,8 @@ import ecm_agent.twlogging as l
 
 #Python
 from uuid import getnode
+from time import sleep
 import random
-import sys
-import urllib
-import hashlib
-import os
 import re
 
 #External
@@ -40,29 +36,35 @@ class SMConfigObj(ConfigObj):
             if str(mac) == str(self._getStoredMAC()):
                 l.debug("MAC has not changed. Skip UUID check")
             else:
-                uuid = yield self._getUUID()
-                if uuid:
-                    if str(uuid) == str(self._getStoredUUID()):
-                        l.debug("UUID has not changed.")
-
-                        # Update mac
-                        self['XMPP']['mac'] = mac
-                        self.write()
-
-                    else:
-                        l.info("UUID has changed, reconfiguring XMPP user/pass")
-                        self['XMPP']['user'] = '@'.join((uuid, self['XMPP']['host']))
-
-                        # try to use old password
-                        if not self['XMPP']['password']:
-                            self['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
-
-                        self['XMPP']['mac'] = mac
-                        self.write()
+                # Try to get uuid
+                for i in range(30):
+                    try:
+                        uuid = yield self._getUUID()
+                        if uuid: break
+                    except: pass
+                    sleep(20)
 
                 else:
                     l.error("ERROR: Could not obtain UUID. please set up XMPP manually in %s" % self.filename)
                     returnValue(False)
+
+                if str(uuid) == str(self._getStoredUUID()):
+                    l.debug("UUID has not changed.")
+
+                    # Update mac
+                    self['XMPP']['mac'] = mac
+                    self.write()
+
+                else:
+                    l.info("UUID has changed, reconfiguring XMPP user/pass")
+                    self['XMPP']['user'] = '@'.join((uuid, self['XMPP']['host']))
+
+                    # try to use old password
+                    if not self['XMPP']['password']:
+                        self['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
+
+                    self['XMPP']['mac'] = mac
+                    self.write()
 
             returnValue(True)
 
@@ -75,29 +77,28 @@ class SMConfigObj(ConfigObj):
             l.info("Skipping UUID auto configuration as manual flag is set.")
             return self['XMPP']['user'].split('@')[0]
         else:
-            # try to get UUID using dmidecode
+            # Try to configure via URL (ECM meta-data)
+            retr = self._getUUIDViaWeb()
+            if retr: return retr
+
+            l.info("try to get UUID using dmidecode")
             for v in dmidecode.QuerySection('system').values():
                 if type(v) == dict and v['dmi_type'] == 1:
                     if (v['data']['UUID']):
                         return str((v['data']['UUID'])).lower()
 
-            # Try to configure via URL
-            for i in range(20):
-                # Try to get via web (EC2 or ECM)
-                retr = self._getUUIDViaWeb()
-                if retr: return retr
-
-            # Try by dmidecode command
+            l.info("Try by dmidecode command");
             return self._getUUIDViaCommand()
 
     @inlineCallbacks
     def _getUUIDViaWeb(self):
+        #try:
         retr = yield getPage(
             "https://my.ecmanaged.com/agent/meta-data/uuid")
         for line in retr.splitlines():
             if line and line.startswith('uuid:'):
                 returnValue(line.split(':')[1])
-
+            #except: pass
         returnValue('')
 
     def _getUUIDViaCommand(self):

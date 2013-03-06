@@ -1,3 +1,5 @@
+# -*- coding:utf-8 -*-
+
 #Twisted
 from twisted.python import log
 from twisted.python.logfile import LogFile
@@ -6,7 +8,6 @@ from twisted.python.logfile import LogFile
 from os.path import split, exists
 from os import makedirs
 from sys import modules
-
 
 def setup(app, config):
     loglevels = [ 
