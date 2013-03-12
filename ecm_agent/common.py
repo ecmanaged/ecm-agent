@@ -118,3 +118,5 @@ class ECMCommon():
         except:
             raise Exception("Error installing %s" % package)
 
+    def _log_add(self,string,string2):
+        return str(string) + '[' + str(time()) + '] ' + str(string2)
