@@ -5,6 +5,7 @@ import platform
 import urllib2
 
 from subprocess import call
+from time import time
 
 class ECMCommon():
     def _file_write(self,file,content=None):
@@ -118,5 +119,6 @@ class ECMCommon():
         except:
             raise Exception("Error installing %s" % package)
 
-    def _log_add(self,string,string2):
-        return str(string) + '[' + str(time()) + '] ' + str(string2)
+    def _output(self,string):
+        return '[' + str(time()) + '] ' + str(string) + "\n"
+

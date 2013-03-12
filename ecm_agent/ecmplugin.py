@@ -5,7 +5,7 @@ from sys import argv, exit, exc_info, stdin, stdout, stderr
 import inspect
 import simplejson as json
 
-from common import ECMCommon
+from ecmcommon import ECMCommon
 
 E_RUNNING_COMMAND = 253
 E_COMMAND_NOT_DEFINED = 252

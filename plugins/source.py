@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 
 from ecmplugin import ECMPlugin
+from ecmcommon import ECMCommon
 
 from subprocess import Popen, PIPE
 from shlex import split
@@ -75,7 +76,7 @@ class ECMSource(ECMPlugin):
 
         return output
 
-class Deploy(object):
+class Deploy(ECMCommon):
     def __init__(self, working_dir):
         self.working_dir = os.path.abspath(working_dir)
 
@@ -105,7 +106,7 @@ class Deploy(object):
         return str_time
 
 
-class Git(object):
+class Git(ECMCommon):
     def __init__(self, working_dir = None):
         if not working_dir:
             raise Exception("Invalid path")
@@ -140,14 +141,14 @@ class Git(object):
         result_exec = Aux().myexec(command,path=self.working_dir,envars=envars)
         extra_msg = ''
         if not result_exec['status']:
-            extra_msg = "Source deployed successfully to '%s'\n" % self.working_dir
+            extra_msg = self._output("Source deployed successfully to '%s'" % self.working_dir)
             if self.old_dir:
-                extra_msg += "Old source files moved to '%s'\n" % self.old_dir
+                extra_msg += self._output("Old source files moved to '%s'" % self.old_dir)
             result_exec['stdout'] = extra_msg
 
         return result_exec
 
-class Svn(object):
+class Svn(ECMCommon):
     def __init__(self, working_dir = None):
         if not working_dir:
             raise Exception("Invalid path")
@@ -177,9 +178,9 @@ class Svn(object):
         result_exec = Aux().myexec(command,path=self.working_dir,envars=envars)
 
         if not result_exec['status']:
-            extra_msg = "Source deployed successfully to '%s'\n" % self.working_dir
+            extra_msg = self._output("Source deployed successfully to '%s'" % self.working_dir)
             if self.old_dir:
-                extra_msg += "Old source files moved to '%s'\n" % self.old_dir
+                extra_msg += self._output("Old source files moved to '%s'" % self.old_dir)
             if result_exec['stdout']:
                 result_exec['stdout'] = extra_msg + result_exec['stdout']
             else:
@@ -187,7 +188,7 @@ class Svn(object):
 
         return result_exec
 
-class File:
+class File(ECMCommon):
     def __init__(self,working_dir = None):
         if not working_dir:
             raise Exception("Invalid path")
@@ -214,9 +215,10 @@ class File:
             if extract:
                 extract['head'] = ''
                 if extract.get('stdout',None):
-                    extract['head']  = "Source deployed successfully to '%s'\n" % self.working_dir
+                    extract['head'] = self._output("Source deployed successfully to '%s'" % self.working_dir)
+
                 if extract.get('stdout',None) and self.old_dir:
-                    extract['head'] += "Old source files moved to '%s'\n" % self.old_dir
+                    extract['head'] += self._output("Old source files moved to '%s'" % self.old_dir)
 
         else:
             rmtree(tmp_dir, ignore_errors = True)

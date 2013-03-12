@@ -34,7 +34,7 @@ class ECMConfigfile(ECMPlugin):
             if os.path.isfile(configfile_path):
                 new_file = configfile_path + '_rotated_' + self._utime()
                 move(configfile_path,new_file)
-                ret['stdout'] = self._log_add(ret['stdout'],"Old configfile moved to '%s'\n" % new_file)
+                ret['stdout'] = self._output("Old configfile moved to '%s'" % new_file)
 
             # create working dir if not exists
             working_dir = os.path.abspath(os.path.join(configfile_path, os.pardir))
@@ -44,7 +44,7 @@ class ECMConfigfile(ECMPlugin):
             fh = open(configfile_path, "wb")
             fh.write(b64decode(configfile_base64))
             fh.close()
-            ret['stdout'] = self._log_add(ret['stdout'],"Configfile created successfully at '%s'\n" %configfile_path)
+            ret['stdout'] += self._output("Configfile created successfully at '%s'" %configfile_path)
 
         except Exception as e:
             raise Exception("Unable to write configfile: %s" %e)
@@ -53,7 +53,7 @@ class ECMConfigfile(ECMPlugin):
             # Chown to specified user/group
             if configfile_chown_user and configfile_chown_group and os.path.isfile(configfile_path):
                 self._chown(configfile_path,configfile_chown_user,configfile_chown_group)
-                ret['stdout'] = self._log_add(ret['stdout'],"Configfile owner changed to '%s':'%s'\n" %(configfile_chown_user,configfile_chown_group))
+                ret['stdout'] += self._output("Configfile owner changed to '%s':'%s'" %(configfile_chown_user,configfile_chown_group))
 
         except Exception as e:
             raise Exception("Unable to change owner for configfile: %s" %e)
@@ -65,7 +65,7 @@ class ECMConfigfile(ECMPlugin):
 
         if cmd:
             # Execute but don't try/catch to get real error
-            ret['stdout'] = self._log_add(ret['stdout'],"Executing command: %s\n\n" %(configfile_command))
+            ret['stdout'] += self._output("Executing command: %s" %(configfile_command))
             if(configfile_runas):
                 p = Popen(['su', configfile_runas],
                           stdin=PIPE, stdout=PIPE, stderr=PIPE, cwd=working_dir)
