@@ -11,10 +11,11 @@ from shutil import rmtree
 from os import chmod, environ
 
 import simplejson as json
-import stat
 
 class ECMScript(ECMPlugin):
     def cmd_script_run(self, *argv, **kwargs):
+        """script.run script(b64) extension envars runas executable"""
+
         script_base64       = kwargs.get('script',None)
         script_extension    = kwargs.get('extension',None)
         script_envars       = kwargs.get('envars',None)
@@ -38,17 +39,6 @@ class ECMScript(ECMPlugin):
         except:
             raise Exception("Unable to decode script")
 
-        cmd = []
-        if script_executable:
-        # Add executable to command
-            cmd = split(script_executable)
-        else:
-            # Set as executable by owner if not explicit executable
-            chmod(tmp_file,0700)
-
-        # Add temp file as last argument (or first if not executable)
-        cmd.append(tmp_file)
-
         # Set environment variables before execution
         try:
             if script_envars:
@@ -60,21 +50,14 @@ class ECMScript(ECMPlugin):
 
         except: pass
 
-        # Execute but don't try/catch to get real error
-        if(script_runas):
-            # Change owner and execute
-            self._chown(path=tmp_dir,user=script_runas,group='root',recursive=True)
-            p = Popen(['su', script_runas],
-                      stdin=PIPE, stdout=PIPE, stderr=PIPE, cwd=tmp_dir)
-            stdout, stderr = p.communicate(' '.join(cmd))
-
+        if script_executable:
+            cmd = script_executable + ' ' + tmp_file
+            out, stdout, stderr = self._execute_command(cmd, runas=script_runas, workdir=tmp_dir)
         else:
-            p = Popen(cmd,
-                      stdin=PIPE, stdout=PIPE, stderr=PIPE, cwd=tmp_dir)
-            stdout, stderr = p.communicate()
+            out, stdout, stderr = self._execute_file(tmp_file, runas=script_runas, workdir = tmp_dir)
 
         ret = {}
-        ret['out'] = p.wait()
+        ret['out'] = out
         ret['stdout'] = str(stdout)
         ret['stderr']  = str(stderr)
 

@@ -6,15 +6,12 @@ import os, platform, psutil
 import simplejson as json
 import base64
 
-from subprocess import call
+from subprocess import call, PIPE
 
 DIR = '/etc/ecmanaged'
 ENV_FILE = DIR + '/ecm_env'
 
-# :TODO: Move to config
-PROTECTED_FILES = [
-    '/etc/shadow',
-    ]
+
 
 class ECMBase(ECMPlugin):
     def cmd_agent_ping(self, *argv, **kwargs):
@@ -40,29 +37,6 @@ class ECMBase(ECMPlugin):
 
         except:
             raise Exception('Unable to write environment file')
-
-    def cmd_file_cat(self, *argv, **kwargs):
-        file = kwargs.get('file',None)
-        if not file:
-            raise Exception('Invalid arguments')
-
-        file = os.path.abspath(file)
-
-        if not os.path.exists(file):
-            raise Exception('File not found')
-
-        # don't cat protected files
-        if file in PROTECTED_FILES:
-            raise Exception('Not allowed')
-
-        try:
-            file = open(file,"r")
-            filecontent = file.read()
-            file.close()
-            return(filecontent)
-
-        except:
-            raise Exception('Unable to read file')
 
     def cmd_system_hostname(self, *argv, **kwargs):
         return platform.node()
@@ -96,7 +70,6 @@ class ECMBase(ECMPlugin):
 
     def cmd_system_uptime(self, *argv, **kwargs):
         'Server uptime'
-
         try:
             f = open('/proc/stat', 'r')
             for line in f:
@@ -172,23 +145,14 @@ class ECMBase(ECMPlugin):
                 value = float(n) / prefix[s]
                 return '%.1f%s' % (value, s)
 
-    def aux_reniceme(self, nice):
-        if nice and self.is_number(nice):
-            try:
-                retr=os.nice(int(nice))
-                return(0)
-            except:
-                return(1)
-        else:
-            return(1)
-
     def cmd_command_exists(self, *argv, **kwargs):
-
         command = kwargs.get('command',None)
         if not command: raise Exception("Invalid params")
 
-        return call(['type', command],
-                    stdout=PIPE, stderr=PIPE) == 0
+        cmd = 'type ' + command
+        out,stdout,stderr = self._execute_command(cmd)
+
+        return (out == 0)
 
 ECMBase().run()
 

@@ -5,7 +5,9 @@ import platform
 import urllib2
 
 from subprocess import call
+from subprocess import Popen, PIPE
 from time import time
+from shlex import split
 
 class ECMCommon():
     def _file_write(self,file,content=None):
@@ -118,6 +120,68 @@ class ECMCommon():
 
         except:
             raise Exception("Error installing %s" % package)
+
+    def _execute_command(self, command, runas=None, workdir = None):
+        cmd = split(command)
+
+        try:
+            if(runas):
+                p = Popen(['su', runas],
+                          stdin=PIPE, stdout=PIPE, stderr=PIPE, cwd=workdir)
+                stdout, stderr = p.communicate(' '.join(cmd))
+
+            else:
+                p = Popen(cmd,
+                          stdin=PIPE, stdout=PIPE, stderr=PIPE, cwd=workdir)
+                stdout, stderr = p.communicate()
+
+            return p.wait(),stdout,stderr
+
+        except Exception as e:
+            return 255,'',e
+
+    def _execute_file(self, file, runas=None, workdir = None):
+        cmd = []
+        cmd.append(file)
+
+        # set executable flag to file
+        os.chmod(file,0700)
+
+        try:
+            if(runas):
+                # Change owner and execute
+                self._chown(path=file,user=runas,group='root',recursive=True)
+                p = Popen(['su', runas],
+                          stdin=PIPE, stdout=PIPE, stderr=PIPE, cwd=workdir)
+                stdout, stderr = p.communicate(' '.join(cmd))
+
+            else:
+                p = Popen(cmd,
+                          stdin=PIPE, stdout=PIPE, stderr=PIPE, cwd=workdir)
+                stdout, stderr = p.communicate()
+
+            return p.wait(),stdout,stderr
+
+        except Exception as e:
+            return 255,'',e
+
+    def _renice_me(self, nice):
+        if nice and self.is_number(nice):
+            try:
+                os.nice(int(nice))
+                return(0)
+
+            except:
+                return(1)
+        else:
+            return(1)
+
+    def is_number(self,s):
+        try:
+            float(s)
+            return True
+        except ValueError:
+            return False
 
     def _output(self,string):
         return '[' + str(time()) + '] ' + str(string) + "\n"
