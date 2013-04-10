@@ -12,14 +12,14 @@ from shlex import split
 class ECMCommon():
     def _file_write(self,file,content=None):
         try:
-            _path = os.path.dirname(file)
-            if not os.path.exists(_path):
-                os.mkdir(_path)
-
-            f = open(file,'w')
             if content:
+                _path = os.path.dirname(file)
+                if not os.path.exists(_path):
+                    os.mkdir(_path)
+
+                f = open(file,'w')
                 f.write(content)
-            f.close()
+                f.close()
 
         except:
             raise Exception("Unable to write file: %s" % file)
@@ -90,8 +90,8 @@ class ECMCommon():
 
         return True
 
-    def _install_package(self,package,update = True):
-        """ Try to install package
+    def _install_package(self,packages,update = True):
+        """ Try to install packages
         """
         try:
             (distribution,version,tmp)=platform.dist()
@@ -102,24 +102,24 @@ class ECMCommon():
                 if update: call(['apt-get','-y','-qq','update'])
                 ret_code = call(['apt-get','-o','Dpkg::Options::=--force-confold',
                                 '--allow-unauthenticated','--force-yes',
-                                 '-y','-qq','install',package])
+                                 '-y','-qq','install',packages])
 
             elif distribution.lower() == 'centos' or distribution.lower() == 'redhat':
                 if update: call(['yum','-y','clean','all'])
-                ret_code = call(['yum','-y','--nogpgcheck','install',package])
+                ret_code = call(['yum','-y','--nogpgcheck','install',packages])
 
             elif distribution.lower() == 'arch':
                 if update: call(['pacman','-Sy'])
                 if update: call(['pacman','-S','--noconfirm','pacman'])
-                ret_code = call(['pacman','-S','--noconfirm',package])
+                ret_code = call(['pacman','-S','--noconfirm',packages])
 
             else:
                 raise Exception("Distribution not supported: " + distribution)
 
             return ret_code
 
-        except:
-            raise Exception("Error installing %s" % package)
+        except Exception as e:
+            raise Exception("Error installing packages %s: %s" % packages,e)
 
     def _execute_command(self, command, runas=None, workdir = None):
         cmd = split(command)

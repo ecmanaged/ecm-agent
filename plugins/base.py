@@ -11,8 +11,6 @@ from subprocess import call, PIPE
 DIR = '/etc/ecmanaged'
 ENV_FILE = DIR + '/ecm_env'
 
-
-
 class ECMBase(ECMPlugin):
     def cmd_agent_ping(self, *argv, **kwargs):
         return True

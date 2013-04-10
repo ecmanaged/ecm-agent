@@ -73,6 +73,10 @@ class ECMFile(ECMPlugin):
         if not os.path.exists(file):
             raise Exception("%s doesn't exists" % file)
 
+        # don't cat protected files
+        if file in PROTECTED_FILES:
+            raise Exception('Not allowed')
+
         _regex = re.compile(regex)
 
         retval = ''
@@ -109,4 +113,3 @@ class ECMFile(ECMPlugin):
             raise Exception('Unable to read file')
 
 ECMFile().run()
-
