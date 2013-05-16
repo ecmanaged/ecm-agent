@@ -24,7 +24,10 @@ class ECMMysql(ECMPlugin):
             user = 'debian-sys-maint'
 
         try:
-            conn = _mysql.connect(host=host,user=user,passwd=password,db=database,read_default_file=default_file)
+            if default_file:
+                conn = _mysql.connect(host=host,user=user,db=database,read_default_file=default_file)
+            else:
+                conn = _mysql.connect(host=host,user=user,passwd=password,db=database)
 
         except Exception as e:
             raise Exception("Unable to connect: %s" % e[1])
@@ -38,10 +41,9 @@ class ECMMysql(ECMPlugin):
             cursor.close()
             conn.close()
 
-            return(json.dumps(retval))
+            return(retval)
 
         except _mysql.Error, e:
-            print "Error %d: %s" % (e.args[0], e.ags[1])
+            print "Error %d: %s" % (e.args[0], e.args[1])
 
-
-ECMMysql.run()
+ECMMysql().run()
