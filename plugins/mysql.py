@@ -18,7 +18,7 @@ class ECMMysql(ECMPlugin):
         database            = kwargs.get('database','')
         host                = kwargs.get('host','localhost')
         query               = kwargs.get('query','SELECT VERSION()')
-        default_file        = kwargs.get('default_file',None)
+        default_file        = kwargs.get('default_file','')
 
         if default_file == '/etc/mysql/debian.cnf':
             user = 'debian-sys-maint'
@@ -41,6 +41,7 @@ class ECMMysql(ECMPlugin):
             return(json.dumps(retval))
 
         except _mysql.Error, e:
-            print "Error %d: %s" % (e.args[0], e.args[1])
+            print "Error %d: %s" % (e.args[0], e.ags[1])
 
-ECMMysql().run()
+
+ECMMysql.run()
