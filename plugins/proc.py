@@ -20,6 +20,49 @@ class ECMProc(ECMPlugin):
         else:
             return len(psutil.get_pid_list())
 
+    def cmd_proc_mem_name(self, *argv, **kwargs):
+        """Syntax: proc.mem_name ['name' = name]"""
+
+        proc_name = kwargs.get('name',None)
+        total_rss = 0
+        total_vms = 0
+
+        if proc_name:
+            try:
+                for process in psutil.process_iter():
+                    if process.name == proc_name:
+                        p = psutil.Process(process.pid)
+                        mem = p.get_memory_info()
+                        total_rss += mem.rss
+                        total_vms += mem.vms
+
+                return [total_rss,total_vms]
+
+            except:
+                return 0
+        else:
+            raise Exception(self.cmd_proc_num_regex.__doc__)
+
+    def cmd_proc_num_regex(self, *argv, **kwargs):
+        """Syntax: proc.num.regex <regex>"""
+
+        regex = kwargs.get('regex',None)
+
+        if not regex:
+            raise Exception(self.cmd_proc_num_regex.__doc__)
+
+        total_rss = 0
+        total_vms = 0
+
+        for proc in psutil.process_iter():
+            if re.search(regex,proc.name):
+                p = psutil.Process(proc.pid)
+                mem = p.get_memory_info()
+                total_rss += mem.rss
+                total_vms += mem.vms
+
+        return [total_rss,total_vms]
+
     def cmd_proc_num_regex(self, *argv, **kwargs):
         """Syntax: proc.num.regex <regex>"""
 
@@ -30,7 +73,7 @@ class ECMProc(ECMPlugin):
 
         num = 0
         for proc in psutil.process_iter():
-            if re.search(regex,proc.name) and proc.pid != os.getpid():
+            if re.search(regex,proc.name):
                 num += 1
 
         return int(num)
@@ -51,7 +94,7 @@ class ECMProc(ECMPlugin):
 
         processes = []
         for proc in psutil.process_iter():
-            if re.search(regex,proc.name) and proc.pid != os.getpid():
+            if re.search(regex,proc.name):
                 processes.append(proc.pid)
 
         if not processes:

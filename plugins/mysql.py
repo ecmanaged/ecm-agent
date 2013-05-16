@@ -1,34 +1,46 @@
 # -*- coding:utf-8 -*-
 
 from ecmplugin import ECMPlugin
+import simplejson as json
 
 class ECMMysql(ECMPlugin):
-    def cmd_mysql_exec(self, args):
+    def cmd_mysql_exec(self, *argv, **kwargs):
         ' Syntax mysql.exec[hostname],[user],[password],[database],[query]'
 
         try:
-            mysql = __import__("MySQLdb")
+            _mysql = __import__("MySQLdb")
+
         except:
-            return(2,"[UNSUPPORTED]")
+            raise Exception("Unsupported MySQLdb")
 
-        if len(args) < 4:
-            return(1,self.cmd_mysql_exec.__doc__)
+        user                = kwargs.get('user','root')
+        password            = kwargs.get('password','')
+        database            = kwargs.get('database','')
+        host                = kwargs.get('host','localhost')
+        query               = kwargs.get('query','SELECT VERSION()')
+        default_file        = kwargs.get('default_file',None)
+
+        if default_file == '/etc/mysql/debian.cnf':
+            user = 'debian-sys-maint'
+
         try:
-            conn = mysql.connect(args[0], args[1], args[2], args[3]);
+            conn = _mysql.connect(host=host,user=user,passwd=password,db=database,read_default_file=default_file)
 
-            try: query = args[4]
-            except IndexError: query = "SELECT VERSION()"
+        except Exception as e:
+            raise Exception("Unable to connect: %s" % e[1])
 
+        try:
             cursor = conn.cursor()
             cursor.execute(query)
 
-            retr = cursor.fetchall()
+            retval = cursor.fetchall()
 
             cursor.close()
             conn.close()
 
-            return(0,retr)
+            return(json.dumps(retval))
 
-        except mysql.Error, e:
+        except _mysql.Error, e:
+            print "Error %d: %s" % (e.args[0], e.args[1])
 
-            return(2,"[ERROR] %s" % (e.args[1]))
+ECMMysql().run()
