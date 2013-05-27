@@ -63,8 +63,25 @@ class ECMBase(ECMPlugin):
         'Syntax: load'
         try:
             return psutil.cpu_percent(interval=5,percpu=True)
+
         except:
             raise Exception("Unable to get info from psutil")
+
+    def cmd_system_network_usage(self, *argv, **kwargs):
+        'Syntax: system.network.usage[iface=eth0]'
+
+        iface = kwargs.get('iface','eth0')
+        retr = {}
+
+        try:
+            network = psutil.network_io_counters(pernic=True)
+            if network[iface]:
+                if hasattr(network[iface], 'bytes_sent'): retr['bytes_sent'] = network[iface].bytes_sent
+                if hasattr(network[iface], 'bytes_recv'): retr['bytes_recv'] = network[iface].bytes_recv
+
+        except: pass
+
+        return retr
 
     def cmd_system_uptime(self, *argv, **kwargs):
         'Server uptime'
@@ -127,6 +144,7 @@ class ECMBase(ECMPlugin):
             retr['system.mem.usage']  = self.cmd_system_mem_usage(*argv, **kwargs)
             retr['system.disk.usage'] = self.cmd_system_disk_usage(*argv, **kwargs)
             retr['system.cpu.usage']  = self.cmd_system_cpu_usage(*argv, **kwargs)
+            retr['system.net.usage']  = self.cmd_system_network_usage(*argv, **kwargs)
             return retr
         except:
             raise Exception("Unable to get info from psutil")
