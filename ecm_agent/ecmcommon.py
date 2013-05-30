@@ -59,6 +59,14 @@ class ECMCommon():
 
         return file
 
+    def _chmod(self, file, mode):
+        try:
+            os.chmod(file,mode)
+            return True
+
+        except:
+            return False
+
     def _chown(self, path, user, group, recursive = True):
         try:
             from pwd import getpwnam

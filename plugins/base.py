@@ -92,6 +92,7 @@ class ECMBase(ECMPlugin):
                     f.close()
                     return float(line.strip().split()[1])
             return 0
+
         except:
             raise Exception("Cannot open uptime file: /proc/stat")
 
@@ -106,6 +107,7 @@ class ECMBase(ECMPlugin):
                 if hasattr(part, 'fstype'):     strpart['fstype'] = part.fstype
                 retr.append(strpart)
             return retr
+
         except:
             raise Exception("Unable to get info from psutil")
 
@@ -123,6 +125,7 @@ class ECMBase(ECMPlugin):
                 if hasattr(usage, 'percent'):    strpart['percent'] = usage.percent
                 retr.append(strpart)
             return retr
+
         except:
             raise Exception("Unable to get info from psutil")
 
@@ -135,6 +138,7 @@ class ECMBase(ECMPlugin):
             strmem['free']    = psmem.free
             strmem['percent'] = psmem.percent
             return strmem
+
         except:
             raise Exception("Unable to get info from psutil")
 
@@ -146,6 +150,7 @@ class ECMBase(ECMPlugin):
             retr['system.cpu.usage']  = self.cmd_system_cpu_usage(*argv, **kwargs)
             retr['system.net.usage']  = self.cmd_system_network_usage(*argv, **kwargs)
             return retr
+
         except:
             raise Exception("Unable to get info from psutil")
 

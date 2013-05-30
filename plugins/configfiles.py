@@ -22,6 +22,8 @@ class ECMConfigfile(ECMPlugin):
         configfile_command      = kwargs.get('command',None)
         configfile_runas        = kwargs.get('command_runas',None)
 
+        self.chmod_to           = kwargs.get('chmod',None)
+
         if (not configfile_base64 or not configfile_path):
             raise Exception("Invalid parameters")
 
@@ -57,6 +59,15 @@ class ECMConfigfile(ECMPlugin):
 
         except Exception as e:
             raise Exception("Unable to change owner for configfile: %s" %e)
+
+        try:
+            # Chmod to specified permission
+            if self.chmod_to:
+                self._chmod(configfile_path,self.chmod_to)
+                ret['stdout'] += self._output("Configfile chown to '%s'" % self.chmod)
+
+        except Exception as e:
+            raise Exception("Unable to chmod configfile: %s" %e)
 
         # exec command
         cmd = []
