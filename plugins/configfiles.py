@@ -13,18 +13,15 @@ import os
 
 class ECMConfigfile(ECMPlugin):
     def cmd_configfile_run(self, *argv, **kwargs):
-        configfile_base64       = kwargs.get('configfile',None)
-        configfile_path         = kwargs.get('path',None)
+        code_base64  = kwargs.get('configfile',None)
+        path         = kwargs.get('path',None)
+        chown_user   = kwargs.get('chown_user',None)
+        chown_group  = kwargs.get('chown_group',None)
+        command      = kwargs.get('command',None)
+        runas        = kwargs.get('command_runas',None)
+        rotate	     = kwargs.get('rotate',True)
 
-        configfile_chown_user   = kwargs.get('chown_user',None)
-        configfile_chown_group  = kwargs.get('chown_group',None)
-
-        configfile_command      = kwargs.get('command',None)
-        configfile_runas        = kwargs.get('command_runas',None)
-
-        self.chmod_to           = kwargs.get('chmod',None)
-
-        if (not configfile_base64 or not configfile_path):
+        if (not code_base64 or not path):
             raise Exception("Invalid parameters")
 
         ret = {}
@@ -33,52 +30,43 @@ class ECMConfigfile(ECMPlugin):
         ret['stderr'] = ''
 
         try:
-            if os.path.isfile(configfile_path):
-                new_file = configfile_path + '_rotated_' + self._utime()
-                move(configfile_path,new_file)
+            if rotate and os.path.isfile(path):
+                new_file = path + '_rotated_' + self._utime()
+                move(path,new_file)
                 ret['stdout'] = self._output("Old configfile moved to '%s'" % new_file)
 
             # create working dir if not exists
-            working_dir = os.path.abspath(os.path.join(configfile_path, os.pardir))
+            working_dir = os.path.abspath(os.path.join(path, os.pardir))
             self._mkdir_p(working_dir)
 
             # Write down
-            fh = open(configfile_path, "wb")
-            fh.write(b64decode(configfile_base64))
+            fh = open(path, "wb")
+            fh.write(b64decode(code_base64))
             fh.close()
-            ret['stdout'] += self._output("Configfile created successfully at '%s'" %configfile_path)
+            ret['stdout'] += self._output("Configfile created successfully at '%s'" %path)
 
         except Exception as e:
             raise Exception("Unable to write configfile: %s" %e)
 
         try:
             # Chown to specified user/group
-            if configfile_chown_user and configfile_chown_group and os.path.isfile(configfile_path):
-                self._chown(configfile_path,configfile_chown_user,configfile_chown_group)
-                ret['stdout'] += self._output("Configfile owner changed to '%s':'%s'" %(configfile_chown_user,configfile_chown_group))
+            if chown_user and chown_group and os.path.isfile(path):
+                self._chown(path,chown_user,chown_group)
+                ret['stdout'] += self._output("Configfile owner changed to '%s':'%s'" %(chown_user,chown_group))
 
         except Exception as e:
             raise Exception("Unable to change owner for configfile: %s" %e)
 
-        try:
-            # Chmod to specified permission
-            if self.chmod_to:
-                self._chmod(configfile_path,self.chmod_to)
-                ret['stdout'] += self._output("Configfile chown to '%s'" % self.chmod)
-
-        except Exception as e:
-            raise Exception("Unable to chmod configfile: %s" %e)
-
         # exec command
         cmd = []
-        if configfile_command:
-            cmd = split(configfile_command)
+        if command:
+            cmd = split(command)
 
         if cmd:
             # Execute but don't try/catch to get real error
-            ret['stdout'] += self._output("Executing command: %s" %(configfile_command))
-            if(configfile_runas):
-                p = Popen(['su', configfile_runas],
+            ret['stdout'] += self._output("Executing command: %s" %(command))
+            if(runas):
+                p = Popen(['su', runas],
                           stdin=PIPE, stdout=PIPE, stderr=PIPE, cwd=working_dir)
                 stdout, stderr = p.communicate(' '.join(cmd))
 

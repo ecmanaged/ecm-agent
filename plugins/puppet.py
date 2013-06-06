@@ -54,7 +54,6 @@ class ECMPuppet(ECMPlugin):
         except Exception as e:
             raise Exception("Error running puppet apply: %s" %e)
 
-
     def cmd_puppet_apply_file(self, *argv, **kwargs):
         recipe_url  = kwargs.get('recipe_url',None)
         recipe_file = None

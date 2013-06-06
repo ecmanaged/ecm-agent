@@ -21,45 +21,44 @@ from shutil import move, rmtree
 try:
     import tarfile
     import zipfile
+
 except:
     pass
 
 class ECMSource(ECMPlugin):
     def cmd_source_run(self, *argv, **kwargs):
-        self.path           = kwargs.get('path',None)
-        self.source         = kwargs.get('source',None)
+        path        = kwargs.get('path',None)
+        url         = kwargs.get('source',None)
+        envars      = kwargs.get('envars',None)
+        user        = kwargs.get('username',None)
+        passwd      = kwargs.get('password',None)
+        private_key = kwargs.get('private_key',None)
+        chown_user  = kwargs.get('chown_user',None)
+        chown_group = kwargs.get('chown_group',None)
+        rotate      = kwargs.get('rotate',True)
 
-        self.envars         = kwargs.get('envars',None)
-
-        self.user           = kwargs.get('username',None)
-        self.passwd         = kwargs.get('password',None)
-        self.private_key    = kwargs.get('private_key',None)
-
-        self.chown_user     = kwargs.get('chown_user',None)
-        self.chown_group    = kwargs.get('chown_group',None)
-
-        if (not self.path or not self.source):
+        if (not path or not url):
             raise Exception("Invalid parameters")
 
         type = kwargs.get('type',None)
 
         if type and type.upper() in ('URI','FILE'):
-            source = File(self.path)
+            source = File(path,rotate)
 
         elif type and type.upper() == 'GIT':
-            source = Git(self.path)
+            source = Git(path,rotate)
 
         elif type and type.upper() == 'SVN':
-            source = Svn(self.path)
+            source = Svn(path,rotate)
 
         else: raise Exception("Unknown source")
 
-        retval = source.clone(url=self.source, envars=self.envars, \
-            username=self.user, password=self.passwd, private_key=self.private_key)
+        retval = source.clone(url=url, envars=envars,\
+                              username=user, password=passwd, private_key=private_key)
 
         # Chown to specified user/group
-        if self.chown_user and self.chown_group and os.path.isdir(self.path):
-            self._chown(self.path,self.chown_user,self.chown_group)
+        if chown_user and chown_group and os.path.isdir(path):
+            self._chown(path,chown_user,chown_group)
 
         return self._return(retval)
 
@@ -76,45 +75,16 @@ class ECMSource(ECMPlugin):
 
         return output
 
-class Deploy(ECMCommon):
-    def __init__(self, working_dir):
-        self.working_dir = os.path.abspath(working_dir)
-
-    def rotate(self):
-        # Rotate if exists
-        to_dir = None
-        if os.path.isdir(self.working_dir):
-            to_dir = self.working_dir + '_rotated_' + self._utime()
-            move(self.working_dir,to_dir)
-
-        # create working dir
-        self._mkdir_p(self.working_dir)
-        return to_dir
-
-    def rollback(self,path):
-        # to be done
-        pass
-
-    def _mkdir_p(self,path):
-        try:
-            os.makedirs(path)
-        except OSError as e:
-            pass
-
-    def _utime(self):
-        str_time = str(time()).replace('.','_')
-        return str_time
-
-
 class Git(ECMCommon):
-    def __init__(self, working_dir = None):
+    def __init__(self, working_dir = None, rotate = True):
         if not working_dir:
             raise Exception("Invalid path")
         self.working_dir = working_dir
+        self.rotate = rotate
 
         # Create or rename working_dir
-        deploy = Deploy(self.working_dir)
-        self.old_dir = deploy.rotate()
+        deploy = Deploy(self.working_dir,rotate)
+        self.old_dir = deploy.prepare()
 
         which_posix  = procutils.which('git')
         which_win    = procutils.which('git.cmd')
@@ -126,20 +96,26 @@ class Git(ECMCommon):
                 raise Exception("Unable to find git on path")
 
     def clone(self, url, envars, username, password, private_key):
+        command_clone = self.git_cmd + " clone --quiet --verbose '" + url + "' ."
+        command_pull  = self.git_cmd + " pull --quiet --verbose"
 
-        command = self.git_cmd + " clone --quiet --verbose '" + url + "' ."
+        command = command_clone
+        if not self.rotate and os.path.isdir(self.working_dir + '/.git'):
+            # Git clone will fail: no empty dir (so make a pull and hope...)
+            command = command_pull
 
         # Create git command with user and password
         if username and password:
             parsed = urlparse(url)
             if parsed.scheme in ('http','https'):
                 command = command.replace('://','://' + username + ':' + password + '@')
+
             elif parsed.scheme == 'ssh':
                 command = command.replace('://','://' + username + '@')
 
-
         result_exec = Aux().myexec(command,path=self.working_dir,envars=envars)
         extra_msg = ''
+
         if not result_exec['status']:
             extra_msg = self._output("Source deployed successfully to '%s'" % self.working_dir)
             if self.old_dir:
@@ -149,14 +125,15 @@ class Git(ECMCommon):
         return result_exec
 
 class Svn(ECMCommon):
-    def __init__(self, working_dir = None):
+    def __init__(self, working_dir = None, rotate = True):
         if not working_dir:
             raise Exception("Invalid path")
         self.working_dir = working_dir
+        self.rotate = rotate
 
         # Create or rename working_dir
-        deploy = Deploy(self.working_dir)
-        self.old_dir = deploy.rotate()
+        deploy = Deploy(self.working_dir,rotate)
+        self.old_dir = deploy.prepare()
 
         which_posix  = procutils.which('svn')
         which_win    = procutils.which('svn.cmd')
@@ -168,7 +145,6 @@ class Svn(ECMCommon):
                 raise Exception("Unable to find svn on path")
 
     def clone(self, url, envars, username, password, private_key):
-
         # Add username and password to url
         if username and password:
             url = url.replace('://','://' + username + ':' + password + '@')
@@ -189,17 +165,17 @@ class Svn(ECMCommon):
         return result_exec
 
 class File(ECMCommon):
-    def __init__(self,working_dir = None):
+    def __init__(self,working_dir = None, rotate = True):
         if not working_dir:
             raise Exception("Invalid path")
         self.working_dir = working_dir
+        self.rotate = rotate
 
         # Create or rename working_dir
-        deploy = Deploy(self.working_dir)
-        self.old_dir = deploy.rotate()
+        deploy = Deploy(self.working_dir,rotate)
+        self.old_dir = deploy.prepare()
 
     def clone(self, envars, url, username, password, private_key):
-
         file_name = 'downloaded.file'
         tmp_dir = mkdtemp()
 
@@ -322,9 +298,41 @@ class File(ECMCommon):
 
         return file
 
+
+class Deploy():
+    def __init__(self, working_dir, rotate = True):
+        self.working_dir = os.path.abspath(working_dir)
+        self.rotate = rotate
+
+    def prepare(self):
+        to_dir = None
+        if self.rotate and os.path.isdir(self.working_dir):
+            to_dir = self.working_dir + '_rotated_' + self._utime()
+            move(self.working_dir,to_dir)
+
+        # create working dir
+        if not os.path.isdir(self.working_dir):
+            self._mkdir_p(self.working_dir)
+
+        return to_dir
+
+    def rollback(self,path):
+        # to be done
+        pass
+
+    def _mkdir_p(self,path):
+        try:
+            os.makedirs(path)
+        except OSError as e:
+            pass
+
+    def _utime(self):
+        str_time = str(time()).replace('.','_')
+        return str_time
+
+
 class Aux:
     def myexec(self, command, path=None, envars=None):
-
         # Set environment variables before execute
         try:
             if envars:

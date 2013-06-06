@@ -18,6 +18,11 @@ from platform import system
 import simplejson as json
 import zlib, base64
 
+## RSA Verify
+#from struct import pack
+#from hashlib import sha256 # You'll need the backport for 2.4 http://code.krypto.org/python/hashlib/
+#from sys import version_info
+
 AGENT_VERSION = 1
 
 class SMAgent:
@@ -52,13 +57,15 @@ class SMAgentXMPP(Client):
 
         l.debug("Loading XMPP...")
         observers = [
-                ('/iq', self.__onIq),
+            ('/iq', self.__onIq),
             ]
         Client.__init__(self,
                         self.config['XMPP'],
                         observers,
                         resource='ecm_agent-%d' % AGENT_VERSION
-                       )
+        )
+
+        self.pub_key = '';
 
         l.info("Loading commands...")
         self.command_runner = CommandRunner(config['Plugins'])
@@ -77,27 +84,30 @@ class SMAgentXMPP(Client):
         if message_type == 'set':
             #Parse and check message format
             message = IqMessage(msg)
-            
+
             if hasattr(message, 'command') and hasattr(message, 'from_'):
 
                 l.debug('online contacts: %s' % self._online_contacts)
                 #l.debug("command: \n%s" % message.command)
-                
+
                 if message.from_ not in self._online_contacts:
                     l.warn('IQ sender not in roster (%s), dropping message'
-                            % message.from_)
+                           % message.from_)
                 else:
                     l.debug('Processing command...')
                     self._processCommand(message)
             else:
                 l.warn('Unknown ecm_message received: "%s" Full XML:\n%s'
-                                    % (message_type, msg.toXml()))
+                       % (message_type, msg.toXml()))
         else:
             l.warn('Unknown IQ type received: "%s" Full XML:\n%s'
-                    % (message_type, msg.toXml()))
+                   % (message_type, msg.toXml()))
 
     def _processCommand(self, message):
         l.debug('_processCommand')
+
+        #l.debug('_checkSignature')
+        #verified = self._rsa_verify(message)
 
         message.command_replaced = message.command.replace('.','_')
         d = self.command_runner.runCommand(message.command_replaced, message.command_args)
@@ -105,14 +115,14 @@ class SMAgentXMPP(Client):
             d.addCallbacks(self._onCallFinished, self._onCallFailed,
                            callbackKeywords={'message': message},
                            errbackKeywords={'message': message},
-               )
+                           )
             return d
         else:
             l.debug('cmdIgnored')
             result=(4, '', 'Unknown command', 0)
             self._onCallFinished(result,message)
         return
-            
+
     def _onCallFinished(self, result, message):
         l.debug('onCallFinished')
         l.debug(str(result))
@@ -123,11 +133,54 @@ class SMAgentXMPP(Client):
         l.error("onCallFailed")
         l.debug(failure)
 
+    def _check_signature(self, message):
+        msg = message.from_ + ':' + message.to + ':' . message.commmand + ':' + message.time
+        signature = message.signature
+
+        return self._rsa_verify(msg,signature,self.pub_key)
+
+#    def _rsa_verify(self, message, signature, key):
+#        def b(x):
+#            if version_info[0] == 2: return x
+#            else: return x.encode('latin1')
+#
+#        assert(type(message) == type(b('')))
+#        block_size = 0
+#        n = key[0]
+#
+#        while n:
+#            block_size += 1
+#            n >>= 8
+#
+#        signature = pow(int(signature, 16), key[1], key[0])
+#        raw_bytes = []
+#
+#        while signature:
+#            raw_bytes.insert(0, pack("B", signature & 0xFF))
+#            signature >>= 8
+#
+#        signature = (block_size - len(raw_bytes)) * b('\x00') + b('').join(raw_bytes)
+#        if signature[0:2] != b('\x00\x01'):
+#            return False
+#
+#        signature = signature[2:]
+#        if not b('\x00') in signature:
+#            return False
+#
+#        signature = signature[signature.index(b('\x00'))+1:]
+#        if not signature.startswith(b('\x30\x31\x30\x0D\x06\x09\x60\x86\x48\x01\x65\x03\x04\x02\x01\x05\x00\x04\x20')):
+#            return False
+#
+#        signature = signature[19:]
+#        if signature != sha256(message).digest(): return False
+#
+#        return True
+
 
 class CommandRunner():
     def __init__(self, config):
         self.command_paths = [os.path.join(os.path.dirname(__file__),
-            '..', 'plugins')]  # Built-in commands (absolute path)
+                                           '..', 'plugins')]  # Built-in commands (absolute path)
         if 'plugin_paths' in config:
             self.command_paths.extend(config['plugin_paths'])
 
@@ -184,7 +237,7 @@ class CommandRunner():
         else:
             command = filename
             args = [command, command_name]
-            
+
         # Set timeout from command
         cmd_timeout = self.timeout
         if 'timeout' in command_args:
@@ -208,7 +261,7 @@ class CommandRunnerProcess(ProcessProtocol):
     def connectionMade(self):
         l.debug("Process started.")
         self.timeout_dc = reactor.callLater(self.timeout,
-                self.transport.signalProcess, 'KILL')
+                                            self.transport.signalProcess, 'KILL')
         #Pass the call arguments via stdin in json format so we can
         #pass binary data or whatever we want.
         self.transport.write(json.dumps(self.command_args))
@@ -238,13 +291,12 @@ class CommandRunnerProcess(ProcessProtocol):
 
         for d in self.deferreds:
             d.callback((exit_code, self.stdout, self.stderr,
-                self.timeout_dc.called))
+                        self.timeout_dc.called))
 
     def getDeferredResult(self):
         d = Deferred()
         self.deferreds.append(d)
         return d
-
 
 class IqMessage:
     """
@@ -256,7 +308,7 @@ class IqMessage:
     <iq xmlns='jabber:client' to='ecm_agent@ejabberd/ecm_agent-1'
     from='tester@ejabberd/test_send' id='s2c1' type='set'>
         <ecm_message version="1">
-            <command name="command1">
+            <command name="command1" time="123131231" signature="XXXX">
                 <args name1="value1" name2="value2" />
             </command>
         </ecm_message>
@@ -280,6 +332,7 @@ class IqMessage:
                 self.to = elem['to']
                 self.from_ = elem['from']
                 self.resource = elem['to'].split("/")
+
                 if len(self.resource) > 1:
                     self.resource = self.resource[-1]
                 else:
@@ -287,12 +340,16 @@ class IqMessage:
 
                 el_command = el_ecm_message.firstChildElement()
                 self.command = el_command['name']
+                # self.time = el_command.get('time','')
+                # self.signature = el_command.get('signature','')
+
                 el_args = el_command.firstChildElement()
                 self.command_args = el_args.attributes
 
             except Exception as e:
                 l.error("Error parsing IQ message: %s" % elem.toXml())
-                #raise e
+                raise e
+
         else:
             self.type = ''
             self.id = ''
@@ -306,10 +363,12 @@ class IqMessage:
         msg['id'] = self.id
         msg['from'] = self.from_
         msg['to'] = self.to
+
         if self.type == 'result':
             ecm_message = msg.addElement('ecm_message')
             ecm_message['version'] = str(AGENT_VERSION)
             ecm_message['command'] = self.command
+
             result = ecm_message.addElement('result')
             result['retvalue']  = self.retvalue
             result['timed_out'] = self.timed_out
