@@ -326,7 +326,7 @@ class Aux(ECMCommon):
                 envars_decoded = json.loads(envars)
             except: pass
 
-        _status,_stdout, _stderr = self._execute_command(command = command, path = path, envars = envars_decoded)
+        _status,_stdout, _stderr = self._execute_command(command = command, workdir = path, envars = envars_decoded)
 
         ret = { 'status': _status, 'stderr': str(_stderr), 'stdout': str(_stdout)}
         return ret
