@@ -6,14 +6,23 @@ from subprocess import call, Popen, PIPE
 from tempfile import mkdtemp
 from shutil import rmtree
 
+import twisted.python.procutils as procutils
+
 import tarfile
 import base64
 
 class ECMPuppet(ECMPlugin):
     def cmd_puppet_available(self, *argv, **kwargs):
-        if call(['which','puppet'], stdout=PIPE, stderr=PIPE):
-            raise Exception("Not found")
-        return True
+        which_posix = procutils.which('puppet')
+        which_win   = procutils.which('puppet.exe')
+
+        try: puppet_cmd = which_posix[0]
+        except IndexError:
+            try: puppet_cmd = which_win[0]
+            except IndexError:
+                raise Exception("Not found")
+
+        return puppet_cmd
 
     def cmd_puppet_apply(self, *argv, **kwargs):
         recipe_base64 = kwargs.get('recipe_code',None)
@@ -92,7 +101,7 @@ class ECMPuppet(ECMPlugin):
 
     def cmd_puppet_install(self, *argv, **kwargs):
         try:
-            # raises an exception if not found
+            # raises if not found
             if self.cmd_puppet_available(*argv, **kwargs):
                 return False
         except:

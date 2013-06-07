@@ -80,23 +80,25 @@ class ECMPackage(ECMPlugin):
         if not packages: return False
 
         # apt-get update or yum clean on first time
-        pkg_update = True
+        refresh_db = True
 
         for i in range(0,100):
-            pending = False
-            for depend in packages:
-                if not depend[0]['installed']:
-                    pending = True
+            there_are_pending = False
+            for pkg in packages:
+                if not pkg[0]['installed']:
+                    packages_pending = True
                     try:
-                        package_name = depend[i]['name']
+                        package_name = pkg[i]['name']
                     except KeyError:
-                        raise Exception("Unable to install some packages")
+                        # Skip it
+                        continue
+                        #raise Exception("Unable to install some packages")
 
-                    if not self._install_package(package_name,pkg_update):
-                        depend[0]['installed'] = 1
-                        pkg_update = False
+                    if not self._install_package(package_name,refresh_db):
+                        pkg[0]['installed'] = 1
+                        refresh_db = False
 
-            if not pending: break
+            if not packages_pending: break
 
         #return True
 

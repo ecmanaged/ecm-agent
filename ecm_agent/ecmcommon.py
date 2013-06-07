@@ -112,7 +112,7 @@ class ECMCommon():
                                 '--allow-unauthenticated','--force-yes',
                                  '-y','-qq','install',packages])
 
-            elif distribution.lower() == 'centos' or distribution.lower() == 'redhat':
+            elif distribution.lower() == 'centos' or distribution.lower() == 'redhat' or distribution.lower() == 'fedora':
                 if update: call(['yum','-y','clean','all'])
                 ret_code = call(['yum','-y','--nogpgcheck','install',packages])
 
