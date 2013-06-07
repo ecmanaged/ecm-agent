@@ -6,7 +6,6 @@ from subprocess import Popen, PIPE
 from shlex import split
 
 from base64 import b64decode
-from time import time
 from shutil import move
 
 import os
@@ -19,7 +18,7 @@ class ECMConfigfile(ECMPlugin):
         chown_group  = kwargs.get('chown_group',None)
         command      = kwargs.get('command',None)
         runas        = kwargs.get('command_runas',None)
-        rotate	     = kwargs.get('rotate',True)
+        rotate	     = kwargs.get('rotate',False)
 
         if (not code_base64 or not path):
             raise Exception("Invalid parameters")
@@ -80,15 +79,5 @@ class ECMConfigfile(ECMPlugin):
             ret['stderr'] = str(stderr)
 
         return ret
-
-    def _mkdir_p(self,path):
-        try:
-            os.makedirs(path)
-        except OSError as e:
-            pass
-
-    def _utime(self):
-        str_time = str(time()).replace('.','_')
-        return str_time
 
 ECMConfigfile().run()

@@ -35,7 +35,7 @@ class ECMSource(ECMPlugin):
         private_key = kwargs.get('private_key',None)
         chown_user  = kwargs.get('chown_user',None)
         chown_group = kwargs.get('chown_group',None)
-        rotate      = kwargs.get('rotate',True)
+        rotate      = kwargs.get('rotate',False)
 
         if (not path or not url):
             raise Exception("Invalid parameters")
@@ -63,20 +63,15 @@ class ECMSource(ECMPlugin):
         return self._return(retval)
 
     def _return(self,ret):
-        output = {}
-        try:
-            output['out']    = ret.get('status',1)
-            output['stderr'] = ret.get('stderr','')
-            output['stdout'] = ret.get('stdout','')
-        except:
-            output['out']    = 1
-            output['stderr'] = ret.get('stderr','')
-            output['stdout'] = ret.get('stdout','')
-
+        output = {
+            'out': ret.get('status',1),
+            'stderr': ret.get('stderr',''),
+            'stdout': ret.get('stdout','')
+        }
         return output
 
 class Git(ECMCommon):
-    def __init__(self, working_dir = None, rotate = True):
+    def __init__(self,working_dir,rotate):
         if not working_dir:
             raise Exception("Invalid path")
         self.working_dir = working_dir
@@ -114,7 +109,6 @@ class Git(ECMCommon):
                 command = command.replace('://','://' + username + '@')
 
         result_exec = Aux().myexec(command,path=self.working_dir,envars=envars)
-        extra_msg = ''
 
         if not result_exec['status']:
             extra_msg = self._output("Source deployed successfully to '%s'" % self.working_dir)
@@ -125,7 +119,7 @@ class Git(ECMCommon):
         return result_exec
 
 class Svn(ECMCommon):
-    def __init__(self, working_dir = None, rotate = True):
+    def __init__(self,working_dir,rotate):
         if not working_dir:
             raise Exception("Invalid path")
         self.working_dir = working_dir
@@ -165,7 +159,7 @@ class Svn(ECMCommon):
         return result_exec
 
 class File(ECMCommon):
-    def __init__(self,working_dir = None, rotate = True):
+    def __init__(self,working_dir,rotate):
         if not working_dir:
             raise Exception("Invalid path")
         self.working_dir = working_dir
@@ -202,10 +196,11 @@ class File(ECMCommon):
 
         # Clean and output
         rmtree(tmp_dir, ignore_errors = True)
-        ret = {}
-        ret['stdout'] = extract.get('head','') + extract.get('stdout','')
-        ret['stderr'] = extract.get('stderr','Unable to download file')
-        ret['status'] = extract.get('status',1)
+        ret = {
+            'stdout': extract.get('head','') + extract.get('stdout',''),
+            'stderr': extract.get('stderr','Unable to download file'),
+            'status': extract.get('status',1)
+        }
         return ret
 
     def _extract(self, file):
@@ -220,7 +215,6 @@ class File(ECMCommon):
             else:
                 raise Exception("Unsupported file compression")
 
-            first_path = None
             cfile = opener(file, mode)
 
             # if first member is dir, skip 1st container path
@@ -252,11 +246,7 @@ class File(ECMCommon):
         except Exception as e:
             raise Exception("Could not extract file: %s" % e)
 
-        ret = {}
-        ret['status'] = 0
-        ret['stderr'] = ''
-        ret['stdout'] = stdout
-
+        ret = { 'status': 0, 'stderr': '', 'stdout': stdout }
         return ret
 
     def _get_file_type(self,file):
@@ -299,8 +289,8 @@ class File(ECMCommon):
         return file
 
 
-class Deploy():
-    def __init__(self, working_dir, rotate = True):
+class Deploy(ECMCommon):
+    def __init__(self, working_dir, rotate):
         self.working_dir = os.path.abspath(working_dir)
         self.rotate = rotate
 
@@ -317,49 +307,20 @@ class Deploy():
         return to_dir
 
     def rollback(self,path):
-        # to be done
-        pass
-
-    def _mkdir_p(self,path):
-        try:
-            os.makedirs(path)
-        except OSError as e:
-            pass
-
-    def _utime(self):
-        str_time = str(time()).replace('.','_')
-        return str_time
-
+        return
 
 class Aux:
     def myexec(self, command, path=None, envars=None):
-        # Set environment variables before execute
-        try:
-            if envars:
+        envars_decoded = None
+        if envars:
+            try:
                 envars = b64decode(envars)
-                envars = json.loads(envars)
-                for envar in envars:
-                    if not envars[envar]: envars[envar] = ''
-                    os.environ[envar] = str(envars[envar])
-        except:
-            # Ignore it
-            pass
+                envars_decoded = json.loads(envars)
+            except: pass
 
-        if path: path = os.path.abspath(path)
-        p = Popen(split(command),
-                  cwd=path,
-                  stdin=None,
-                  stderr=PIPE,
-                  stdout=PIPE,
-                  close_fds=(os.name=='posix') # unsupported on linux
-        )
-        _stdout, _stderr = p.communicate()
+        _status,_stdout, _stderr = self._execute_command(command = command, path = path, envars = envars_decoded)
 
-        ret = {}
-        ret['status'] = p.wait()
-        ret['stderr'] = str(_stderr)
-        ret['stdout'] = str(_stdout)
-
+        ret = { 'status': _status, 'stderr': str(_stderr), 'stdout': str(_stdout)}
         return ret
 
 ECMSource().run()

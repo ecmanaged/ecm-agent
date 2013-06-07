@@ -129,18 +129,38 @@ class ECMCommon():
         except Exception as e:
             raise Exception("Error installing packages %s: %s" % packages,e)
 
-    def _execute_command(self, command, runas=None, workdir = None):
-        cmd = split(command)
+    def _execute_command(self, command, runas=None, workdir = None, envars=None):
+        """
+        """
+        if workdir: path = os.path.abspath(workdir)
+
+        # Set environment variables
+        if envars:
+            try:
+                for envar in envars:
+                    if not envars[envar]: envars[envar] = ''
+                    os.environ[envar] = str(envars[envar])
+            except: pass
 
         try:
             if(runas):
                 p = Popen(['su', runas],
-                          stdin=PIPE, stdout=PIPE, stderr=PIPE, cwd=workdir)
-                stdout, stderr = p.communicate(' '.join(cmd))
+                            stdin=PIPE,
+                            stdout=PIPE,
+                            stderr=PIPE,
+                            cwd=workdir,
+                            close_fds=(os.name=='posix')
+                )
+                stdout, stderr = p.communicate(command)
 
             else:
-                p = Popen(cmd,
-                          stdin=PIPE, stdout=PIPE, stderr=PIPE, cwd=workdir)
+                p = Popen(split(command),
+                            stdin=PIPE,
+                            stdout=PIPE,
+                            stderr=PIPE,
+                            cwd=workdir,
+                            close_fds=(os.name=='posix')
+                )
                 stdout, stderr = p.communicate()
 
             return p.wait(),stdout,stderr
@@ -193,4 +213,15 @@ class ECMCommon():
 
     def _output(self,string):
         return '[' + str(time()) + '] ' + str(string) + "\n"
+
+    def _mkdir_p(self,path):
+        try:
+            if not os.path.isdir(path):
+                os.makedirs(path)
+        except OSError as e:
+            pass
+
+    def _utime(self):
+        str_time = str(time()).replace('.','_')
+        return str_time
 
