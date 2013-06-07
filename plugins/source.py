@@ -151,8 +151,10 @@ class Svn(ECMCommon):
             extra_msg = self._output("Source deployed successfully to '%s'" % self.working_dir)
             if self.old_dir:
                 extra_msg += self._output("Old source files moved to '%s'" % self.old_dir)
+
             if result_exec['stdout']:
                 result_exec['stdout'] = extra_msg + result_exec['stdout']
+
             else:
                 result_exec['stdout'] = extra_msg
 
@@ -208,10 +210,13 @@ class File(ECMCommon):
             file_type = self._get_file_type(file)
             if file_type == 'zip':
                 opener, mode = zipfile.ZipFile, 'r'
+
             elif file_type == 'gz':
                 opener, mode = tarfile.open, 'r:gz'
+
             elif file_type == 'bz2':
                 opener, mode = tarfile.open, 'r:bz2'
+
             else:
                 raise Exception("Unsupported file compression")
 
@@ -233,12 +238,14 @@ class File(ECMCommon):
                     if member.name.endswith('/.'): continue
                     if member.name == './': continue
                     if member.name == '.': continue
+
                     stdout +=  "Extracted " + member.name + "\n"
                     cfile.extract(member,self.working_dir)
             else:
                 for member in members:
                     if(file_type == 'zip'): member_name = member
                     else: member_name = member.name
+
                     stdout +=  "Extracted " + member_name + "\n"
                 cfile.extractall(self.working_dir)
             cfile.close()
@@ -297,8 +304,9 @@ class Deploy(ECMCommon):
     def prepare(self):
         to_dir = None
         if self.rotate and os.path.isdir(self.working_dir):
-            to_dir = self.working_dir + '_rotated_' + self._utime()
-            move(self.working_dir,to_dir)
+            if not self.working_dir == '/':
+                to_dir = self.working_dir + '_rotated_' + self._utime()
+                move(self.working_dir,to_dir)
 
         # create working dir
         if not os.path.isdir(self.working_dir):
@@ -309,7 +317,7 @@ class Deploy(ECMCommon):
     def rollback(self,path):
         return
 
-class Aux:
+class Aux(ECMCommon):
     def myexec(self, command, path=None, envars=None):
         envars_decoded = None
         if envars:
