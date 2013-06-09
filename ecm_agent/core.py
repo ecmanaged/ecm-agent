@@ -6,28 +6,41 @@ from twisted.words.xish.domish import Element
 from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
 from twisted.words.protocols.jabber.xmlstream import STREAM_END_EVENT
+from twisted.words.protocols.jabber.client import IQ
 
 import twlogging as l
 
 #Python
 from random import random
 
+# Add registerAccount to XMPPAuthenticator
+class FixedXMPPAuthenticator(client.XMPPAuthenticator):
+    def registerAccount(self, username = None, password = None):
+        if username:
+            self.jid.user = username
+        if password:
+            self.password = password
 
-#MonkeyPatch a bug Basicauthenticator
-class FixedBasicAuthenticator(client.BasicAuthenticator):
+        iq = IQ(self.xmlstream, "set")
+        iq.addElement(("jabber:iq:register", "query"))
+        iq.query.addElement("username", content = self.jid.user)
+        iq.query.addElement("password", content = self.password)
+
+        iq.addCallback(self._registerResultEvent)
+
+        iq.send()
+
     def _registerResultEvent(self, iq):
         if iq['type'] == 'result':
-            #self.streamStarted()
             pass
         else:
             self.xmlstream.dispatch(iq, self.REGISTER_FAILED_EVENT)
 
-client.BasicAuthenticator = FixedBasicAuthenticator
-
+client.XMPPAuthenticator = FixedXMPPAuthenticator
 
 class BasicClient:
     def __init__(self, user, password, host, observers,
-            resource="XMPPBasicClient", max_delay=60):
+                 resource="XMPPBasicClient", max_delay=60):
         """
         Basic XMPP Client class.
 
@@ -42,13 +55,12 @@ class BasicClient:
 
         self._observers = observers
         myJid = jid.JID('/'.join((user, resource)))
-        #self._factory = client.basicClientFactory(myJid, password)
-        self._factory = client.XMPPClientFactory(myJid, password)
 
-        self._factory.addBootstrap(xmlstream.STREAM_AUTHD_EVENT,self._authd)
-        # self._factory.addBootstrap(client.XMPPAuthenticator.AUTH_FAILED_EVENT,self._failed_auth)
-        self._factory.addBootstrap(client.BasicAuthenticator.AUTH_FAILED_EVENT,self._failed_auth)
+        self._factory = client.XMPPClientFactory(myJid, password)
+        self._factory.addBootstrap(xmlstream.STREAM_CONNECTED_EVENT, self._connected)
+        self._factory.addBootstrap(xmlstream.STREAM_AUTHD_EVENT, self._authd)
         self._factory.addBootstrap(xmlstream.STREAM_END_EVENT,self._stream_end)
+        self._factory.addBootstrap(xmlstream.INIT_FAILED_EVENT, self._failed_auth)
         self._factory.maxDelay = max_delay
 
         self._connector = reactor.connectTCP(host, 5222, self._factory)
@@ -56,14 +68,17 @@ class BasicClient:
     def _failed_auth(self, error):
         """ overwrite in derivated class """
         l.info("Auth failed, trying to autoregister")
-        self._factory.authenticator.registerAccount(self._user.split('@')[0],
-                self._password)
+        self._factory.authenticator.registerAccount(self._user.split('@')[0], self._password)
+
         #Trigger a reconnection in 3 seconds.
         reactor.callLater(3, self._connector.disconnect)
 
     def _stream_end(self, error):
         """ overwrite in derivated class """
         l.info("XMPPClient stream end")
+
+    def _connected(self, message):
+        l.info("XMPPClient connected")
 
     def _authd(self, xml_stream):
         """
@@ -79,7 +94,7 @@ class BasicClient:
         self._keep_alive_lc = LoopingCall(self._xs.send, '\n')
         self._keep_alive_lc.start(60)
         self._xs.addObserver(STREAM_END_EVENT,
-                lambda _: self._keep_alive_lc.stop())
+                             lambda _: self._keep_alive_lc.stop())
 
         for message, callable in self._observers:
             self._xs.addObserver(message, callable)
