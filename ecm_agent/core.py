@@ -42,16 +42,15 @@ class BasicClient:
 
         self._observers = observers
         myJid = jid.JID('/'.join((user, resource)))
-        self._factory = client.basicClientFactory(myJid, password)
-        l.debug('Changing reconnection max delay from %s to %s'
-                % (self._factory.maxDelay, max_delay))
+        #self._factory = client.basicClientFactory(myJid, password)
+        self._factory = client.XMPPClientFactory(myJid, password)
+
+        self._factory.addBootstrap(xmlstream.STREAM_AUTHD_EVENT,self._authd)
+        # self._factory.addBootstrap(client.XMPPAuthenticator.AUTH_FAILED_EVENT,self._failed_auth)
+        self._factory.addBootstrap(client.BasicAuthenticator.AUTH_FAILED_EVENT,self._failed_auth)
+        self._factory.addBootstrap(xmlstream.STREAM_END_EVENT,self._stream_end)
         self._factory.maxDelay = max_delay
 
-        self._factory.addBootstrap('//event/stream/authd', self._authd)
-        self._factory.addBootstrap(client.BasicAuthenticator.AUTH_FAILED_EVENT,
-                self._failed_auth)
-        self._factory.addBootstrap(xmlstream.STREAM_END_EVENT,
-                self._stream_end)
         self._connector = reactor.connectTCP(host, 5222, self._factory)
 
     def _failed_auth(self, error):
