@@ -13,16 +13,7 @@ import base64
 
 class ECMPuppet(ECMPlugin):
     def cmd_puppet_available(self, *argv, **kwargs):
-        which_posix = procutils.which('puppet')
-        which_win   = procutils.which('puppet.exe')
-
-        try: puppet_cmd = which_posix[0]
-        except IndexError:
-            try: puppet_cmd = which_win[0]
-            except IndexError:
-                raise Exception("Not found")
-
-        return puppet_cmd
+        return self._is_available();
 
     def cmd_puppet_apply(self, *argv, **kwargs):
         recipe_base64 = kwargs.get('recipe_code',None)
@@ -30,7 +21,7 @@ class ECMPuppet(ECMPlugin):
         if not recipe_base64:
             raise Exception("Invalid argument")
 
-        self._parse_common_args(*argv, **kwargs)
+        self._parse_args(*argv, **kwargs)
 
         try:
             # Create temp file
@@ -69,7 +60,7 @@ class ECMPuppet(ECMPlugin):
         recipe_path = None
 
         if not recipe_url: raise Exception("Invalid argument")
-        self._parse_common_args(*argv, **kwargs)
+        self._parse_args(*argv, **kwargs)
 
         try:
             # Download recipe url
@@ -87,7 +78,7 @@ class ECMPuppet(ECMPlugin):
                     tar.close()
 
                     # Apply puppet
-                    return self._run_puppet_catalog(recipe_file,recipe_path)
+                    return self._run_catalog(recipe_file,recipe_path)
                 else:
                     raise Exception("Invalid recipe tgz file")
             else:
@@ -107,9 +98,21 @@ class ECMPuppet(ECMPlugin):
         except:
             pass
 
-        self._install_package('puppet')
+        return self._install_package('puppet')
+        
+    def _is_available(self):
+        which_posix = procutils.which('puppet')
+        which_win   = procutils.which('puppet.exe')
 
-    def _run_puppet_catalog(self,recipe_file,recipe_path):
+        try: puppet_cmd = which_posix[0]
+        except IndexError:
+            try: puppet_cmd = which_win[0]
+            except IndexError:
+                raise Exception("Not found")
+
+        return puppet_cmd
+
+    def _run_catalog(self,recipe_file,recipe_path):
         retval = self._run_puppet(recipe_file,recipe_path,'catalog')
 
         # Try old way
@@ -149,10 +152,9 @@ class ECMPuppet(ECMPlugin):
 
         return ret
 
-    def _parse_common_args(self, *argv, **kwargs):
+    def _parse_args(self, *argv, **kwargs):
         self.debug = kwargs.get('debug',False)
         if self.debug == '0': self.debug = False
         self.module_path = kwargs.get('module_path','/etc/puppet/modules')
-
 
 ECMPuppet().run()

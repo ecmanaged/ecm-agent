@@ -64,7 +64,7 @@ class ECMSource(ECMPlugin):
 
     def _return(self,ret):
         output = {
-            'out': ret.get('status',1),
+            'out': ret.get('retcode',1),
             'stderr': ret.get('stderr',''),
             'stdout': ret.get('stdout','')
         }
@@ -74,6 +74,7 @@ class Git(ECMCommon):
     def __init__(self,working_dir,rotate):
         if not working_dir:
             raise Exception("Invalid path")
+
         self.working_dir = working_dir
         self.rotate = rotate
 
@@ -95,9 +96,15 @@ class Git(ECMCommon):
         command_pull  = self.git_cmd + " pull --quiet --verbose"
 
         command = command_clone
-        if not self.rotate and os.path.isdir(self.working_dir + '/.git'):
-            # Git clone will fail: no empty dir (so make a pull and hope...)
-            command = command_pull
+        if os.path.isdir(self.working_dir + '/.git'):
+            if not self.rotate:
+                # Git clone will fail: no empty dir (so make a pull and hope...)
+                command = command_pull
+
+        else:
+            # Rotate this dir or will fail
+            deploy = Deploy(self.working_dir,True)
+            self.old_dir = deploy.prepare()
 
         # Create git command with user and password
         if username and password:
@@ -110,7 +117,7 @@ class Git(ECMCommon):
 
         result_exec = Aux().myexec(command,path=self.working_dir,envars=envars)
 
-        if not result_exec['status']:
+        if not result_exec['retcode']:
             extra_msg = self._output("Source deployed successfully to '%s'" % self.working_dir)
             if self.old_dir:
                 extra_msg += self._output("Old source files moved to '%s'" % self.old_dir)
@@ -122,6 +129,7 @@ class Svn(ECMCommon):
     def __init__(self,working_dir,rotate):
         if not working_dir:
             raise Exception("Invalid path")
+
         self.working_dir = working_dir
         self.rotate = rotate
 
@@ -147,7 +155,7 @@ class Svn(ECMCommon):
 
         result_exec = Aux().myexec(command,path=self.working_dir,envars=envars)
 
-        if not result_exec['status']:
+        if not result_exec['retcode']:
             extra_msg = self._output("Source deployed successfully to '%s'" % self.working_dir)
             if self.old_dir:
                 extra_msg += self._output("Old source files moved to '%s'" % self.old_dir)
@@ -164,6 +172,7 @@ class File(ECMCommon):
     def __init__(self,working_dir,rotate):
         if not working_dir:
             raise Exception("Invalid path")
+
         self.working_dir = working_dir
         self.rotate = rotate
 
@@ -201,7 +210,7 @@ class File(ECMCommon):
         ret = {
             'stdout': extract.get('head','') + extract.get('stdout',''),
             'stderr': extract.get('stderr','Unable to download file'),
-            'status': extract.get('status',1)
+            'retcode': extract.get('retcode',1)
         }
         return ret
 
@@ -253,7 +262,7 @@ class File(ECMCommon):
         except Exception as e:
             raise Exception("Could not extract file: %s" % e)
 
-        ret = { 'status': 0, 'stderr': '', 'stdout': stdout }
+        ret = { 'retcode': 0, 'stderr': '', 'stdout': stdout }
         return ret
 
     def _get_file_type(self,file):
@@ -326,9 +335,12 @@ class Aux(ECMCommon):
                 envars_decoded = json.loads(envars)
             except: pass
 
-        _status,_stdout, _stderr = self._execute_command(command = command, workdir = path, envars = envars_decoded)
+        _retcode,_stdout, _stderr = self._execute_command(command = command, workdir = path, envars = envars_decoded)
 
-        ret = { 'status': _status, 'stderr': str(_stderr), 'stdout': str(_stdout)}
+        ret = { 'retcode': _retcode,
+                'stderr': str(_stderr),
+                'stdout': str(_stdout)
+        }
         return ret
 
 ECMSource().run()

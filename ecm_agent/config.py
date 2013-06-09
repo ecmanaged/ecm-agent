@@ -32,6 +32,10 @@ class SMConfigObj(ConfigObj):
     @inlineCallbacks
     def checkUUID(self):
         mac = getnode()
+        # Always generate a new password if not is set
+        if not self['XMPP']['password']:
+            self['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
+
         if mac:
             if str(mac) == str(self._getStoredMAC()):
                 l.debug("MAC has not changed. Skip UUID check")
@@ -58,10 +62,6 @@ class SMConfigObj(ConfigObj):
                 else:
                     l.info("UUID has changed, reconfiguring XMPP user/pass")
                     self['XMPP']['user'] = '@'.join((uuid, self['XMPP']['host']))
-
-                    # try to use old password
-                    if not self['XMPP']['password']:
-                        self['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
 
                     self['XMPP']['mac'] = mac
                     self.write()
