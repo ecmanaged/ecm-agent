@@ -348,7 +348,7 @@ class IqMessage:
 
             except Exception as e:
                 l.error("Error parsing IQ message: %s" % elem.toXml())
-                raise e
+            #                raise e
 
         else:
             self.type = ''

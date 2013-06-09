@@ -24,8 +24,6 @@ class FixedXMPPAuthenticator(client.XMPPAuthenticator):
         if password:
             self.password = password
 
-
-
         iq = IQ(self.xmlstream, "set")
         iq.addElement(("jabber:iq:register", "query"))
         iq.query.addElement("username", content = self.jid.user)
@@ -37,6 +35,8 @@ class FixedXMPPAuthenticator(client.XMPPAuthenticator):
 
     def _registerResultEvent(self, iq):
         if iq['type'] == 'result':
+            # Registration succeeded -- go ahead and auth
+            # self.streamStarted(iq)
             pass
         else:
             self.xmlstream.dispatch(iq, self.AUTH_FAILED_EVENT)
@@ -55,6 +55,12 @@ class BasicClient:
         @param observers: Dictionary of observers.
         @param resource: Resource to use when sending messages by default.
         """
+
+        #use_http = False
+        #bosh_url="http://nk.pl/http-bind")
+        #auth = XMPPAuthenticator(client_jid, secret)
+        #self._factory = HTTPBindingStreamFactory(auth)
+
         self._user = user
         self._password = password
 
@@ -69,6 +75,13 @@ class BasicClient:
         self._factory.addBootstrap(xmlstream.INIT_FAILED_EVENT, self._failed_auth)
         self._factory.maxDelay = max_delay
 
+        #        if(use_http):
+        #            connector = HTTPBClientConnector(str(bosh_url))
+        #            connector.connect(f)
+        #        else:
+        #            connector = XMPPClientConnector(reactor, client_jid.host, self._factory)
+        #            connector.connect()
+
         self._connector = reactor.connectTCP(host, 5222, self._factory)
 
     def _failed_auth(self, error):
@@ -76,15 +89,16 @@ class BasicClient:
         l.info("Auth failed, trying to autoregister")
         self._factory.authenticator.registerAccount(self._user.split('@')[0], self._password)
 
-        #Trigger a reconnection in 3 seconds.
-        reactor.callLater(3, self._connector.disconnect)
+        # Initialize again in a few
+        reactor.callLater(3, self._factory.authenticator.initializeStream)
 
     def _stream_end(self, error):
         """ overwrite in derivated class """
         l.info("XMPPClient stream end")
 
-    def _connected(self, message):
+    def _connected(self, xml_stream):
         l.info("XMPPClient connected")
+        self._xs = xml_stream
 
     def _authd(self, xml_stream):
         """
@@ -93,7 +107,6 @@ class BasicClient:
         This method gets called when login has been successful.
         """
         l.info("XMPPClient authenticated")
-        self._xs = xml_stream
 
         #Keepalive: Send a whitespace every 60 seconds
         #to avoid server disconnect
@@ -117,6 +130,7 @@ class BasicClient:
             l.debug('No message ID in message, creating one')
             elem['id'] = self._newid()
         d = self._xs.send(elem.toXml())
+
         #Reset keepalive looping call timer
         if self._keep_alive_lc.running:
             self._keep_alive_lc.stop()
