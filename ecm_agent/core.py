@@ -57,9 +57,10 @@ class BasicClient:
         myJid = jid.JID('/'.join((user, resource)))
 
         self._factory = client.XMPPClientFactory(myJid, password)
+
         self._factory.addBootstrap(xmlstream.STREAM_CONNECTED_EVENT, self._connected)
         self._factory.addBootstrap(xmlstream.STREAM_AUTHD_EVENT, self._authd)
-        self._factory.addBootstrap(xmlstream.STREAM_END_EVENT,self._stream_end)
+        self._factory.addBootstrap(xmlstream.STREAM_END_EVENT, self._stream_end)
         self._factory.addBootstrap(xmlstream.INIT_FAILED_EVENT, self._failed_auth)
         self._factory.maxDelay = max_delay
 
