@@ -129,7 +129,7 @@ class ECMCommon():
                 raise Exception("Distribution not supported: " + distribution)
 
             out,stdout,stderr = self._execute_command(command)
-            return out
+            return out,stdout,stderr
 
         except Exception as e:
             raise Exception("Error installing packages %s: %s" % packages,e)
@@ -207,7 +207,9 @@ class ECMCommon():
             p = Popen(
                 command,
                 bufsize=0,  stdin = PIPE, stdout=PIPE, stderr=PIPE,
-                cwd=workdir, universal_newlines=True, close_fds=(os.name=='posix')
+                cwd=workdir,
+                universal_newlines=True,
+                close_fds=(os.name=='posix')
             )
 
             # Write stdin

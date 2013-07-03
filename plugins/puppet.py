@@ -89,7 +89,8 @@ class ECMPuppet(ECMPlugin):
         except:
             pass
 
-        return self._install_package('puppet')
+        out,stdout,stderr = self._install_package('puppet')
+        return out
         
     def _is_available(self):
         which_posix = procutils.which('puppet')

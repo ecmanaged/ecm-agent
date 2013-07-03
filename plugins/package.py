@@ -81,6 +81,11 @@ class ECMPackage(ECMPlugin):
 
         # apt-get update or yum clean on first time
         refresh_db = True
+        ret = {
+            'out': 0,
+            'stdout': '',
+            'stderr': '',
+        }
 
         for i in range(0,100):
             there_are_pending = False
@@ -90,17 +95,19 @@ class ECMPackage(ECMPlugin):
                     try:
                         package_name = pkg[i]['name']
                     except KeyError:
-                        # Skip it
                         continue
-                        #raise Exception("Unable to install some packages")
 
-                    if not self._install_package(package_name,refresh_db):
+                    out,stdout,stderr = self._install_package(package_name,refresh_db)
+                    ret['stdout'] += stdout
+                    ret['stderr'] += stderr
+                    ret['out'] = out
+                    if not out:
                         pkg[0]['installed'] = 1
                         refresh_db = False
 
             if not packages_pending: break
 
-        return True
+        return ret
 
     def _parse_package_string(self, packages):
         """ Parse packages like:
