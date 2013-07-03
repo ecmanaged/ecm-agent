@@ -6,9 +6,14 @@ import inspect
 import simplejson as json
 
 from ecmcommon import ECMCommon
+import base64
 
 E_RUNNING_COMMAND = 253
 E_COMMAND_NOT_DEFINED = 252
+
+import sys
+sys.stdout.flush()
+sys.stderr.flush()
 
 class ECMPlugin(ECMCommon):
     def _listCommands(self):
@@ -28,16 +33,15 @@ class ECMPlugin(ECMCommon):
 
         #Read command's arguments from stdin in json format.
         lines = []
-        for line in stdin:
-            lines.append(line)
-        command_args = json.loads('\n'.join(lines))
+        for line in stdin: lines.append(line)
+        command_args = json.loads(base64.b64decode('\n'.join(lines)))
 
         try:
             # convert returned data to json
-            ret = command(**command_args)
-            ret = json.dumps(ret)
-            print >> stdout, ret
+            data = command(**command_args)
+            sys.stdout.write("\n**__ecagent__**\n" + json.dumps(data))
             return
+
         except Exception, e:
             et, ei, tb = exc_info()
             print >> stderr, "%s" %e
@@ -50,3 +54,4 @@ class ECMPlugin(ECMCommon):
         else:
             command_name = argv[1]
             exit(self._runCommand(command_name))
+

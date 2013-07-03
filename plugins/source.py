@@ -3,8 +3,6 @@
 from ecmplugin import ECMPlugin
 from ecmcommon import ECMCommon
 
-from subprocess import Popen, PIPE
-from shlex import split
 from tempfile import mkdtemp
 from base64 import b64decode
 from urlparse import urlparse
@@ -14,8 +12,6 @@ import os
 import twisted.python.procutils as procutils
 
 import simplejson as json
-
-from time import time
 from shutil import move, rmtree
 
 try:
@@ -64,7 +60,7 @@ class ECMSource(ECMPlugin):
 
     def _return(self,ret):
         output = {
-            'out': ret.get('retcode',1),
+            'out': ret.get('out',1),
             'stderr': ret.get('stderr',''),
             'stdout': ret.get('stdout','')
         }
@@ -117,7 +113,7 @@ class Git(ECMCommon):
 
         result_exec = Aux().myexec(command,path=self.working_dir,envars=envars)
 
-        if not result_exec['retcode']:
+        if not result_exec['out']:
             extra_msg = self._output("Source deployed successfully to '%s'" % self.working_dir)
             if self.old_dir:
                 extra_msg += self._output("Old source files moved to '%s'" % self.old_dir)
@@ -155,7 +151,7 @@ class Svn(ECMCommon):
 
         result_exec = Aux().myexec(command,path=self.working_dir,envars=envars)
 
-        if not result_exec['retcode']:
+        if not result_exec['out']:
             extra_msg = self._output("Source deployed successfully to '%s'" % self.working_dir)
             if self.old_dir:
                 extra_msg += self._output("Old source files moved to '%s'" % self.old_dir)
@@ -210,7 +206,7 @@ class File(ECMCommon):
         ret = {
             'stdout': extract.get('head','') + extract.get('stdout',''),
             'stderr': extract.get('stderr','Unable to download file'),
-            'retcode': extract.get('retcode',1)
+            'out': extract.get('out',1)
         }
         return ret
 
@@ -262,7 +258,7 @@ class File(ECMCommon):
         except Exception as e:
             raise Exception("Could not extract file: %s" % e)
 
-        ret = { 'retcode': 0, 'stderr': '', 'stdout': stdout }
+        ret = { 'out': 0, 'stderr': '', 'stdout': stdout }
         return ret
 
     def _get_file_type(self,file):
@@ -335,12 +331,7 @@ class Aux(ECMCommon):
                 envars_decoded = json.loads(envars)
             except: pass
 
-        _retcode,_stdout, _stderr = self._execute_command(command = command, workdir = path, envars = envars_decoded)
-
-        ret = { 'retcode': _retcode,
-                'stderr': str(_stderr),
-                'stdout': str(_stdout)
-        }
-        return ret
+        out,stdout,stderr = self._execute_command(command = command, workdir = path, envars = envars_decoded)
+        return self._format_output(out,stdout,stderr)
 
 ECMSource().run()

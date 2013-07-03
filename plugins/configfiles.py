@@ -2,9 +2,6 @@
 
 from ecmplugin import ECMPlugin
 
-from subprocess import Popen, PIPE
-from shlex import split
-
 from base64 import b64decode
 from shutil import move
 
@@ -56,27 +53,9 @@ class ECMConfigfile(ECMPlugin):
         except Exception as e:
             raise Exception("Unable to change owner for configfile: %s" %e)
 
-        # exec command
-        cmd = []
         if command:
-            cmd = split(command)
-
-        if cmd:
-            # Execute but don't try/catch to get real error
-            ret['stdout'] += self._output("Executing command: %s" %(command))
-            if(runas):
-                p = Popen(['su', runas],
-                          stdin=PIPE, stdout=PIPE, stderr=PIPE, cwd=working_dir)
-                stdout, stderr = p.communicate(' '.join(cmd))
-
-            else:
-                p = Popen(cmd,
-                          stdin=PIPE, stdout=PIPE, stderr=PIPE, cwd=working_dir)
-                stdout, stderr = p.communicate()
-
-            ret['out'] = p.wait()
-            ret['stdout'] += "\n" + str(stdout)
-            ret['stderr'] = str(stderr)
+            out,stdout,stderr = self._execute_command(command,runas=runas,workdir=working_dir)
+            ret = self._format_output(out,stdout,stderr)
 
         return ret
 

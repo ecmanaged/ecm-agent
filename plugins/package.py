@@ -100,7 +100,7 @@ class ECMPackage(ECMPlugin):
 
             if not packages_pending: break
 
-        #return True
+        return True
 
     def _parse_package_string(self, packages):
         """ Parse packages like:

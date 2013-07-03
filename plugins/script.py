@@ -2,13 +2,10 @@
 
 from ecmplugin import ECMPlugin
 
-from subprocess import Popen, PIPE
-from shlex import split
 from tempfile import mkdtemp
-
 from base64 import b64decode
 from shutil import rmtree
-from os import chmod, environ
+from os import environ
 
 import simplejson as json
 
@@ -64,6 +61,5 @@ class ECMScript(ECMPlugin):
         # Clean
         rmtree(tmp_dir, ignore_errors = True)
         return ret
-
 
 ECMScript().run()

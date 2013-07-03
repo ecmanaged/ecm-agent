@@ -9,6 +9,10 @@ from subprocess import Popen, PIPE
 from time import time
 from shlex import split
 
+from threading import Thread
+import sys
+import fcntl
+
 class ECMCommon():
     def _file_write(self,file,content=None):
         try:
@@ -42,7 +46,7 @@ class ECMCommon():
     def _clean_stdout(self,output):
         ''' Remove color chars from output
         '''
-        r = re.compile("\033\[[0-9;]+m", re.MULTILINE)
+        r = re.compile("\033\[[0-9;]*m", re.MULTILINE)
         return r.sub('', output)
 
     def _download_file(self, url, file):
@@ -107,31 +111,39 @@ class ECMCommon():
             if distribution.lower() == 'debian' or distribution.lower() == 'ubuntu':
                 os.environ['DEBIAN_FRONTEND'] = 'noninteractive'
 
-                if update: call(['apt-get','-y','-qq','update'])
-                ret_code = call(['apt-get','-o','Dpkg::Options::=--force-confold',
-                                '--allow-unauthenticated','--force-yes',
-                                 '-y','-qq','install',packages])
+                if update: self._execute_command(['apt-get','-y','-qq','update'])
+                command = ['apt-get','-o','Dpkg::Options::=--force-confold',
+                           '--allow-unauthenticated','--force-yes',
+                           '-y','-qq','install',packages]
 
             elif distribution.lower() == 'centos' or distribution.lower() == 'redhat' or distribution.lower() == 'fedora':
-                if update: call(['yum','-y','clean','all'])
-                ret_code = call(['yum','-y','--nogpgcheck','install',packages])
+                if update: self._execute_command(['yum','-y','clean','all'])
+                command = ['yum','-y','--nogpgcheck','install',packages]
 
             elif distribution.lower() == 'arch':
-                if update: call(['pacman','-Sy'])
-                if update: call(['pacman','-S','--noconfirm','pacman'])
-                ret_code = call(['pacman','-S','--noconfirm',packages])
+                if update: self._execute_command(['pacman','-Sy'])
+                if update: self._execute_command(['pacman','-S','--noconfirm','pacman'])
+                command = ['pacman','-S','--noconfirm',packages]
 
             else:
                 raise Exception("Distribution not supported: " + distribution)
 
-            return ret_code
+            out,stdout,stderr = self._execute_command(command)
+            return out
 
         except Exception as e:
             raise Exception("Error installing packages %s: %s" % packages,e)
 
-    def _execute_command(self, command, runas=None, workdir = None, envars=None):
+    def _execute_command(self, command, stdin = None, runas=None, workdir = None, envars=None):
         """
         """
+        self.stdout = ''
+        self.stderr = ''
+
+        # Create a full command line splited later
+        if isinstance(command, list):
+            command = ' '.join(command)
+
         if workdir: path = os.path.abspath(workdir)
 
         # Set environment variables
@@ -142,56 +154,96 @@ class ECMCommon():
                     os.environ[envar] = str(envars[envar])
             except: pass
 
+        if runas:
+            command = ['su','-',runas,'-c',command]
+        else:
+            command = split(command)
+
         try:
-            if(runas):
-                p = Popen(['su', runas],
-                            stdin=PIPE,
-                            stdout=PIPE,
-                            stderr=PIPE,
-                            cwd=workdir,
-                            close_fds=(os.name=='posix')
-                )
-                stdout, stderr = p.communicate(command)
+            p = Popen(
+                command,
+                bufsize=0, stdin = PIPE, stdout=PIPE, stderr=PIPE,
+                cwd=workdir,
+                universal_newlines=True,
+                close_fds=(os.name=='posix')
+            )
 
-            else:
-                p = Popen(split(command),
-                            stdin=PIPE,
-                            stdout=PIPE,
-                            stderr=PIPE,
-                            cwd=workdir,
-                            close_fds=(os.name=='posix')
-                )
-                stdout, stderr = p.communicate()
+            # Write stdin
+            if stdin: p.stdin.write(stdin)
 
-            return p.wait(),stdout,stderr
+            thread = Thread(target=self._flush_worker, args=[p.stdout,p.stderr])
+            thread.daemon = True
+            thread.start()
+            thread.join(timeout=1)
+
+            return p.wait(),self.stdout,self.stderr
 
         except Exception as e:
             return 255,'',e
 
-    def _execute_file(self, file, runas=None, workdir = None):
-        cmd = []
-        cmd.append(file)
-
+    def _execute_file(self, file, stdin=None, runas=None, workdir = None, envars = None):
         # set executable flag to file
         os.chmod(file,0700)
+        command = [file]
+
+        self.stdout = ''
+        self.stderr = ''
+
+        # Set environment variables
+        if envars:
+            try:
+                for envar in envars:
+                    if not envars[envar]: envars[envar] = ''
+                    os.environ[envar] = str(envars[envar])
+            except: pass
+
 
         try:
-            if(runas):
-                # Change owner and execute
+            if runas:
+                command = ['su','-','-c',file]
+                # Change file owner before execute
                 self._chown(path=file,user=runas,group='root',recursive=True)
-                p = Popen(['su', runas],
-                          stdin=PIPE, stdout=PIPE, stderr=PIPE, cwd=workdir)
-                stdout, stderr = p.communicate(' '.join(cmd))
 
-            else:
-                p = Popen(cmd,
-                          stdin=PIPE, stdout=PIPE, stderr=PIPE, cwd=workdir)
-                stdout, stderr = p.communicate()
+            p = Popen(
+                command,
+                bufsize=0,  stdin = PIPE, stdout=PIPE, stderr=PIPE,
+                cwd=workdir, universal_newlines=True, close_fds=(os.name=='posix')
+            )
 
-            return p.wait(),stdout,stderr
+            # Write stdin
+            if stdin: p.stdin.write(stdin)
+
+            thread = Thread(target=self._flush_worker, args=[p.stdout,p.stderr])
+            thread.daemon = True
+            thread.start()
+            thread.join(timeout=1)
+
+            return p.wait(),self.stdout,self.stderr
 
         except Exception as e:
             return 255,'',e
+
+    def _flush_worker(self, stdout, stderr):
+        ''' needs to be in a thread so we can read the stdout w/o blocking '''
+        while True:
+            output = self._clean_stdout(self._non_block_read(stdout))
+            if output:
+                self.stdout += output
+                sys.stdout.write(output)
+            output = self._clean_stdout(self._non_block_read(stderr))
+            if output:
+                self.stderr += output
+                sys.stderr.write(output)
+
+    def _non_block_read(self, output):
+        ''' even in a thread, a normal read with block until the buffer is full '''
+        fd = output.fileno()
+        fl = fcntl.fcntl(fd, fcntl.F_GETFL)
+        fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
+        try:
+            return output.read()
+        except:
+            return ''
 
     def _renice_me(self, nice):
         if nice and self.is_number(nice):
@@ -214,6 +266,14 @@ class ECMCommon():
     def _output(self,string):
         return '[' + str(time()) + '] ' + str(string) + "\n"
 
+    def _format_output(self,out,stdout,stderr):
+        format_out = {}
+        format_out['out'] = out
+        format_out['stdout'] = stdout
+        format_out['stderr'] = stderr
+
+        return format_out
+
     def _mkdir_p(self,path):
         try:
             if not os.path.isdir(path):
@@ -224,4 +284,3 @@ class ECMCommon():
     def _utime(self):
         str_time = str(time()).replace('.','_')
         return str_time
-

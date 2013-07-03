@@ -31,6 +31,7 @@ class ECMBase(ECMPlugin):
                 # Set export VAR string (:FIXME: for win)
                 content += "export " + str(var) + '="' + str(envars[var]) + "\"\n"
             self._file_write(ENV_FILE,content)
+
             return True
 
         except:
@@ -53,9 +54,9 @@ class ECMBase(ECMPlugin):
         'Syntax: system_info'
 
         retr={}
-        retr['os']=str(platform.system());
-        (retr['os_distrib'],retr['os_version'],tmp)=platform.dist();
-        retr['machine']=str(platform.machine());
+        retr['os']=str(platform.system())
+        (retr['os_distrib'],retr['os_version'],tmp)=platform.dist()
+        retr['machine']=str(platform.machine())
 
         return retr
 

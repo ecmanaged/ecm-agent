@@ -57,7 +57,7 @@ class BasicClient:
         """
 
         #use_http = False
-        #bosh_url="http://nk.pl/http-bind")
+        #url="http://xmpp.ecmanaged.net/http-bind")
         #auth = XMPPAuthenticator(client_jid, secret)
         #self._factory = HTTPBindingStreamFactory(auth)
 
@@ -76,10 +76,10 @@ class BasicClient:
         self._factory.maxDelay = max_delay
 
         #        if(use_http):
-        #            connector = HTTPBClientConnector(str(bosh_url))
+        #            connector = HTTPBClientConnector(str(url))
         #            connector.connect(f)
         #        else:
-        #            connector = XMPPClientConnector(reactor, client_jid.host, self._factory)
+        #            connector = XMPPClientConnector(reactor, host, self._factory)
         #            connector.connect()
 
         self._connector = reactor.connectTCP(host, 5222, self._factory)
@@ -94,7 +94,7 @@ class BasicClient:
 
     def _stream_end(self, error):
         """ overwrite in derivated class """
-        l.info("XMPPClient stream end")
+        l.info("XMPPClient stream end: %s")
 
     def _connected(self, xml_stream):
         l.info("XMPPClient connected")

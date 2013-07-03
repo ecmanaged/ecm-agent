@@ -2,18 +2,17 @@
 
 from ecmplugin import ECMPlugin
 
-from subprocess import call, Popen, PIPE
 from tempfile import mkdtemp
 from shutil import rmtree
 
 import twisted.python.procutils as procutils
-
 import tarfile
-import base64
+
+from base64 import b64decode
 
 class ECMPuppet(ECMPlugin):
     def cmd_puppet_available(self, *argv, **kwargs):
-        return self._is_available();
+        return self._is_available()
 
     def cmd_puppet_apply(self, *argv, **kwargs):
         recipe_base64 = kwargs.get('recipe_code',None)
@@ -25,7 +24,7 @@ class ECMPuppet(ECMPlugin):
 
         try:
             # Create temp file
-            catalog = base64.b64decode(recipe_base64)
+            catalog = b64decode(recipe_base64)
         except:
             raise Exception("Unable to decode recipe")
 
@@ -34,20 +33,12 @@ class ECMPuppet(ECMPlugin):
                        '--detailed-exitcodes']
             if self.debug: command.append('--debug')
 
-            p = Popen(command,stdin=PIPE, stdout=PIPE, stderr=PIPE, universal_newlines=True)
-            stdout, stderr = p.communicate(input=catalog)
-
-            ret = {}
-            ret['out'] = p.wait()
-            ret['stdout'] = self._clean_stdout(stdout)
-            ret['stderr'] = self._clean_stdout(stderr)
+            out,stdout,stderr = self._execute_command(command,stdin = catalog)
+            ret = self._format_output(out,stdout,stderr)
 
             # exit code of '2' means there were changes
             if ret['out'] == 2: ret['out'] = 0
             if "\nError: " in ret['stderr']: ret['out'] = 4
-
-            #if ret['out']:
-            #    raise Exception("%s" % ret['stderr'])
 
             return ret
 
@@ -129,14 +120,8 @@ class ECMPuppet(ECMPlugin):
         command.append('--' + catalog_cmd)
         command.append(recipe_file)
 
-        p = Popen(command, cwd=recipe_path, stdin=None,
-                  stdout=PIPE, stderr=PIPE, universal_newlines=True)
-        stdout, stderr = p.communicate()
-
-        ret = {}
-        ret['out'] = p.wait()
-        ret['stdout'] = self._clean_stdout(stdout)
-        ret['stderr'] = self._clean_stdout(stderr)
+        out,stdout,stderr = self._execute_command(command,workdir=recipe_path)
+        ret = self._format_output(out,stdout,stderr)
 
         # --detailed-exitcodes
         # Provide transaction information via exit codes. If this is enabled,
