@@ -19,6 +19,10 @@ import simplejson as json
 import zlib, base64
 from time import time
 
+E_RUNNING_COMMAND = 253
+E_COMMAND_NOT_DEFINED = 252
+STDOUT_FINAL_OUTPUT_STR = '[__ecagent::response__]'
+
 ## RSA Verify
 #from struct import pack
 #from hashlib import sha256 # You'll need the backport for 2.4 http://code.krypto.org/python/hashlib/
@@ -69,7 +73,6 @@ class SMAgentXMPP(Client):
         )
 
         self.pub_key = '';
-        self.flush_send = None;
 
         l.info("Loading commands...")
         self.command_runner = CommandRunner(config['Plugins'])
@@ -124,7 +127,7 @@ class SMAgentXMPP(Client):
 
         else:
             l.debug('cmdIgnored')
-            result=(4, '', 'Unknown command', 0)
+            result=(E_RUNNING_COMMAND, '', 'Unknown command', 0)
             self._onCallFinished(result,message)
 
         return
@@ -294,11 +297,9 @@ class CommandRunnerProcess(ProcessProtocol):
     def outReceived(self, data):
         l.debug("Out made: %s" % data)
 
-        CONTROL = '**__ecagent__**'
-
-        if CONTROL in data:
+        if STDOUT_FINAL_OUTPUT_STR in data:
             for line in data.split("\n"):
-                if line == '**__ecagent__**':
+                if line == STDOUT_FINAL_OUTPUT_STR:
                     self.stdout = ''
                     self.stderr = ''
                     self.flush_callback = None
@@ -396,24 +397,21 @@ class IqMessage:
                 if len(self.resource) > 1:
                     self.resource = self.resource[-1]
                 else:
-                    self.resource = None
+                    self.resource= None
 
-                el_command = el_ecm_message.firstChildElement()
-                self.command = el_command['name']
-                # self.time = el_command.get('time','')
-                # self.signature = el_command.get('signature','')
+                el_command      = el_ecm_message.firstChildElement()
+                self.command    = el_command['name']
 
                 el_args = el_command.firstChildElement()
                 self.command_args = el_args.attributes
 
             except Exception as e:
                 l.error("Error parsing IQ message: %s" % elem.toXml())
-                #                raise e
+                pass
 
         else:
             self.type = ''
             self.id = ''
-            self.partial = ''
             self.from_ = ''
             self.to = ''
             self.resource = ''
@@ -458,3 +456,4 @@ class IqMessage:
         self.stderr    = str(stderr)
         self.timed_out = str(timed_out)
         self.partial   = str(partial)
+

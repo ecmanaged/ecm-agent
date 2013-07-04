@@ -148,7 +148,6 @@ class Svn(ECMCommon):
             url = url.replace('://','://' + username + ':' + password + '@')
 
         command = self.svn_cmd + " co '" + url + "' ."
-
         result_exec = Aux().myexec(command,path=self.working_dir,envars=envars)
 
         if not result_exec['out']:

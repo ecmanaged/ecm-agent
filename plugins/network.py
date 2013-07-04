@@ -7,7 +7,6 @@ import urllib
 import socket
 
 class ECMNetwork(ECMPlugin):
-
     def cmd_web_regexp(self, *argv, **kwargs):
         """ Syntax: page_regexp <url> <regex> """
 

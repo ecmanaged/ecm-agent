@@ -6,8 +6,6 @@ import os, platform, psutil
 import simplejson as json
 import base64
 
-from subprocess import call, PIPE
-
 DIR = '/etc/ecmanaged'
 ENV_FILE = DIR + '/ecm_env'
 

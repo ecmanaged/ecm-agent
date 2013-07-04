@@ -28,16 +28,11 @@ class ECMLinux(ECMPlugin):
             daemon = initd
 
         daemon=os.path.basename(daemon)
-        #self._renice_me(-19)
-        (out,stdout,stderr) = self._execute_command(INITD + '/' + daemon + ' ' + action)
-        #self._renice_me(5)
+        self._renice_me(-19)
+        out,stdout,stderr = self._execute_command(INITD + '/' + daemon + ' ' + action)
+        self._renice_me(5)
 
-        ret = {}
-        ret['out'] = out
-        ret['stdout'] = str(stdout)
-        ret['stderr']  = str(stderr)
-
-        return ret
+        return  self._format_output(out, stdout, stderr)
 
     def cmd_service_runlevel(self, *argv, **kwargs):
         return self._get_runlevel()

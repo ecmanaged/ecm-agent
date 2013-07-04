@@ -1,17 +1,16 @@
 # -*- coding:utf-8 -*-
 
-from sys import argv, exit, exc_info, stdin, stdout, stderr
-
+import sys
 import inspect
 import simplejson as json
 
 from ecmcommon import ECMCommon
-import base64
+from base64 import b64decode
 
 E_RUNNING_COMMAND = 253
 E_COMMAND_NOT_DEFINED = 252
+STDOUT_FINAL_OUTPUT_STR = '[__ecagent::response__]'
 
-import sys
 sys.stdout.flush()
 sys.stderr.flush()
 
@@ -28,30 +27,29 @@ class ECMPlugin(ECMCommon):
         try:
             command = getattr(self, 'cmd_' + command_name)
         except:
-            print >> stderr, "Command not defined (%s)" % command_name
-            exit(E_COMMAND_NOT_DEFINED)
+            print >> sys.stderr, "Command not defined (%s)" % command_name
+            sys.exit(E_COMMAND_NOT_DEFINED)
 
-        #Read command's arguments from stdin in json format.
+        # Read command's arguments from stdin in json format (b64).
         lines = []
-        for line in stdin: lines.append(line)
-        command_args = json.loads(base64.b64decode('\n'.join(lines)))
+        for line in sys.stdin: lines.append(line)
+        command_args = json.loads(b64decode('\n'.join(lines)))
 
         try:
             # convert returned data to json
             data = command(**command_args)
-            sys.stdout.write("\n**__ecagent__**\n" + json.dumps(data))
+            print >> sys.stdout, "\n" + STDOUT_FINAL_OUTPUT_STR + "\n" + json.dumps(data)
             return
 
         except Exception, e:
-            et, ei, tb = exc_info()
-            print >> stderr, "%s" %e
+            et, ei, tb = sys.exc_info()
+            print >> sys.stderr, "%s" %e
             return E_RUNNING_COMMAND
 
     def run(self):
-        if len(argv) == 1 or argv[1] == '':
-            #Show available commands if no command selected
+        if len(sys.argv) == 1 or sys.argv[1] == '':
+            #Show a list of available commands if no command selected
             return self._listCommands()
         else:
-            command_name = argv[1]
-            exit(self._runCommand(command_name))
-
+            command_name = sys.argv[1]
+            sys.exit(self._runCommand(command_name))

@@ -4,7 +4,6 @@ import os, string, random, re
 import platform
 import urllib2
 
-from subprocess import call
 from subprocess import Popen, PIPE
 from time import time
 from shlex import split
@@ -44,12 +43,14 @@ class ECMCommon():
         return ''.join(random.choice(chars) for x in range(60))
 
     def _clean_stdout(self,output):
-        ''' Remove color chars from output
-        '''
+        """ Remove color chars from output
+        """
         r = re.compile("\033\[[0-9;]*m", re.MULTILINE)
         return r.sub('', output)
 
     def _download_file(self, url, file):
+        """ Downloads remote file
+        """
         try:
             req = urllib2.urlopen(url.replace("'",""))
             CHUNK = 256 * 10240
@@ -103,7 +104,7 @@ class ECMCommon():
         return True
 
     def _install_package(self,packages,update = True):
-        """ Try to install packages
+        """ Install packages
         """
         try:
             (distribution,version,tmp)=platform.dist()
@@ -135,7 +136,7 @@ class ECMCommon():
             raise Exception("Error installing packages %s: %s" % packages,e)
 
     def _execute_command(self, command, stdin = None, runas=None, workdir = None, envars=None):
-        """
+        """ Execute command and flush stdout/stderr using threads
         """
         self.stdout = ''
         self.stderr = ''
@@ -147,12 +148,7 @@ class ECMCommon():
         if workdir: path = os.path.abspath(workdir)
 
         # Set environment variables
-        if envars:
-            try:
-                for envar in envars:
-                    if not envars[envar]: envars[envar] = ''
-                    os.environ[envar] = str(envars[envar])
-            except: pass
+        self._set_envars(envars)
 
         if runas:
             command = ['su','-',runas,'-c',command]
@@ -182,7 +178,10 @@ class ECMCommon():
             return 255,'',e
 
     def _execute_file(self, file, stdin=None, runas=None, workdir = None, envars = None):
-        # set executable flag to file
+        """ Execute a script file and flush stdout/stderr using threads
+        """
+
+        # +x flag to file
         os.chmod(file,0700)
         command = [file]
 
@@ -190,13 +189,7 @@ class ECMCommon():
         self.stderr = ''
 
         # Set environment variables
-        if envars:
-            try:
-                for envar in envars:
-                    if not envars[envar]: envars[envar] = ''
-                    os.environ[envar] = str(envars[envar])
-            except: pass
-
+        self._set_envars(envars)
 
         try:
             if runas:
@@ -247,7 +240,17 @@ class ECMCommon():
         except:
             return ''
 
+    def _set_envars(self,envars):
+        ''' Sets os environment variables '''
+        if envars:
+            try:
+                for envar in envars:
+                    if not envars[envar]: envars[envar] = ''
+                    os.environ[envar] = str(envars[envar])
+            except: pass
+
     def _renice_me(self, nice):
+        ''' Changes execution priority  '''
         if nice and self.is_number(nice):
             try:
                 os.nice(int(nice))
@@ -259,6 +262,7 @@ class ECMCommon():
             return(1)
 
     def is_number(self,s):
+        ''' Helper function '''
         try:
             float(s)
             return True
@@ -266,9 +270,11 @@ class ECMCommon():
             return False
 
     def _output(self,string):
+        ''' Helper function '''
         return '[' + str(time()) + '] ' + str(string) + "\n"
 
     def _format_output(self,out,stdout,stderr):
+        ''' Helper function '''
         format_out = {}
         format_out['out'] = out
         format_out['stdout'] = stdout
@@ -277,6 +283,7 @@ class ECMCommon():
         return format_out
 
     def _mkdir_p(self,path):
+        ''' Recursive Mkdir '''
         try:
             if not os.path.isdir(path):
                 os.makedirs(path)
@@ -284,5 +291,6 @@ class ECMCommon():
             pass
 
     def _utime(self):
+        ''' Helper function: microtime '''
         str_time = str(time()).replace('.','_')
         return str_time
