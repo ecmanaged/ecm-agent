@@ -27,7 +27,7 @@ class ECMPlugin(ECMCommon):
         try:
             command = getattr(self, 'cmd_' + command_name)
         except:
-            print >> sys.stderr, "Command not defined (%s)" % command_name
+            sys.stderr.write("Command not defined (%s)" % command_name)
             sys.exit(E_COMMAND_NOT_DEFINED)
 
         # Read command's arguments from stdin in json format (b64).
@@ -38,12 +38,12 @@ class ECMPlugin(ECMCommon):
         try:
             # convert returned data to json
             data = command(**command_args)
-            print >> sys.stdout, "\n" + STDOUT_FINAL_OUTPUT_STR + "\n" + json.dumps(data)
+            sys.stdout.write("\n" + STDOUT_FINAL_OUTPUT_STR + "\n" + json.dumps(data))
             return
 
         except Exception, e:
             et, ei, tb = sys.exc_info()
-            print >> sys.stderr, "%s" %e
+            sys.stderr.write("%s" %e)
             return E_RUNNING_COMMAND
 
     def run(self):
