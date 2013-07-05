@@ -48,8 +48,11 @@ class ECMCommon():
     def _clean_stdout(self,output):
         """ Remove color chars from output
         """
-        r = re.compile("\033\[[0-9;]*m", re.MULTILINE)
-        return r.sub('', output)
+        try:
+            r = re.compile("\033\[[0-9;]*m", re.MULTILINE)
+            return r.sub('', output)
+        except:
+            return output
 
     def _download_file(self, url, file):
         """ Downloads remote file
@@ -109,11 +112,12 @@ class ECMCommon():
     def _install_package(self,packages,update = True):
         """ Install packages
         """
+        envars = {}
         try:
             (distribution,version,tmp)=platform.dist()
 
             if distribution.lower() == 'debian' or distribution.lower() == 'ubuntu':
-                os.environ['DEBIAN_FRONTEND'] = 'noninteractive'
+                envars['DEBIAN_FRONTEND'] = 'noninteractive'
 
                 if update: self._execute_command(['apt-get','-y','-qq','update'])
                 command = ['apt-get','-o','Dpkg::Options::=--force-confold',
@@ -132,7 +136,7 @@ class ECMCommon():
             else:
                 raise Exception("Distribution not supported: " + distribution)
 
-            out,stdout,stderr = self._execute_command(command)
+            out,stdout,stderr = self._execute_command(command, envars=envars)
             return out,stdout,stderr
 
         except Exception as e:
@@ -154,6 +158,10 @@ class ECMCommon():
             command = ['su','-',runas,'-c',command]
         else:
             command = split(command)
+
+        # Get current env
+        for env in os.environ.keys():
+            envars[env] = os.environ[env]
 
         try:
             p = Popen(
@@ -189,6 +197,10 @@ class ECMCommon():
         self.stdout = ''
         self.stderr = ''
 
+        # Get current env
+        for env in os.environ.keys():
+            envars[env] = os.environ[env]
+
         try:
             if runas:
                 command = ['su','-','-c',file]
@@ -220,21 +232,25 @@ class ECMCommon():
     def _flush_worker(self, stdout, stderr):
         ''' needs to be in a thread so we can read the stdout w/o blocking '''
         while True:
-            output = self._clean_stdout(self._non_block_read(stdout))
-            if output:
-                self.stdout += output
-                sys.stdout.write(output)
-            output = self._clean_stdout(self._non_block_read(stderr))
-            if output:
-                self.stderr += output
-                sys.stderr.write(output)
+            # Avoid Exception in thread Thread-1 (most likely raised during interpreter shutdown):
+            try:
+                output = self._clean_stdout(self._non_block_read(stdout))
+                if output:
+                    self.stdout += output
+                    sys.stdout.write(output)
+                output = self._clean_stdout(self._non_block_read(stderr))
+                if output:
+                    self.stderr += output
+                    sys.stderr.write(output)
+            except:
+                pass
 
     def _non_block_read(self, output):
         ''' even in a thread, a normal read with block until the buffer is full '''
-        fd = output.fileno()
-        fl = fcntl.fcntl(fd, fcntl.F_GETFL)
-        fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
         try:
+            fd = output.fileno()
+            fl = fcntl.fcntl(fd, fcntl.F_GETFL)
+            fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
             return output.read()
         except:
             return ''
