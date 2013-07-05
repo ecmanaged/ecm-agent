@@ -8,6 +8,9 @@ from subprocess import Popen, PIPE
 from time import time
 from shlex import split
 
+import simplejson as json
+import base64
+
 from threading import Thread
 import sys
 import fcntl
@@ -147,9 +150,6 @@ class ECMCommon():
 
         if workdir: path = os.path.abspath(workdir)
 
-        # Set environment variables
-        self._set_envars(envars)
-
         if runas:
             command = ['su','-',runas,'-c',command]
         else:
@@ -158,6 +158,7 @@ class ECMCommon():
         try:
             p = Popen(
                 command,
+                env = envars,
                 bufsize=0, stdin = PIPE, stdout=PIPE, stderr=PIPE,
                 cwd=workdir,
                 universal_newlines=True,
@@ -188,9 +189,6 @@ class ECMCommon():
         self.stdout = ''
         self.stderr = ''
 
-        # Set environment variables
-        self._set_envars(envars)
-
         try:
             if runas:
                 command = ['su','-','-c',file]
@@ -199,6 +197,7 @@ class ECMCommon():
 
             p = Popen(
                 command,
+                env = envars,
                 bufsize=0,  stdin = PIPE, stdout=PIPE, stderr=PIPE,
                 cwd=workdir,
                 universal_newlines=True,
@@ -240,12 +239,25 @@ class ECMCommon():
         except:
             return ''
 
+    def _envars_decode(self,coded_envars = None):
+        ''' Decode base64/json envars '''
+        envars = None
+        try:
+            if coded_envars:
+                envars = base64.b64decode(coded_envars)
+                envars = json.loads(envars)
+                for var in envars.keys():
+                    if not envars[var]: envars[var] = ''
+                    envars[var] = str(envars[var])
+
+        except: pass
+        return envars
+
     def _set_envars(self,envars):
         ''' Sets os environment variables '''
         if envars:
             try:
                 for envar in envars:
-                    if not envars[envar]: envars[envar] = ''
                     os.environ[envar] = str(envars[envar])
             except: pass
 

@@ -15,19 +15,16 @@ class ECMBase(ECMPlugin):
 
     def cmd_set_env(self, *argv, **kwargs):
         """ Set ECManaged environment variables """
-
         envars = kwargs.get('envars',None)
         if not envars:
             raise Exception('Invalid arguments')
 
-        content = ''
         try:
-            envars = base64.b64decode(envars)
-            envars = json.loads(envars)
-
+            content = ''
+            envars = self._envars_decode(envars)
             for var in envars.keys():
-                # Set export VAR string (:FIXME: for win)
                 content += "export " + str(var) + '="' + str(envars[var]) + "\"\n"
+
             self._file_write(ENV_FILE,content)
 
             return True

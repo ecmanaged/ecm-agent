@@ -323,13 +323,7 @@ class Deploy(ECMCommon):
 
 class Aux(ECMCommon):
     def myexec(self, command, path=None, envars=None):
-        envars_decoded = None
-        if envars:
-            try:
-                envars = b64decode(envars)
-                envars_decoded = json.loads(envars)
-            except: pass
-
+        envars_decoded = self._envars_decode(envars)
         out,stdout,stderr = self._execute_command(command = command, workdir = path, envars = envars_decoded)
         return self._format_output(out,stdout,stderr)
 

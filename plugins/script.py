@@ -37,19 +37,13 @@ class ECMScript(ECMPlugin):
             raise Exception("Unable to decode script")
 
         # Set environment variables before execution
-        script_envars = None
-        try:
-            if script_envars:
-                script_envars = b64decode(script_envars)
-                script_envars = json.loads(script_envars)
-
-        except: pass
+        envars = self._envars_decode(script_envars)
 
         if script_executable:
             cmd = script_executable + ' ' + tmp_file
-            out, stdout, stderr = self._execute_command(cmd, runas=script_runas, workdir=tmp_dir, envars=script_envars)
+            out, stdout, stderr = self._execute_command(cmd, runas=script_runas, workdir=tmp_dir, envars=envars)
         else:
-            out, stdout, stderr = self._execute_file(tmp_file, runas=script_runas, workdir = tmp_dir, envars=script_envars)
+            out, stdout, stderr = self._execute_file(tmp_file, runas=script_runas, workdir = tmp_dir, envars=envars)
 
         rmtree(tmp_dir, ignore_errors = True)
         return  self._format_output(out, stdout, stderr)
