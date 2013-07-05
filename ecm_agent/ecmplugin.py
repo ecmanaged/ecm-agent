@@ -43,7 +43,12 @@ class ECMPlugin(ECMCommon):
 
         except Exception, e:
             et, ei, tb = sys.exc_info()
-            sys.stderr.write("%s" %e)
+            data = {
+                'stdout': '',
+                'stderr': str(e),
+                'out':    E_RUNNING_COMMAND
+            }
+            sys.stdout.write("\n" + STDOUT_FINAL_OUTPUT_STR + "\n" + json.dumps(data))
             return E_RUNNING_COMMAND
 
     def run(self):

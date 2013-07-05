@@ -324,7 +324,7 @@ class CommandRunnerProcess(ProcessProtocol):
     def _flush(self):
         if not self.flush_callback: return
         total_out = len(self.stdout) + len(self.stderr)
-        if True or total_out - self.last_send_data_size > FLUSH_MIN_LENGTH:
+        if total_out - self.last_send_data_size > FLUSH_MIN_LENGTH:
             curr_time = time()
             if self.last_send_data_time + FLUSH_TIME < curr_time:
                 self.last_send_data_size = total_out

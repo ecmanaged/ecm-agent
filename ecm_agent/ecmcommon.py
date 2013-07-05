@@ -238,6 +238,7 @@ class ECMCommon():
                 if output:
                     self.stdout += output
                     sys.stdout.write(output)
+
                 output = self._clean_stdout(self._non_block_read(stderr))
                 if output:
                     self.stderr += output
@@ -252,6 +253,7 @@ class ECMCommon():
             fl = fcntl.fcntl(fd, fcntl.F_GETFL)
             fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
             return output.read()
+
         except:
             return ''
 
