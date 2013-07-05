@@ -19,14 +19,23 @@ import simplejson as json
 import zlib, base64
 from time import time
 
+## RSA Verify
+from Crypto import PublicKey
+import Crypto.PublicKey.RSA
+from Crypto.Util import number
+from Crypto.Hash import SHA
+
 E_RUNNING_COMMAND = 253
 E_COMMAND_NOT_DEFINED = 252
+E_UNVERIFIED_COMMAND = 251
 STDOUT_FINAL_OUTPUT_STR = '[__ecagent::response__]'
 
-## RSA Verify
-#from struct import pack
-#from hashlib import sha256 # You'll need the backport for 2.4 http://code.krypto.org/python/hashlib/
-#from sys import version_info
+PUB_KEY = """-----BEGIN PUBLIC KEY-----
+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDYOveXRwvarfanocPyjMEdyP9v
+WqPpBn/xmowk+Hwrp1rN5UCYESYbVQx8zUEXxK6euOl7ayW2x1X/GJkFsiRvW0Ev
++OvTm//m44JbLKz6ehPuuUzvlP8ujMLgo9ncTlsXO5/WL/Cy/EvE6dfDdRR4977M
+IqlNJia2BUKKDa1EuQIDAQAB
+-----END PUBLIC KEY-----"""
 
 AGENT_VERSION = 1
 FLUSH_MIN_LENGTH = 20
@@ -53,7 +62,6 @@ class SMAgent:
         l.critical("Please try configuring the XMPP subsystem manually.")
         reactor.stop()
 
-
 class SMAgentXMPP(Client):
     def __init__(self, config):
         """
@@ -71,8 +79,6 @@ class SMAgentXMPP(Client):
                         observers,
                         resource='ecm_agent-%d' % AGENT_VERSION
         )
-
-        self.pub_key = '';
 
         l.info("Loading commands...")
         self.command_runner = CommandRunner(config['Plugins'])
@@ -111,9 +117,15 @@ class SMAgentXMPP(Client):
 
     def _processCommand(self, message):
         l.debug('_processCommand')
+        verified = self._check_signature(message)
 
-        #l.debug('_checkSignature')
-        #verified = self._rsa_verify(message)
+        if not verified:
+            l.debug('cmdIgnored: Bad signature')
+            result=(E_UNVERIFIED_COMMAND, '', 'Bad signature', 0)
+            self._onCallFinished(result,message)
+            return
+
+        l.info('command from %s RSA verified' %message.from_)
 
         flush_callback = self._Flush
         message.command_replaced = message.command.replace('.','_')
@@ -126,7 +138,7 @@ class SMAgentXMPP(Client):
             return d
 
         else:
-            l.debug('cmdIgnored')
+            l.debug('cmdIgnored: Unknown command')
             result=(E_RUNNING_COMMAND, '', 'Unknown command', 0)
             self._onCallFinished(result,message)
 
@@ -153,49 +165,42 @@ class SMAgentXMPP(Client):
         message.toResult(*result)
         self.send(message.toEtree())
 
-    def _check_signature(self, message):
-        msg = message.from_ + ':' + message.to + ':' . message.commmand + ':' + message.time
+    def _check_signature(self,message):
+        l.debug('_checkSignature')
+        args_encoded = ''
+        text = message.from_.split('/')[0] + ':' + message.to.split('/')[0] + ':' + message.command + ':' + args_encoded
         signature = message.signature
 
-        #return self._rsa_verify(msg,signature,self.pub_key)
+        return self._rsa_verify(text,signature)
 
-#    def _rsa_verify(self, message, signature, key):
-#        def b(x):
-#            if version_info[0] == 2: return x
-#            else: return x.encode('latin1')
-#
-#        assert(type(message) == type(b('')))
-#        block_size = 0
-#        n = key[0]
-#
-#        while n:
-#            block_size += 1
-#            n >>= 8
-#
-#       signature = pow(int(signature, 16), key[1], key[0])
-#        raw_bytes = []
-#
-#        while signature:
-#            raw_bytes.insert(0, pack("B", signature & 0xFF))
-#            signature >>= 8
-#
-#        signature = (block_size - len(raw_bytes)) * b('\x00') + b('').join(raw_bytes)
-#        if signature[0:2] != b('\x00\x01'):
-#            return False
-#
-#        signature = signature[2:]
-#        if not b('\x00') in signature:
-#            return False
-#
-#        signature = signature[signature.index(b('\x00'))+1:]
-#        if not signature.startswith(b('\x30\x31\x30\x0D\x06\x09\x60\x86\x48\x01\x65\x03\x04\x02\x01\x05\x00\x04\x20')):
-#            return False
-#
-#        signature = signature[19:]
-#        if signature != sha256(message).digest(): return False
-#
-#        return True
+    def _rsa_verify(self,text,signature):
+        def _emsa_pkcs1_v1_5_encode(M, emLen):
+            # for PKCS1_V1_5 signing:
+            SHA1DER = '\x30\x21\x30\x09\x06\x05\x2b\x0e\x03\x02\x1a\x05\x00\x04\x14'
+            SHA1DERLEN = len(SHA1DER) + 0x14
 
+            H = SHA.new(M).digest()
+            T = SHA1DER + H
+            if emLen < (SHA1DERLEN + 11):
+                l.error('[CRYPT] intended encoded message length too short (%s)' % emLen)
+                return
+            ps = '\xff' * (emLen - SHA1DERLEN - 3)
+            if len(ps) < 8:
+                l.error('[CRYPT] ps length too short')
+                return
+            return '\x00\x01' + ps + '\x00' + T
+
+        key = PublicKey.RSA.importKey(PUB_KEY)
+        pub = key.publickey()
+
+        signature = base64.b64decode(signature)
+        em = _emsa_pkcs1_v1_5_encode(text, len(signature))
+
+        if em:
+            signature = number.bytes_to_long(signature)
+            return pub.verify(em, (signature,))
+
+        return False
 
 class CommandRunner():
     def __init__(self, config):
@@ -404,6 +409,8 @@ class IqMessage:
 
                 el_args = el_command.firstChildElement()
                 self.command_args = el_args.attributes
+
+                self.signature = el_command['signature']
 
             except Exception as e:
                 l.error("Error parsing IQ message: %s" % elem.toXml())
