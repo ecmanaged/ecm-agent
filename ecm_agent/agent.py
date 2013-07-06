@@ -119,12 +119,12 @@ class SMAgentXMPP(Client):
         l.debug('Process Command')
 
         if not self._verify_message(message):
-            l.debug('Command Ignored: Bad signature')
+            l.info('Command from %s has bad signature (Ignored)' % message.from_)
             result=(E_UNVERIFIED_COMMAND, '', 'Bad signature', 0)
             self._onCallFinished(result,message)
             return
 
-        l.info('Command from %s is RSA verified' %message.from_)
+        l.info('Command from %s is RSA verified' % message.from_)
 
         flush_callback = self._Flush
         message.command_replaced = message.command.replace('.','_')
@@ -166,11 +166,17 @@ class SMAgentXMPP(Client):
 
     def _verify_message(self,message):
         l.debug('Verify Message')
-        args_encoded = ''
-        text = message.from_.split('/')[0] + ':' + message.to.split('/')[0] + ':' + message.command + ':' + args_encoded
-        signature = message.signature
 
-        return self._rsa_verify(text,signature)
+        args_encoded = ''
+        for arg in message.command_args.keys():
+            args_encoded += arg + ':' + message.command_args[arg] + ':'
+
+        text = message.from_.split('/')[0] + '::' +\
+               message.to.split('/')[0] + '::' +\
+               message.command + '::' +\
+               args_encoded
+
+        return self._rsa_verify(text,message.signature)
 
     def _rsa_verify(self,text,signature):
         def _emsa_pkcs1_v1_5_encode(M, emLen):
