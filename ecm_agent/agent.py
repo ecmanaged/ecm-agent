@@ -168,7 +168,7 @@ class SMAgentXMPP(Client):
         l.debug('Verify Message')
 
         args_encoded = ''
-        for arg in message.command_args.keys():
+        for arg in sorted(message.command_args.keys()):
             args_encoded += arg + ':' + message.command_args[arg] + ':'
 
         text = message.from_.split('/')[0] + '::' +\
