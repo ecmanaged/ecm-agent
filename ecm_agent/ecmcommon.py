@@ -160,6 +160,7 @@ class ECMCommon():
             command = split(command)
 
         # Get current env
+        if not envars: envars = {}
         for env in os.environ.keys():
             envars[env] = os.environ[env]
 
@@ -194,6 +195,7 @@ class ECMCommon():
         self.stderr = ''
 
         # Get current env
+        if not envars: envars = {}
         for env in os.environ.keys():
             envars[env] = os.environ[env]
 

@@ -45,7 +45,7 @@ class ECMPlugin(ECMCommon):
             exctype, value = sys.exc_info()[:2]
             data = {
                 'stdout': '',
-                'stderr': "%s: %s" % (exctype,value),
+                'stderr': "ERROR: %s" % value,
                 'out':    E_RUNNING_COMMAND
             }
             sys.stdout.write("\n" + STDOUT_FINAL_OUTPUT_STR + "\n" + json.dumps(data))
