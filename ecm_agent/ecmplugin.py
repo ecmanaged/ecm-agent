@@ -41,11 +41,11 @@ class ECMPlugin(ECMCommon):
             sys.stdout.write("\n" + STDOUT_FINAL_OUTPUT_STR + "\n" + json.dumps(data))
             return
 
-        except Exception, e:
-            et, ei, tb = sys.exc_info()
+        except Exception:
+            exctype, value = sys.exc_info()[:2]
             data = {
                 'stdout': '',
-                'stderr': str(e),
+                'stderr': "%s: %s" % (exctype,value),
                 'out':    E_RUNNING_COMMAND
             }
             sys.stdout.write("\n" + STDOUT_FINAL_OUTPUT_STR + "\n" + json.dumps(data))

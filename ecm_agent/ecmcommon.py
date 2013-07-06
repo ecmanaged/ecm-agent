@@ -7,11 +7,10 @@ import urllib2
 from subprocess import Popen, PIPE
 from time import time
 from shlex import split
+from base64 import b64decode
+from threading import Thread
 
 import simplejson as json
-import base64
-
-from threading import Thread
 import sys
 import fcntl
 
@@ -148,11 +147,12 @@ class ECMCommon():
         self.stdout = ''
         self.stderr = ''
 
-        # Create a full command line splited later
+        # Create a full command line to split later
         if isinstance(command, list):
             command = ' '.join(command)
 
-        if workdir: path = os.path.abspath(workdir)
+        if workdir:
+            workdir = os.path.abspath(workdir)
 
         if runas:
             command = ['su','-',runas,'-c',command]
@@ -190,10 +190,6 @@ class ECMCommon():
         """ Execute a script file and flush stdout/stderr using threads
         """
 
-        # +x flag to file
-        os.chmod(file,0700)
-        command = [file]
-
         self.stdout = ''
         self.stderr = ''
 
@@ -201,11 +197,18 @@ class ECMCommon():
         for env in os.environ.keys():
             envars[env] = os.environ[env]
 
+        if workdir:
+            workdir = os.path.abspath(workdir)
+
         try:
             if runas:
                 command = ['su','-','-c',file]
                 # Change file owner before execute
                 self._chown(path=file,user=runas,group='root',recursive=True)
+
+            # +x flag to file
+            os.chmod(file,0700)
+            command = [file]
 
             p = Popen(
                 command,
@@ -217,7 +220,8 @@ class ECMCommon():
             )
 
             # Write stdin
-            if stdin: p.stdin.write(stdin)
+            if stdin:
+                p.stdin.write(stdin)
 
             thread = Thread(target=self._flush_worker, args=[p.stdout,p.stderr])
             thread.daemon = True
@@ -262,7 +266,7 @@ class ECMCommon():
         envars = None
         try:
             if coded_envars:
-                envars = base64.b64decode(coded_envars)
+                envars = b64decode(coded_envars)
                 envars = json.loads(envars)
                 for var in envars.keys():
                     if not envars[var]: envars[var] = ''
@@ -317,7 +321,7 @@ class ECMCommon():
         try:
             if not os.path.isdir(path):
                 os.makedirs(path)
-        except OSError as e:
+        except OSError:
             pass
 
     def _utime(self):

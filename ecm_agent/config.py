@@ -32,6 +32,7 @@ class SMConfigObj(ConfigObj):
     @inlineCallbacks
     def checkUUID(self):
         mac = getnode()
+
         # Always generate a new password if not is set
         if not self['XMPP']['password']:
             self['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
@@ -76,10 +77,12 @@ class SMConfigObj(ConfigObj):
         if self['XMPP'].as_bool('manual'):
             l.info("Skipping UUID auto configuration as manual flag is set.")
             return self['XMPP']['user'].split('@')[0]
+
         else:
             # Try to configure via URL (ECM meta-data)
-            retr = self._getUUIDViaWeb()
-            if retr: return retr
+            l.info("try to get UUID via URL (ecagent meta-data)")
+            uuid = self._getUUIDViaWeb()
+            if uuid: return uuid
 
             l.info("try to get UUID using dmidecode")
             for v in dmidecode.QuerySection('system').values():
@@ -87,18 +90,15 @@ class SMConfigObj(ConfigObj):
                     if (v['data']['UUID']):
                         return str((v['data']['UUID'])).lower()
 
-            l.info("Try by dmidecode command");
+            l.info("Try to get UUID  by dmidecode command")
             return self._getUUIDViaCommand()
 
     @inlineCallbacks
     def _getUUIDViaWeb(self):
-        #try:
-        retr = yield getPage(
-            "https://my.ecmanaged.com/agent/meta-data/uuid")
+        retr = yield getPage("https://my.ecmanaged.com/agent/meta-data/uuid")
         for line in retr.splitlines():
             if line and line.startswith('uuid:'):
                 returnValue(line.split(':')[1])
-            #except: pass
         returnValue('')
 
     def _getUUIDViaCommand(self):

@@ -38,7 +38,7 @@ IqlNJia2BUKKDa1EuQIDAQAB
 -----END PUBLIC KEY-----"""
 
 AGENT_VERSION = 1
-FLUSH_MIN_LENGTH = 20
+FLUSH_MIN_LENGTH = 5
 FLUSH_TIME = 5
 
 class SMAgent:
@@ -91,7 +91,7 @@ class SMAgentXMPP(Client):
         message_type = msg['type']
 
         l.debug("q Message received: \n%s" % msg.toXml())
-        l.debug(" Message type: %s" % message_type)
+        l.debug("Message type: %s" % message_type)
 
         if message_type == 'set':
             #Parse and check message format
@@ -116,16 +116,15 @@ class SMAgentXMPP(Client):
                    % (message_type, msg.toXml()))
 
     def _processCommand(self, message):
-        l.debug('_processCommand')
-        verified = self._check_signature(message)
+        l.debug('Process Command')
 
-        if not verified:
-            l.debug('cmdIgnored: Bad signature')
+        if not self._verify_message(message):
+            l.debug('Command Ignored: Bad signature')
             result=(E_UNVERIFIED_COMMAND, '', 'Bad signature', 0)
             self._onCallFinished(result,message)
             return
 
-        l.info('command from %s RSA verified' %message.from_)
+        l.info('Command from %s is RSA verified' %message.from_)
 
         flush_callback = self._Flush
         message.command_replaced = message.command.replace('.','_')
@@ -138,18 +137,18 @@ class SMAgentXMPP(Client):
             return d
 
         else:
-            l.debug('cmdIgnored: Unknown command')
+            l.debug('Command Ignored: Unknown command')
             result=(E_RUNNING_COMMAND, '', 'Unknown command', 0)
             self._onCallFinished(result,message)
 
         return
 
     def _onCallFinished(self, result, message):
-        l.debug('onCallFinished')
+        l.debug('Call Finished')
         self._send(result,message)
 
     def _Flush(self, result, message):
-        l.debug('Flush')
+        l.debug('Flush Message')
         self._send(result,message)
 
     def _onCallFailed(self, failure, *argv, **kwargs):
@@ -161,12 +160,12 @@ class SMAgentXMPP(Client):
             self._onCallFinished(result,message)
 
     def _send(self, result, message):
-        l.debug('send response')
+        l.debug('Send Response')
         message.toResult(*result)
         self.send(message.toEtree())
 
-    def _check_signature(self,message):
-        l.debug('_checkSignature')
+    def _verify_message(self,message):
+        l.debug('Verify Message')
         args_encoded = ''
         text = message.from_.split('/')[0] + ':' + message.to.split('/')[0] + ':' + message.command + ':' + args_encoded
         signature = message.signature
@@ -330,11 +329,11 @@ class CommandRunnerProcess(ProcessProtocol):
                 self.last_send_data_size = total_out
                 self.last_send_data_time = curr_time
 
-                l.debug("Scheduling a partial response: %s" %self.stdout)
+                l.debug("Scheduling a flush response: %s" %self.stdout)
                 self.flush_later = reactor.callLater(1,self.flush_callback,(None, self.stdout, self.stderr, 0, total_out), self.message)
 
     def processEnded(self, status):
-        l.debug("process ended")
+        l.debug("Process ended")
         self.flush_callback = None
 
         # Cancel flush callbacks
@@ -463,4 +462,3 @@ class IqMessage:
         self.stderr    = str(stderr)
         self.timed_out = str(timed_out)
         self.partial   = str(partial)
-
