@@ -19,13 +19,13 @@ from twisted.internet import reactor
 from twisted.application.service import Application
 
 #Local
-from ecm_agent.config import SMConfigObj
-from ecm_agent.agent import SMAgent
-import ecm_agent.twlogging as l
+from ecagent.config import SMConfigObj
+from ecagent.agent import SMAgent
+import ecagent.twlogging as l
 
 #Parse config file or end execution
 try:
-    config_filename = join(dirname(__file__), 'ecm_agent.cfg')
+    config_filename = join(dirname(__file__), 'ecagent.cfg')
     config = SMConfigObj(config_filename)
 except:
     print 'Unable to read the config file at %s' % config_filename
@@ -33,6 +33,6 @@ except:
     sys.exit(-1)
 
 #Start agent and setup logging
-application = Application("ecm_agent")
+application = Application("ecagent")
 l.setup(application, config['Log'])
 agent = SMAgent(config)

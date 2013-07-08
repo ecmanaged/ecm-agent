@@ -20,4 +20,4 @@ if [ $# -gt 2 -o $# -eq 1 -o $SHOW_USAGE -eq 1 ]; then
     exit 1
 fi
 
-twistd  -ny ecm_agent.tac
+twistd  -ny ecagent.tac

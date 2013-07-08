@@ -8,7 +8,7 @@ from twisted.internet.protocol import ProcessProtocol
 from twisted.internet.error import ProcessTerminated, ProcessDone
 
 #Local
-import ecm_agent.twlogging as l
+import ecagent.twlogging as l
 
 #Python
 from uuid import getnode

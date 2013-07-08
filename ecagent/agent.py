@@ -8,8 +8,8 @@ from twisted.internet.error import ProcessTerminated, ProcessDone
 from twisted.words.xish.domish import Element
 
 ##Local
-from ecm_agent.client import Client
-import ecm_agent.twlogging as l
+from ecagent.client import Client
+import ecagent.twlogging as l
 
 #Python
 import os
@@ -78,7 +78,7 @@ class SMAgentXMPP(Client):
         Client.__init__(self,
                         self.config['XMPP'],
                         observers,
-                        resource='ecm_agent-%d' % AGENT_VERSION
+                        resource='ecagent-%d' % AGENT_VERSION
         )
 
         l.info("Loading commands...")
@@ -387,7 +387,7 @@ class IqMessage:
     Will raise an Exception.
 
     MESSAGE FORMAT EXAMPLE:
-    <iq xmlns='jabber:client' to='ecm_agent@ejabberd/ecm_agent-1'
+    <iq xmlns='jabber:client' to='ecagent@ejabberd/ecagent-1'
     from='tester@ejabberd/test_send' id='s2c1' type='set'>
         <ecm_message version="1">
             <command name="command1" time="123131231" signature="XXXX">
