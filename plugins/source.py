@@ -78,14 +78,9 @@ class Git(ECMCommon):
         deploy = Deploy(self.working_dir,rotate)
         self.old_dir = deploy.prepare()
 
-        which_posix  = procutils.which('git')
-        which_win    = procutils.which('git.cmd')
-
-        try: self.git_cmd = which_posix[0]
-        except IndexError:
-            try: self.git_cmd = which_win[0]
-            except IndexError:
-                raise Exception("Unable to find git on path")
+        if not self._is_available():
+            if not self._install():
+                raise Exception('Unable to find or install git')
 
     def clone(self, url, envars, username, password, private_key):
         command_clone = self.git_cmd + " clone --quiet --verbose '" + url + "' ."
@@ -121,6 +116,22 @@ class Git(ECMCommon):
 
         return result_exec
 
+    def _is_available(self):
+        which_posix  = procutils.which('git')
+        which_win    = procutils.which('git.cmd')
+
+        try: self.git_cmd = which_posix[0]
+        except IndexError:
+            try: self.git_cmd = which_win[0]
+            except IndexError:
+                return False
+
+        return True
+
+    def _install(self):
+        self._install_package('git')
+        return self._is_available()
+
 class Svn(ECMCommon):
     def __init__(self,working_dir,rotate):
         if not working_dir:
@@ -133,14 +144,9 @@ class Svn(ECMCommon):
         deploy = Deploy(self.working_dir,rotate)
         self.old_dir = deploy.prepare()
 
-        which_posix  = procutils.which('svn')
-        which_win    = procutils.which('svn.cmd')
-
-        try: self.svn_cmd = which_posix[0]
-        except IndexError:
-            try: self.svn_cmd = which_win[0]
-            except IndexError:
-                raise Exception("Unable to find svn on path")
+        if not self._is_available():
+            if not self._install():
+                raise Exception('Unable to find or install subversion')
 
     def clone(self, url, envars, username, password, private_key):
         # Add username and password to url
@@ -162,6 +168,22 @@ class Svn(ECMCommon):
                 result_exec['stdout'] = extra_msg
 
         return result_exec
+
+    def _is_available(self):
+        which_posix  = procutils.which('svn')
+        which_win    = procutils.which('svn.cmd')
+
+        try: self.svn_cmd = which_posix[0]
+        except IndexError:
+            try: self.svn_cmd = which_win[0]
+            except IndexError:
+                return False
+
+        return True
+
+    def _install(self):
+        out,stdout,stderr = self._install_package('subversion')
+        return self._is_available()
 
 class File(ECMCommon):
     def __init__(self,working_dir,rotate):
