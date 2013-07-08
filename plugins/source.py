@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 
 from ecplugin import ecplugin
-from ecmcommon import ECMCommon
+from ectools import ectools
 
 from tempfile import mkdtemp
 from base64 import b64decode
@@ -66,7 +66,7 @@ class ECMSource(ecplugin):
         }
         return output
 
-class Git(ECMCommon):
+class Git(ectools):
     def __init__(self,working_dir,rotate):
         if not working_dir:
             raise Exception("Invalid path")
@@ -132,7 +132,7 @@ class Git(ECMCommon):
         self._install_package('git')
         return self._is_available()
 
-class Svn(ECMCommon):
+class Svn(ectools):
     def __init__(self,working_dir,rotate):
         if not working_dir:
             raise Exception("Invalid path")
@@ -185,7 +185,7 @@ class Svn(ECMCommon):
         out,stdout,stderr = self._install_package('subversion')
         return self._is_available()
 
-class File(ECMCommon):
+class File(ectools):
     def __init__(self,working_dir,rotate):
         if not working_dir:
             raise Exception("Invalid path")
@@ -322,7 +322,7 @@ class File(ECMCommon):
         return file
 
 
-class Deploy(ECMCommon):
+class Deploy(ectools):
     def __init__(self, working_dir, rotate):
         self.working_dir = os.path.abspath(working_dir)
         self.rotate = rotate
@@ -343,7 +343,7 @@ class Deploy(ECMCommon):
     def rollback(self,path):
         return
 
-class Aux(ECMCommon):
+class Aux(ectools):
     def myexec(self, command, path=None, envars=None):
         envars_decoded = self._envars_decode(envars)
         out,stdout,stderr = self._execute_command(command = command, workdir = path, envars = envars_decoded)

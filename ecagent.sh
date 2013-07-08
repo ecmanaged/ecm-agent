@@ -5,7 +5,7 @@ set -x
 
 if [ $# -eq 2 ]; then
     if [ $1 = "--configure-uuid" ]; then
-        ./ecm_configure.py $2
+        ./configure.py $2
     else
         SHOW_USAGE=1
     fi
