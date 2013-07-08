@@ -450,6 +450,7 @@ class IqMessage:
             ecm_message = msg.addElement('ecm_message')
             ecm_message['version'] = str(AGENT_VERSION)
             ecm_message['command'] = self.command
+            ecm_message['signature'] = self.signature
 
             result = ecm_message.addElement('result')
             result['retvalue']  = self.retvalue
