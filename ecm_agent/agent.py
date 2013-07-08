@@ -119,12 +119,10 @@ class SMAgentXMPP(Client):
         l.debug('Process Command')
 
         if not self._verify_message(message):
-            l.info('Command from %s has bad signature (Ignored)' % message.from_)
+            l.info('[RSA Invalid] Command from %s has bad signature (Ignored)' % message.from_)
             result=(E_UNVERIFIED_COMMAND, '', 'Bad signature', 0)
             self._onCallFinished(result,message)
             return
-
-        l.info('Command from %s is RSA verified' % message.from_)
 
         flush_callback = self._Flush
         message.command_replaced = message.command.replace('.','_')
@@ -187,11 +185,11 @@ class SMAgentXMPP(Client):
             H = SHA.new(M).digest()
             T = SHA1DER + H
             if emLen < (SHA1DERLEN + 11):
-                l.error('[CRYPT] intended encoded message length too short (%s)' % emLen)
+                l.error('[RSA Verify] intended encoded message length too short (%s)' % emLen)
                 return
             ps = '\xff' * (emLen - SHA1DERLEN - 3)
             if len(ps) < 8:
-                l.error('[CRYPT] ps length too short')
+                l.error('[RSA Verify] ps length too short')
                 return
             return '\x00\x01' + ps + '\x00' + T
 
@@ -274,7 +272,7 @@ class CommandRunner():
         if 'timeout' in command_args:
             cmd_timeout = int(command_args['timeout'])
 
-        l.info("running %s from %s (%i)" % (command_name, filename, cmd_timeout))
+        l.info("[RSA Verified] Running %s from %s (timeout: %i)" % (command_name, filename, cmd_timeout))
         crp = CommandRunnerProcess(cmd_timeout, command_args, flush_callback, message)
         d = crp.getDeferredResult()
         reactor.spawnProcess(crp, command, args, env=self.env)
