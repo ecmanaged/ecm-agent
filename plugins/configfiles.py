@@ -1,13 +1,13 @@
 # -*- coding:utf-8 -*-
 
-from ecplugin import ECPlugin
+from ecplugin import ecplugin
 
 from base64 import b64decode
 from shutil import move
 
 import os
 
-class ECMConfigfile(ECPlugin):
+class ECMConfigfile(ecplugin):
     def cmd_configfile_run(self, *argv, **kwargs):
         code_base64  = kwargs.get('configfile',None)
         path         = kwargs.get('path',None)

@@ -94,7 +94,7 @@ class BasicClient:
 
     def _stream_end(self, error):
         """ overwrite in derivated class """
-        l.info("XMPPClient stream end: %s")
+        l.info("XMPPClient stream end: %s" % error)
 
     def _connected(self, xml_stream):
         l.info("XMPPClient connected")

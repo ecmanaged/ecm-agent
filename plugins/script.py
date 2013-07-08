@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 
-from ecplugin import ECPlugin
+from ecplugin import ecplugin
 
 from tempfile import mkdtemp
 from base64 import b64decode
@@ -9,7 +9,7 @@ from os import environ
 
 import simplejson as json
 
-class ECMScript(ECPlugin):
+class ECMScript(ecplugin):
     def cmd_script_run(self, *argv, **kwargs):
         """script.run script(b64) extension envars runas executable"""
 

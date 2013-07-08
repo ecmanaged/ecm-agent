@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 
-from ecplugin import ECPlugin
+from ecplugin import ecplugin
 from ecmcommon import ECMCommon
 
 from tempfile import mkdtemp
@@ -21,7 +21,7 @@ try:
 except:
     pass
 
-class ECMSource(ECPlugin):
+class ECMSource(ecplugin):
     def cmd_source_run(self, *argv, **kwargs):
         path        = kwargs.get('path',None)
         url         = kwargs.get('source',None)

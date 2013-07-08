@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 
-from ecplugin import ECPlugin
+from ecplugin import ecplugin
 import os, re
 
 # :TODO: Move to config
@@ -8,7 +8,7 @@ PROTECTED_FILES = [
     '/etc/shadow',
     ]
 
-class ECMFile(ECPlugin):
+class ECMFile(ecplugin):
     def cmd_file_exist(self, *argv, **kwargs):
         """Syntax: file.exist <file>"""
 

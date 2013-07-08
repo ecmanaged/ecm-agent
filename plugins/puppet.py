@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 
-from ecplugin import ECPlugin
+from ecplugin import ecplugin
 
 from tempfile import mkdtemp
 from shutil import rmtree
@@ -10,7 +10,7 @@ import tarfile
 
 from base64 import b64decode
 
-class ECMPuppet(ECPlugin):
+class ECMPuppet(ecplugin):
     def cmd_puppet_available(self, *argv, **kwargs):
         return self._is_available()
 

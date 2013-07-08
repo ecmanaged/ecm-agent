@@ -1,11 +1,11 @@
 # -*- coding:utf-8 -*-
 
-from ecplugin import ECPlugin
+from ecplugin import ecplugin
 
 import os, re
 import psutil
 
-class ECMProc(ECPlugin):
+class ECMProc(ecplugin):
 
     def cmd_proc_num_name(self, *argv, **kwargs):
         """Syntax: proc.num [name]"""

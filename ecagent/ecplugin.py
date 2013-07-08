@@ -6,7 +6,7 @@ import simplejson as json
 from base64 import b64decode
 
 # Local
-from ectools import ECTools
+from ectools import ectools
 
 E_RUNNING_COMMAND = 253
 E_COMMAND_NOT_DEFINED = 252
@@ -15,7 +15,7 @@ STDOUT_FINAL_OUTPUT_STR = '[__ecagent::response__]'
 sys.stdout.flush()
 sys.stderr.flush()
 
-class ECPlugin(ECTools):
+class ecplugin(ectools):
     def _listCommands(self):
         for member in inspect.getmembers(self):
             #Retrieve method names starting with "cmd_" (commands)
