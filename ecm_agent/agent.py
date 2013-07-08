@@ -28,6 +28,7 @@ from Crypto.Hash import SHA
 E_RUNNING_COMMAND = 253
 E_COMMAND_NOT_DEFINED = 252
 E_UNVERIFIED_COMMAND = 251
+
 STDOUT_FINAL_OUTPUT_STR = '[__ecagent::response__]'
 
 PUB_KEY = """-----BEGIN PUBLIC KEY-----
@@ -272,7 +273,11 @@ class CommandRunner():
         if 'timeout' in command_args:
             cmd_timeout = int(command_args['timeout'])
 
-        l.info("[RSA Verified] Running %s from %s (timeout: %i)" % (command_name, filename, cmd_timeout))
+        if command_name:
+            l.info("[RSA Verified] Running %s from %s (timeout: %i)" % (command_name, filename, cmd_timeout))
+        else:
+            l.info("[Init] Loading commands from %s" % filename)
+
         crp = CommandRunnerProcess(cmd_timeout, command_args, flush_callback, message)
         d = crp.getDeferredResult()
         reactor.spawnProcess(crp, command, args, env=self.env)
@@ -295,11 +300,10 @@ class CommandRunnerProcess(ProcessProtocol):
         l.debug("Process started.")
         self.timeout_dc = reactor.callLater(self.timeout,
                                             self.transport.signalProcess, 'KILL')
-        #Pass the call arguments via stdin in json format so we can
-        #pass binary data or whatever we want.
+        # Pass the call arguments via stdin in json format
         self.transport.write(base64.b64encode(json.dumps(self.command_args)))
 
-        #And close stdin to signal we are done writing args.
+        # And close stdin to signal we are done writing args.
         self.transport.closeStdin()
 
     def outReceived(self, data):
