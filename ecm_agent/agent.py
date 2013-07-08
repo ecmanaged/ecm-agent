@@ -119,7 +119,9 @@ class SMAgentXMPP(Client):
     def _processCommand(self, message):
         l.debug('Process Command')
 
-        if not self._verify_message(message):
+        verified = self._verify_message(message)
+        if verified == False:
+            # Crypto rutines are working and message has bad signature
             l.info('[RSA Invalid] Command from %s has bad signature (Ignored)' % message.from_)
             result=(E_UNVERIFIED_COMMAND, '', 'Bad signature', 0)
             self._onCallFinished(result,message)
@@ -127,7 +129,7 @@ class SMAgentXMPP(Client):
 
         flush_callback = self._Flush
         message.command_replaced = message.command.replace('.','_')
-        d = self.command_runner.runCommand(message.command_replaced, message.command_args, flush_callback, message)
+        d = self.command_runner.runCommand(message.command_replaced, message.command_args, flush_callback, message, verified)
         if d:
             d.addCallbacks(self._onCallFinished, self._onCallFailed,
                            callbackKeywords={'message': message},
@@ -194,17 +196,21 @@ class SMAgentXMPP(Client):
                 return
             return '\x00\x01' + ps + '\x00' + T
 
-        key = PublicKey.RSA.importKey(PUB_KEY)
-        pub = key.publickey()
+        if Crypto.version_info[:2] >= (2, 2):
+            key = PublicKey.RSA.importKey(PUB_KEY)
+            pub = key.publickey()
 
-        signature = base64.b64decode(signature)
-        em = _emsa_pkcs1_v1_5_encode(text, len(signature))
+            signature = base64.b64decode(signature)
+            em = _emsa_pkcs1_v1_5_encode(text, len(signature))
 
-        if em:
-            signature = number.bytes_to_long(signature)
-            return pub.verify(em, (signature,))
+            if em:
+                signature = number.bytes_to_long(signature)
+                return pub.verify(em, (signature,))
 
-        return False
+            return False
+
+        l.info('PyCrypto version is < 2.2: Please upgrade: http://www.pycrypto.org/')
+        return None
 
 class CommandRunner():
     def __init__(self, config):
@@ -252,13 +258,13 @@ class CommandRunner():
             l.error('Error adding commands from %s: %s'
                     % (kwargs['filename'], data))
 
-    def runCommand(self, command, command_args, flush_callback = None, message = None):
+    def runCommand(self, command, command_args, flush_callback = None, message = None, verified = None):
         if (command in self._commands):
             l.debug("executing %s with args: %s" % (command, command_args))
-            return self._runProcess(self._commands[command], command, command_args, flush_callback, message)
+            return self._runProcess(self._commands[command], command, command_args, flush_callback, message, verified)
         return
 
-    def _runProcess(self, filename, command_name, command_args, flush_callback=None, message=None):
+    def _runProcess(self, filename, command_name, command_args, flush_callback=None, message=None, verified = None):
         ext = os.path.splitext(filename)[1]
         if ext in ('.py', '.pyw', '.pyc'):
             command = self._python_runner
@@ -274,7 +280,10 @@ class CommandRunner():
             cmd_timeout = int(command_args['timeout'])
 
         if command_name:
-            l.info("[RSA Verified] Running %s from %s (timeout: %i)" % (command_name, filename, cmd_timeout))
+            if verified:
+                l.info("[RSA Verified] Running %s from %s (timeout: %i)" % (command_name, filename, cmd_timeout))
+            else:
+                l.info("Running %s from %s (timeout: %i)" % (command_name, filename, cmd_timeout))
         else:
             l.info("[Init] Loading commands from %s" % filename)
 
