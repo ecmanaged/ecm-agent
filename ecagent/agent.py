@@ -78,7 +78,7 @@ class SMAgentXMPP(Client):
         Client.__init__(self,
                         self.config['XMPP'],
                         observers,
-                        resource='ecagent-%d' % AGENT_VERSION
+                        resource='ecm-agent-%d' % AGENT_VERSION
         )
 
         l.info("Loading commands...")

@@ -1,12 +1,12 @@
 # -*- coding:utf-8 -*-
 
-from ecmplugin import ECMPlugin
+from ecplugin import ECPlugin
 
 import time, re
 import urllib
 import socket
 
-class ECMNetwork(ECMPlugin):
+class ECMNetwork(ECPlugin):
     def cmd_web_regexp(self, *argv, **kwargs):
         """ Syntax: page_regexp <url> <regex> """
 

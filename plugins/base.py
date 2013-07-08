@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 
-from ecmplugin import ECMPlugin
+from ecplugin import ECPlugin
 
 import os, platform, psutil
 import simplejson as json
@@ -9,7 +9,7 @@ import base64
 DIR = '/etc/ecmanaged'
 ENV_FILE = DIR + '/ecm_env'
 
-class ECMBase(ECMPlugin):
+class ECMBase(ECPlugin):
     def cmd_agent_ping(self, *argv, **kwargs):
         return True
 

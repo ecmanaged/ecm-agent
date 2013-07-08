@@ -14,7 +14,7 @@ import simplejson as json
 import sys
 import fcntl
 
-class ECMCommon():
+class ECTools():
     def _file_write(self,file,content=None):
         try:
             if content:

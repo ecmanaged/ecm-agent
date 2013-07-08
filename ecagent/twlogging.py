@@ -36,7 +36,6 @@ def setup(app, config):
         logfile = makeLogFile(config)
         app.setComponent(log.ILogObserver, log.FileLogObserver(logfile).emit)
 
-
 def makeLogFile(config):
         log_dir, log_file = split(config['log_path'])
 
@@ -69,26 +68,20 @@ def _blackhole(message):
     """
     pass
 
-
 def debug(message):
     log.msg('DEBUG: ' + message)
-
 
 def info(message):
     log.msg('INFO: ' + message)
 
-
 def warn(message):
     warning(message)
-
 
 def warning(message):
     log.msg('WARNING: ' + message)
 
-
 def error(message):
     log.msg('ERROR: ' + message)
-
 
 def critical(message):
     log.msg('CRITICAL: ' + message)

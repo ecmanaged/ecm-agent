@@ -58,11 +58,11 @@ class HTTPConnection:
         return {u'headers':resp, u'body':content.decode('UTF-8')}
 
 
-from ecmplugin import ECMPlugin
+from ecplugin import ECPlugin
 import simplejson as json
 import inspect
 
-class ECMLoadb(ECMPlugin):
+class ECMLoadb(ECPlugin):
     def __init__(self, *argv, **kwargs):
         url      = kwargs.get('url',     None)
         username = kwargs.get('username','admin')

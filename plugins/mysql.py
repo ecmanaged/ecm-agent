@@ -1,9 +1,9 @@
 # -*- coding:utf-8 -*-
 
-from ecmplugin import ECMPlugin
+from ecplugin import ECPlugin
 import simplejson as json
 
-class ECMMysql(ECMPlugin):
+class ECMMysql(ECPlugin):
     def cmd_mysql_exec(self, *argv, **kwargs):
         ''' Syntax mysql.exec[hostname],[user],[password],[database],[query] '''
 
