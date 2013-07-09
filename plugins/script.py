@@ -16,6 +16,7 @@ class ECMScript(ecplugin):
         script_base64       = kwargs.get('script',None)
         script_extension    = kwargs.get('extension',None)
         script_envars       = kwargs.get('envars',None)
+        script_facts        = kwargs.get('facts',None)
         script_runas        = kwargs.get('runas',None)
         script_executable   = kwargs.get('executable',None)
 
@@ -38,6 +39,10 @@ class ECMScript(ecplugin):
 
         # Set environment variables before execution
         envars = self._envars_decode(script_envars)
+        facts  = self._envars_decode(script_facts)
+
+        # Update envars and facts file
+        self._write_envars_facts(envars,facts)
 
         if script_executable:
             cmd = script_executable + ' ' + tmp_file

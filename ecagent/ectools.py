@@ -14,6 +14,10 @@ import simplejson as json
 import sys
 import fcntl
 
+DIR = '/etc/ecmanaged'
+ENV_FILE = DIR + '/ecm_env'
+INFO_FILE = DIR + '/node_info'
+
 class ectools():
     def _file_write(self,file,content=None):
         try:
@@ -281,13 +285,29 @@ class ectools():
         except: pass
         return envars
 
-    def _set_envars(self,envars):
+    def _write_envars_facts(self, envars=None, facts=None):
         ''' Sets os environment variables '''
         if envars:
             try:
-                for envar in envars:
-                    os.environ[envar] = str(envars[envar])
-            except: pass
+                content_env = ''
+                for var in envars.keys():
+                    content_env += "export " + str(var) + '="' + str(envars[var]) + "\"\n"
+                self._file_write(ENV_FILE,content_env)
+
+            except:
+                return False
+
+        if facts:
+            try:
+                content_facts= ''
+                for var in facts.keys():
+                    content_facts += str(var) + ':' + str(facts[var]) + "\n"
+                self._file_write(INFO_FILE,content_facts)
+
+            except:
+                return False
+
+        return True
 
     def _renice_me(self, nice):
         ''' Changes execution priority  '''

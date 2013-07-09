@@ -3,41 +3,31 @@
 from ecplugin import ecplugin
 
 import os, platform, psutil
-import simplejson as json
-import base64
-
-DIR = '/etc/ecmanaged'
-ENV_FILE = DIR + '/ecm_env'
 
 class ECMBase(ecplugin):
     def cmd_agent_ping(self, *argv, **kwargs):
         return True
 
-    def cmd_set_env(self, *argv, **kwargs):
-        """ Set ECManaged environment variables """
+    def cmd_set_info(self, *argv, **kwargs):
+        """ Set ECManaged facts and environment variables """
         envars = kwargs.get('envars',None)
+        facts  = kwargs.get('facts',None)
         if not envars:
             raise Exception('Invalid arguments')
 
-        try:
-            content = ''
-            envars = self._envars_decode(envars)
-            for var in envars.keys():
-                content += "export " + str(var) + '="' + str(envars[var]) + "\"\n"
+        envars = self._envars_decode(envars)
+        facts  = self._envars_decode(facts)
 
-            self._file_write(ENV_FILE,content)
-
+        if self._write_envars_facts(envars,facts):
             return True
 
-        except:
-            raise Exception('Unable to write environment file')
+        raise Exception('Unable to write environment file')
 
     def cmd_system_hostname(self, *argv, **kwargs):
         return platform.node()
 
     def cmd_system_load(self, *argv, **kwargs):
         'Load average'
-
         load_average = ' '.join( [ str(x) for x in os.getloadavg() ] )
         return load_average
 

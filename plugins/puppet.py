@@ -16,11 +16,20 @@ class ECMPuppet(ecplugin):
 
     def cmd_puppet_apply(self, *argv, **kwargs):
         recipe_base64 = kwargs.get('recipe_code',None)
+        recipe_envars = kwargs.get('envars',None)
+        recipe_facts  = kwargs.get('facts',None)
 
         if not recipe_base64:
             raise Exception("Invalid argument")
 
         self._parse_args(*argv, **kwargs)
+
+        # Set environment variables before execution
+        envars = self._envars_decode(recipe_envars)
+        facts  = self._envars_decode(recipe_facts)
+
+        # Update envars and facts file
+        self._write_envars_facts(envars,facts)
 
         try:
             # Create temp file
@@ -33,7 +42,7 @@ class ECMPuppet(ecplugin):
                        '--detailed-exitcodes']
             if self.debug: command.append('--debug')
 
-            out,stdout,stderr = self._execute_command(command,stdin = catalog)
+            out,stdout,stderr = self._execute_command(command,stdin = catalog, envars=envars)
             ret = self._format_output(out,stdout,stderr)
 
             # exit code of '2' means there were changes
@@ -46,12 +55,22 @@ class ECMPuppet(ecplugin):
             raise Exception("Error running puppet apply: %s" %e)
 
     def cmd_puppet_apply_file(self, *argv, **kwargs):
-        recipe_url  = kwargs.get('recipe_url',None)
+        recipe_url    = kwargs.get('recipe_url',None)
+        recipe_envars = kwargs.get('envars',None)
+        recipe_facts  = kwargs.get('facts',None)
+
         recipe_file = None
         recipe_path = None
 
         if not recipe_url: raise Exception("Invalid argument")
         self._parse_args(*argv, **kwargs)
+
+        # Set environment variables before execution
+        envars = self._envars_decode(recipe_envars)
+        facts  = self._envars_decode(recipe_facts)
+
+        # Update envars and facts file
+        self._write_envars_facts(envars,facts)
 
         try:
             # Download recipe url
@@ -69,7 +88,7 @@ class ECMPuppet(ecplugin):
                     tar.close()
 
                     # Apply puppet
-                    return self._run_catalog(recipe_file,recipe_path)
+                    return self._run_catalog(recipe_file,recipe_path,envars=envars)
                 else:
                     raise Exception("Invalid recipe tgz file")
             else:
@@ -104,16 +123,16 @@ class ECMPuppet(ecplugin):
 
         return puppet_cmd
 
-    def _run_catalog(self,recipe_file,recipe_path):
-        retval = self._run_puppet(recipe_file,recipe_path,'catalog')
+    def _run_catalog(self,recipe_file,recipe_path, envars=None):
+        retval = self._run_puppet(recipe_file,recipe_path,'catalog',envars)
 
         # Try old way
         if 'invalid option' in retval.get('stdout',''):
-            retval = self._run_puppet(recipe_file,recipe_path,'apply')
+            retval = self._run_puppet(recipe_file,recipe_path,'apply',envars)
 
         return retval
 
-    def _run_puppet(self,recipe_file,recipe_path,catalog_cmd = 'catalog'):
+    def _run_puppet(self,recipe_file,recipe_path,catalog_cmd='catalog',envars=None):
         command = ['puppet', 'apply', '--detailed-exitcodes',
                    '--modulepath', self.module_path]
 
@@ -121,7 +140,7 @@ class ECMPuppet(ecplugin):
         command.append('--' + catalog_cmd)
         command.append(recipe_file)
 
-        out,stdout,stderr = self._execute_command(command,workdir=recipe_path)
+        out,stdout,stderr = self._execute_command(command,workdir=recipe_path,envars=envars)
         ret = self._format_output(out,stdout,stderr)
 
         # --detailed-exitcodes

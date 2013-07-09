@@ -23,15 +23,16 @@ except:
 
 class ECMSource(ecplugin):
     def cmd_source_run(self, *argv, **kwargs):
-        path        = kwargs.get('path',None)
-        url         = kwargs.get('source',None)
-        envars      = kwargs.get('envars',None)
-        user        = kwargs.get('username',None)
-        passwd      = kwargs.get('password',None)
-        private_key = kwargs.get('private_key',None)
-        chown_user  = kwargs.get('chown_user',None)
-        chown_group = kwargs.get('chown_group',None)
-        rotate      = kwargs.get('rotate',False)
+        path            = kwargs.get('path',None)
+        url             = kwargs.get('source',None)
+        source_envars   = kwargs.get('envars',None)
+        source_facts    = kwargs.get('facts',None)
+        user            = kwargs.get('username',None)
+        passwd          = kwargs.get('password',None)
+        private_key     = kwargs.get('private_key',None)
+        chown_user      = kwargs.get('chown_user',None)
+        chown_group     = kwargs.get('chown_group',None)
+        rotate          = kwargs.get('rotate',False)
 
         if (not path or not url):
             raise Exception("Invalid parameters")
@@ -48,6 +49,13 @@ class ECMSource(ecplugin):
             source = Svn(path,rotate)
 
         else: raise Exception("Unknown source")
+
+        # Set environment variables before execution
+        envars = self._envars_decode(source_envars)
+        facts  = self._envars_decode(source_facts)
+
+        # Update envars and facts file
+        self._write_envars_facts(envars,facts)
 
         retval = source.clone(url=url, envars=envars,\
                               username=user, password=passwd, private_key=private_key)
@@ -106,7 +114,8 @@ class Git(ectools):
             elif parsed.scheme == 'ssh':
                 command = command.replace('://','://' + username + '@')
 
-        result_exec = Aux().myexec(command,path=self.working_dir,envars=envars)
+        out,stdout,stderr = self._execute_command(command = command, workdir = self.working_dir, envars = envars)
+        result_exec = self._format_output(out,stdout,stderr)
 
         if not result_exec['out']:
             extra_msg = self._output("Source deployed successfully to '%s'" % self.working_dir)
@@ -154,7 +163,9 @@ class Svn(ectools):
             url = url.replace('://','://' + username + ':' + password + '@')
 
         command = self.svn_cmd + " co '" + url + "' ."
-        result_exec = Aux().myexec(command,path=self.working_dir,envars=envars)
+
+        out,stdout,stderr = self._execute_command(command = command, workdir = self.working_dir, envars = envars)
+        result_exec = self._format_output(out,stdout,stderr)
 
         if not result_exec['out']:
             extra_msg = self._output("Source deployed successfully to '%s'" % self.working_dir)
@@ -342,11 +353,5 @@ class Deploy(ectools):
 
     def rollback(self,path):
         return
-
-class Aux(ectools):
-    def myexec(self, command, path=None, envars=None):
-        envars_decoded = self._envars_decode(envars)
-        out,stdout,stderr = self._execute_command(command = command, workdir = path, envars = envars_decoded)
-        return self._format_output(out,stdout,stderr)
 
 ECMSource().run()
