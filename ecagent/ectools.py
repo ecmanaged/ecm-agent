@@ -286,21 +286,21 @@ class ectools():
         return envars
 
     def _write_envars_facts(self, envars=None, facts=None):
-        ''' Sets os environment variables '''
-        if envars:
+        ''' Writes env and facts file variables '''
+        if envars and isinstance(envars, dict):
             try:
                 content_env = ''
-                for var in envars.keys():
+                for var in sorted(envars.keys()):
                     content_env += "export " + str(var) + '="' + str(envars[var]) + "\"\n"
                 self._file_write(ENV_FILE,content_env)
 
             except:
                 return False
 
-        if facts:
+        if facts and isinstance(facts, dict):
             try:
                 content_facts= ''
-                for var in facts.keys():
+                for var in sorted(facts.keys()):
                     content_facts += str(var) + ':' + str(facts[var]) + "\n"
                 self._file_write(INFO_FILE,content_facts)
 
