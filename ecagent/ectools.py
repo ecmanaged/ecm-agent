@@ -19,6 +19,8 @@ DIR = '/etc/ecmanaged'
 ENV_FILE = DIR + '/ecm_env'
 INFO_FILE = DIR + '/node_info'
 
+FLUSH_WORKER_SLEEP_TIME = 0.2
+
 class ectools():
     def _file_write(self,file,content=None):
         try:
@@ -250,7 +252,6 @@ class ectools():
     def _flush_worker(self, stdout, stderr):
         ''' needs to be in a thread so we can read the stdout w/o blocking '''
         while True:
-            sleep(0.2)
             # Avoid Exception in thread Thread-1 (most likely raised during interpreter shutdown):
             try:
                 output = self._clean_stdout(self._non_block_read(stdout))
@@ -262,6 +263,9 @@ class ectools():
                 if output:
                     self.stderr += output
                     sys.stderr.write(output)
+
+                sleep(FLUSH_WORKER_SLEEP_TIME)
+
             except:
                 pass
 
