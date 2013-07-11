@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 ##################
 # Dependencies:
 #
@@ -34,5 +36,6 @@ except:
 
 #Start agent and setup logging
 application = Application("ecagent")
+
 l.setup(application, config['Log'])
 agent = SMAgent(config)

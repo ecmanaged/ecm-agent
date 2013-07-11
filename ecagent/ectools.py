@@ -9,6 +9,7 @@ from time import time
 from shlex import split
 from base64 import b64decode
 from threading import Thread
+from time import sleep
 
 import simplejson as json
 import sys
@@ -180,8 +181,11 @@ class ectools():
                 close_fds=(os.name=='posix')
             )
 
-            # Write stdin
-            if stdin: p.stdin.write(stdin)
+            # Write stdin if set
+            if stdin:
+                p.stdin.write(stdin)
+                p.stdin.flush()
+                p.stdin.close()
 
             thread = Thread(target=self._flush_worker, args=[p.stdout,p.stderr])
             thread.daemon = True
@@ -246,6 +250,7 @@ class ectools():
     def _flush_worker(self, stdout, stderr):
         ''' needs to be in a thread so we can read the stdout w/o blocking '''
         while True:
+            sleep(0.2)
             # Avoid Exception in thread Thread-1 (most likely raised during interpreter shutdown):
             try:
                 output = self._clean_stdout(self._non_block_read(stdout))

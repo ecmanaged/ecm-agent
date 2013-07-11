@@ -29,6 +29,7 @@ E_RUNNING_COMMAND = 253
 E_COMMAND_NOT_DEFINED = 252
 E_UNVERIFIED_COMMAND = 251
 
+MIN_LENGTH_TO_GZIP_OUTPUT = 20
 STDOUT_FINAL_OUTPUT_STR = '[__ecagent::response__]'
 
 PUB_KEY = """-----BEGIN PUBLIC KEY-----
@@ -457,8 +458,16 @@ class IqMessage:
             result['timed_out'] = self.timed_out
             result['partial']   = self.partial
 
-            result.addElement('gzip_stdout').addContent(base64.b64encode(zlib.compress(self.stdout)))
-            result.addElement('gzip_stderr').addContent(base64.b64encode(zlib.compress(self.stderr)))
+            # Don't compress if output is too short
+            if len(self.stdout) <= MIN_LENGTH_TO_GZIP_OUTPUT:
+                result.addElement('stdout').addContent(base64.b64encode(self.stdout))
+            else:
+                result.addElement('gzip_stdout').addContent(base64.b64encode(zlib.compress(self.stdout)))
+
+            if len(self.stderr) <= MIN_LENGTH_TO_GZIP_OUTPUT:
+                result.addElement('stderr').addContent(base64.b64encode(self.stderr))
+            else:
+                result.addElement('gzip_stderr').addContent(base64.b64encode(zlib.compress(self.stderr)))
 
         return msg
 
@@ -466,15 +475,12 @@ class IqMessage:
         return self.toEtree().toXml()
 
     def toResult(self, retvalue, stdout, stderr, timed_out, partial=0):
-        """
-        Converts a query message to a result message.
-        """
-
+        """ Converts a query message to a result message. """
         # Don't switch to/from if already is a result
         if self.type != 'result':
             self.from_, self.to = self.to, self.from_
+            self.type = 'result'
 
-        self.type = 'result'
         self.retvalue  = str(retvalue)
         self.stdout    = str(stdout)
         self.stderr    = str(stderr)

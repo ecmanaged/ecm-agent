@@ -11,16 +11,17 @@ from twisted.internet.task import LoopingCall
 
 from time import time
 
-target = "ded9568b4853477f9da351b08a2bcb80141563e8@cloud.ackstorm.es/sm_agent-1"
+target = "test@xmpp.ecmanaged.net/sm_agent-1"
 
 
 class JabberClient:
     def __init__(self):
         #Connect to jabber server
         myJid = jid.JID('task-devel@cloud.ackstorm.es/tasker')
-        factory = client.basicClientFactory(myJid, '$5$To.9wuqOm6VrgJn$lCesXviuhxotHPkmbqyNv3yoIccdfM64drlFEuiHul7')
+        factory = client.basicClientFactory(myJid, 'mypass')
         factory.addBootstrap('//event/stream/authd', self.authd)
-        reactor.connectTCP('cloud.ackstorm.es', 5222, factory)
+        reactor.connectTCP('xmpp.ecmanaged.net', 5222, factory)
+
         #Set up the looping call that will be sending messages.
         self._lc = LoopingCall(self.sendMessage)
 

@@ -47,7 +47,8 @@ class ecplugin(ectools):
             data = {
                 'stdout': '',
                 'stderr': "ERROR: %s" % value,
-                'out':    E_RUNNING_COMMAND
+                'out': E_RUNNING_COMMAND,
+                'exception': 1
             }
             sys.stdout.write("\n" + STDOUT_FINAL_OUTPUT_STR + "\n" + json.dumps(data))
             return E_RUNNING_COMMAND
