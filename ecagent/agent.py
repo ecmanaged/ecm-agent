@@ -29,7 +29,6 @@ E_RUNNING_COMMAND = 253
 E_COMMAND_NOT_DEFINED = 252
 E_UNVERIFIED_COMMAND = 251
 
-MIN_LENGTH_TO_GZIP_OUTPUT = 20
 STDOUT_FINAL_OUTPUT_STR = '[__ecagent::response__]'
 
 PUB_KEY = """-----BEGIN PUBLIC KEY-----
@@ -458,16 +457,9 @@ class IqMessage:
             result['timed_out'] = self.timed_out
             result['partial']   = self.partial
 
-            # Don't compress if output is too short
-            if len(self.stdout) <= MIN_LENGTH_TO_GZIP_OUTPUT:
-                result.addElement('stdout').addContent(base64.b64encode(self.stdout))
-            else:
-                result.addElement('gzip_stdout').addContent(base64.b64encode(zlib.compress(self.stdout)))
-
-            if len(self.stderr) <= MIN_LENGTH_TO_GZIP_OUTPUT:
-                result.addElement('stderr').addContent(base64.b64encode(self.stderr))
-            else:
-                result.addElement('gzip_stderr').addContent(base64.b64encode(zlib.compress(self.stderr)))
+            # compress out
+            result.addElement('gzip_stdout').addContent(base64.b64encode(zlib.compress(self.stdout)))
+            result.addElement('gzip_stderr').addContent(base64.b64encode(zlib.compress(self.stderr)))
 
         return msg
 

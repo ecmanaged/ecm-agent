@@ -194,7 +194,12 @@ class ectools():
             thread.start()
             thread.join(timeout=1)
 
-            return p.wait(),self.stdout,self.stderr
+            retval = p.wait()
+
+            # Wait to last sleep of Thread to ensure we have all stdout and stderr
+            sleep(FLUSH_WORKER_SLEEP_TIME*1.1)
+
+            return retval,self.stdout,self.stderr
 
         except Exception as e:
             return 255,'',e
@@ -240,7 +245,7 @@ class ectools():
                 p.stdin.write(stdin)
 
             thread = Thread(target=self._flush_worker, args=[p.stdout,p.stderr])
-            thread.daemon = True
+            #thread.daemon = True
             thread.start()
             thread.join(timeout=1)
 
