@@ -57,6 +57,7 @@ class ecplugin(ectools):
         if len(sys.argv) == 1 or sys.argv[1] == '':
             #Show a list of available commands if no command selected
             return self._listCommands()
+
         else:
             command_name = sys.argv[1]
             sys.exit(self._runCommand(command_name))

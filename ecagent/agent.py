@@ -285,7 +285,7 @@ class CommandRunner():
             else:
                 l.info("Running %s from %s (timeout: %i)" % (command_name, filename, cmd_timeout))
         else:
-            l.info("[Init] Loading commands from %s" % filename)
+            l.info("[INIT] Loading commands from %s" % filename)
 
         crp = CommandRunnerProcess(cmd_timeout, command_args, flush_callback, message)
         d = crp.getDeferredResult()

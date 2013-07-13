@@ -151,8 +151,9 @@ class ectools():
     def _execute_command(self, command, stdin = None, runas=None, workdir = None, envars=None):
         """ Execute command and flush stdout/stderr using threads
         """
-        self.stdout = ''
-        self.stderr = ''
+        self.thread_stdout = ''
+        self.thread_stderr = ''
+        self.thread_run = 1
 
         # Create a full command line to split later
         if isinstance(command, list):
@@ -192,14 +193,12 @@ class ectools():
             thread = Thread(target=self._flush_worker, args=[p.stdout,p.stderr])
             thread.daemon = True
             thread.start()
-            thread.join(timeout=1)
 
             retval = p.wait()
+            self.thread_run = 0
+            thread.join(timeout=1)
 
-            # Wait to last sleep of Thread to ensure we have all stdout and stderr
-            sleep(FLUSH_WORKER_SLEEP_TIME*1.1)
-
-            return retval,self.stdout,self.stderr
+            return retval,self.thread_stdout,self.thread_stderr
 
         except Exception as e:
             return 255,'',e
@@ -207,9 +206,9 @@ class ectools():
     def _execute_file(self, file, stdin=None, runas=None, workdir = None, envars = None):
         """ Execute a script file and flush stdout/stderr using threads
         """
-
-        self.stdout = ''
-        self.stderr = ''
+        self.thread_stdout = ''
+        self.thread_stderr = ''
+        self.thread_run = 1
 
         # Get current env
         if not envars or not isinstance(envars, dict):
@@ -240,33 +239,38 @@ class ectools():
                 close_fds=(os.name=='posix')
             )
 
-            # Write stdin
+            # Write stdin if set
             if stdin:
                 p.stdin.write(stdin)
+                p.stdin.flush()
+                p.stdin.close()
 
             thread = Thread(target=self._flush_worker, args=[p.stdout,p.stderr])
-            #thread.daemon = True
+            thread.daemon = True
             thread.start()
+
+            retval = p.wait()
+            self.thread_run = 0
             thread.join(timeout=1)
 
-            return p.wait(),self.stdout,self.stderr
+            return retval,self.thread_stdout,self.thread_stderr
 
         except Exception as e:
             return 255,'',e
 
     def _flush_worker(self, stdout, stderr):
         ''' needs to be in a thread so we can read the stdout w/o blocking '''
-        while True:
+        while self.thread_run:
             # Avoid Exception in thread Thread-1 (most likely raised during interpreter shutdown):
             try:
                 output = self._clean_stdout(self._non_block_read(stdout))
                 if output:
-                    self.stdout += output
+                    self.thread_stdout += output
                     sys.stdout.write(output)
 
                 output = self._clean_stdout(self._non_block_read(stderr))
                 if output:
-                    self.stderr += output
+                    self.thread_stderr += output
                     sys.stderr.write(output)
 
                 sleep(FLUSH_WORKER_SLEEP_TIME)
