@@ -303,6 +303,7 @@ class CommandRunnerProcess(ProcessProtocol):
         self.last_send_data_time = time()
         self.flush_callback = flush_callback
         self.flush_later = None
+        self.flush_later_forced = None
         self.message = message
 
     def connectionMade(self):
@@ -347,7 +348,17 @@ class CommandRunnerProcess(ProcessProtocol):
                 self.last_send_data_time = curr_time
 
                 l.debug("Scheduling a flush response: %s" %self.stdout)
+                self._cancel_flush(self.flush_later_forced)
                 self.flush_later = reactor.callLater(1,self.flush_callback,(None, self.stdout, self.stderr, 0, total_out), self.message)
+
+        if not self.flush_later:
+            self._cancel_flush(self.flush_later_forced)
+            self.flush_later_forced = reactor.callLater(FLUSH_TIME,self.flush_callback,(None, self.stdout, self.stderr, 0, total_out), self.message)
+
+    def _cancel_flush(self,flush_reactor):
+        if flush_reactor:
+            try: flush_reactor.cancel()
+            except: pass
 
     def processEnded(self, status):
         l.debug("Process ended")
@@ -355,9 +366,8 @@ class CommandRunnerProcess(ProcessProtocol):
 
         # Cancel flush callbacks
         self.flush_callback = None
-        if self.flush_later:
-            try: self.flush_later.cancel()
-            except: pass
+        self._cancel_flush(self.flush_later)
+        self._cancel_flush(self.flush_later_forced)
 
         # Get command retval
         t = type(status.value)
