@@ -194,7 +194,13 @@ class ectools():
             thread.daemon = True
             thread.start()
 
+            # Wait for end
             retval = p.wait()
+
+            # Ensure to get last output from Thread
+            sleep(FLUSH_WORKER_SLEEP_TIME*2)
+
+            # Stop Thread
             self.thread_run = 0
             thread.join(timeout=1)
 
@@ -249,7 +255,13 @@ class ectools():
             thread.daemon = True
             thread.start()
 
+            # Wait for end
             retval = p.wait()
+
+            # Ensure to get last output from Thread
+            sleep(FLUSH_WORKER_SLEEP_TIME*2)
+
+            # Stop Thread
             self.thread_run = 0
             thread.join(timeout=1)
 
