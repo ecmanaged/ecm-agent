@@ -196,18 +196,21 @@ class SMAgentXMPP(Client):
                 return
             return '\x00\x01' + ps + '\x00' + T
 
-        if Crypto.version_info[:2] >= (2, 2):
-            key = PublicKey.RSA.importKey(PUB_KEY)
-            pub = key.publickey()
+        try:
+            if Crypto.version_info[:2] >= (2, 2):
+                key = PublicKey.RSA.importKey(PUB_KEY)
+                pub = key.publickey()
 
-            signature = base64.b64decode(signature)
-            em = _emsa_pkcs1_v1_5_encode(text, len(signature))
+                signature = base64.b64decode(signature)
+                em = _emsa_pkcs1_v1_5_encode(text, len(signature))
 
-            if em:
-                signature = number.bytes_to_long(signature)
-                return pub.verify(em, (signature,))
+                if em:
+                    signature = number.bytes_to_long(signature)
+                    return pub.verify(em, (signature,))
 
-            return False
+                return False
+        except:
+            pass
 
         l.info('PyCrypto version is < 2.2: Please upgrade: http://www.pycrypto.org/')
         return None
