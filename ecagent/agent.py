@@ -83,6 +83,7 @@ class SMAgentXMPP(Client):
 
         l.info("Loading commands...")
         self.command_runner = CommandRunner(config['Plugins'])
+        self.crypto_available = True
 
     def __onIq(self, msg):
         """
@@ -119,13 +120,15 @@ class SMAgentXMPP(Client):
     def _processCommand(self, message):
         l.debug('Process Command')
 
-        verified = self._verify_message(message)
-        if verified == False:
-            # Crypto rutines are working and message has bad signature
-            l.info('[RSA Invalid] Command from %s has bad signature (Ignored)' % message.from_)
-            result=(E_UNVERIFIED_COMMAND, '', 'Bad signature', 0)
-            self._onCallFinished(result,message)
-            return
+        verified = False
+        if self.crypto_available:
+            verified = self._verify_message(message)
+            if verified == False:
+                # Crypto rutines are working and message has bad signature
+                l.info('[RSA Invalid] Command from %s has bad signature (Ignored)' % message.from_)
+                result=(E_UNVERIFIED_COMMAND, '', 'Bad signature', 0)
+                self._onCallFinished(result,message)
+                return
 
         flush_callback = self._Flush
         message.command_replaced = message.command.replace('.','_')
@@ -213,7 +216,9 @@ class SMAgentXMPP(Client):
             pass
 
         l.info('PyCrypto version is < 2.2: Please upgrade: http://www.pycrypto.org/')
+        self.crypto_available = False
         return None
+
 
 class CommandRunner():
     def __init__(self, config):
@@ -272,7 +277,7 @@ class CommandRunner():
         if ext in ('.py', '.pyw', '.pyc'):
             command = self._python_runner
             # -u: sets unbuffered output
-            args = [command, '-u', filename, command_name]
+            args = [command, '-u', '-W ignore::DeprecationWarning',filename, command_name]
         else:
             command = filename
             args = [command, command_name]

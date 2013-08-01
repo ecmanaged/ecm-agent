@@ -108,9 +108,9 @@ class ECMPuppet(ecplugin):
         except:
             pass
 
-        out,stdout,stderr = self._install_package('puppet')
-        return out
-        
+        self._install_package('puppet')
+        return self.cmd_puppet_available(*argv, **kwargs)
+
     def _is_available(self):
         which_posix = procutils.which('puppet')
         which_win   = procutils.which('puppet.exe')
@@ -119,7 +119,7 @@ class ECMPuppet(ecplugin):
         except IndexError:
             try: puppet_cmd = which_win[0]
             except IndexError:
-                raise Exception("Not found")
+                raise Exception("Puppet command not found")
 
         return puppet_cmd
 
