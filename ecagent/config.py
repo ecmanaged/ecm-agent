@@ -18,7 +18,12 @@ import re
 
 #External
 from configobj import ConfigObj
-import dmidecode
+
+try:
+    import dmidecode
+
+except:
+    pass
 
 
 class SMConfigObj(ConfigObj):
@@ -85,10 +90,14 @@ class SMConfigObj(ConfigObj):
             if uuid: return uuid
 
             l.info("try to get UUID using dmidecode")
-            for v in dmidecode.QuerySection('system').values():
-                if type(v) == dict and v['dmi_type'] == 1:
-                    if (v['data']['UUID']):
-                        return str((v['data']['UUID'])).lower()
+            try:
+                for v in dmidecode.QuerySection('system').values():
+                    if type(v) == dict and v['dmi_type'] == 1:
+                        if (v['data']['UUID']):
+                            return str((v['data']['UUID'])).lower()
+
+            except:
+                pass
 
             l.info("Try to get UUID  by dmidecode command")
             return self._getUUIDViaCommand()

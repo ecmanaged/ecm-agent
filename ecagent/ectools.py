@@ -10,10 +10,13 @@ from shlex import split
 from base64 import b64decode
 from threading import Thread
 from time import sleep
+from platform import system
 
 import simplejson as json
 import sys
-import fcntl
+
+if system() != 'Windows':
+    import fcntl
 
 DIR = '/etc/ecmanaged'
 ENV_FILE = DIR + '/ecm_env'
@@ -190,21 +193,26 @@ class ectools():
                 p.stdin.flush()
                 p.stdin.close()
 
-            thread = Thread(target=self._flush_worker, args=[p.stdout,p.stderr])
-            thread.daemon = True
-            thread.start()
+            if system() == "Windows":
+                stdout, stderr = p.communicate()
+                return p.wait(),stdout,stderr
 
-            # Wait for end
-            retval = p.wait()
+            else:
+                thread = Thread(target=self._flush_worker, args=[p.stdout,p.stderr])
+                thread.daemon = True
+                thread.start()
 
-            # Ensure to get last output from Thread
-            sleep(FLUSH_WORKER_SLEEP_TIME*2)
+                # Wait for end
+                retval = p.wait()
 
-            # Stop Thread
-            self.thread_run = 0
-            thread.join(timeout=1)
+                # Ensure to get last output from Thread
+                sleep(FLUSH_WORKER_SLEEP_TIME*2)
 
-            return retval,self.thread_stdout,self.thread_stderr
+                # Stop Thread
+                self.thread_run = 0
+                thread.join(timeout=1)
+
+                return retval,self.thread_stdout,self.thread_stderr
 
         except Exception as e:
             return 255,'',e
@@ -251,21 +259,26 @@ class ectools():
                 p.stdin.flush()
                 p.stdin.close()
 
-            thread = Thread(target=self._flush_worker, args=[p.stdout,p.stderr])
-            thread.daemon = True
-            thread.start()
+            if system() == "Windows":
+                stdout, stderr = p.communicate()
+                return p.wait(),stdout,stderr
 
-            # Wait for end
-            retval = p.wait()
+            else:
+                thread = Thread(target=self._flush_worker, args=[p.stdout,p.stderr])
+                thread.daemon = True
+                thread.start()
 
-            # Ensure to get last output from Thread
-            sleep(FLUSH_WORKER_SLEEP_TIME*2)
+                # Wait for end
+                retval = p.wait()
 
-            # Stop Thread
-            self.thread_run = 0
-            thread.join(timeout=1)
+                # Ensure to get last output from Thread
+                sleep(FLUSH_WORKER_SLEEP_TIME*2)
 
-            return retval,self.thread_stdout,self.thread_stderr
+                # Stop Thread
+                self.thread_run = 0
+                thread.join(timeout=1)
+
+                return retval,self.thread_stdout,self.thread_stderr
 
         except Exception as e:
             return 255,'',e

@@ -20,10 +20,12 @@ import zlib, base64
 from time import time
 
 ## RSA Verify
-from Crypto import PublicKey
-import Crypto.PublicKey.RSA
-from Crypto.Util import number
-from Crypto.Hash import SHA
+try:
+    from Crypto import PublicKey
+    import Crypto.PublicKey.RSA
+    from Crypto.Util import number
+    from Crypto.Hash import SHA
+except: pass
 
 E_RUNNING_COMMAND = 253
 E_COMMAND_NOT_DEFINED = 252
