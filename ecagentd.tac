@@ -9,12 +9,16 @@
 #
 ##################
 
+# Chmod to current path
+from os import chdir
+from os.path import dirname, abspath, join
+chdir(dirname(abspath(__file__)))
+
 #In windows . is not on python path.
 import sys
 sys.path.append(".")
 
 from sys import exit
-from os.path import join, dirname
 
 #Twisted
 from twisted.internet import reactor
