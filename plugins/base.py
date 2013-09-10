@@ -3,6 +3,7 @@
 from ecplugin import ecplugin
 
 import os, platform, psutil
+import socket
 
 class ECMBase(ecplugin):
     def cmd_agent_ping(self, *argv, **kwargs):
@@ -37,11 +38,14 @@ class ECMBase(ecplugin):
 
     def cmd_system_info(self, *argv, **kwargs):
         'Syntax: system_info'
-
         retr={}
         retr['os']=str(platform.system())
         (retr['os_distrib'],retr['os_version'],tmp)=platform.dist()
         retr['machine']=str(platform.machine())
+
+        retr['uptime']=self._uptime()
+        retr['hostname']=platform.node()
+        retr['public_ip'] = self._get_ip()
 
         return retr
 
@@ -68,19 +72,6 @@ class ECMBase(ecplugin):
         except: pass
 
         return retr
-
-    def cmd_system_uptime(self, *argv, **kwargs):
-        'Server uptime'
-        try:
-            f = open('/proc/stat', 'r')
-            for line in f:
-                if line.startswith('btime'):
-                    f.close()
-                    return float(line.strip().split()[1])
-            return 0
-
-        except:
-            raise Exception("Cannot open uptime file: /proc/stat")
 
     def cmd_system_disk_partitions(self, *argv, **kwargs):
         try:
@@ -160,6 +151,56 @@ class ECMBase(ecplugin):
         out,stdout,stderr = self._execute_command(cmd)
 
         return (out == 0)
+
+    def _uptime(self):
+        'Server uptime'
+        if platform.system() == "Windows":
+            return self._uptime_windows();
+
+        return self._uptime_linux();
+
+    def _uptime_linux(self, *argv, **kwargs):
+        try:
+            f = open('/proc/stat', 'r')
+            for line in f:
+                if line.startswith('btime'):
+                    f.close()
+                    return float(line.strip().split()[1])
+            return 0
+
+        except:
+            raise Exception("Cannot open uptime file: /proc/stat")
+
+    def _uptime_windows(self):
+        import subprocess
+
+        cmd = "net statistics server"
+        p = subprocess.Popen(cmd, shell=True,
+                             stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        (child_stdin, child_stdout) = (p.stdin, p.stdout)
+        lines = child_stdout.readlines()
+        child_stdin.close()
+        child_stdout.close()
+
+        lines = [line.strip() for line in lines if line.strip()]
+        date, time, ampm = lines[1].split()[2:5]
+
+        m, d, y = [int(v) for v in date.split('/')]
+        H, M = [int(v) for v in time.split(':')]
+        if ampm.lower() == 'pm':
+            H += 12
+
+        import datetime
+        now = datetime.datetime.now()
+        then = datetime.datetime(y, m, d, H, M)
+        diff = now - then
+        return diff
+
+    def _get_ip(self):
+        'Create dummy socket to get address'
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('google.com', 0))
+        return s.getsockname()[0]
 
 ECMBase().run()
 
