@@ -73,6 +73,14 @@ class SMAgentXMPP(Client):
         l.info("Starting agent...")
         self.config = config
 
+        l.info("Loading commands...")
+        self.command_runner = CommandRunner(config['Plugins'])
+        self.crypto_available = True
+
+        # Time to load commands before connect
+        from time import sleep
+        sleep(5)
+
         l.debug("Loading XMPP...")
         observers = [
             ('/iq', self.__onIq),
@@ -82,10 +90,6 @@ class SMAgentXMPP(Client):
                         observers,
                         resource='ecm_agent-%d' % AGENT_VERSION
         )
-
-        l.info("Loading commands...")
-        self.command_runner = CommandRunner(config['Plugins'])
-        self.crypto_available = True
 
     def __onIq(self, msg):
         """
@@ -241,7 +245,8 @@ class CommandRunner():
         self.env['PWD']='/root/'
 
         l.debug("ENV: %s" % self.env)
-        reactor.callLater(0, self._loadCommands)
+        #reactor.callLater(0, self._loadCommands)
+        reactor.callWhenRunning(self._loadCommands)
 
     def _loadCommands(self):
         self._commands = {}
@@ -331,7 +336,8 @@ class CommandRunnerProcess(ProcessProtocol):
 
         if STDOUT_FINAL_OUTPUT_STR in data:
             for line in data.split("\n"):
-                if line == STDOUT_FINAL_OUTPUT_STR:
+                if STDOUT_FINAL_OUTPUT_STR in line:
+                    # Skip this line and stop flush callback
                     self.stdout = ''
                     self.stderr = ''
                     self.flush_callback = None
