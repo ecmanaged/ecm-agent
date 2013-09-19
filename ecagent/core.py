@@ -63,6 +63,8 @@ class BasicClient:
 
         self._user = user
         self._password = password
+        self._host = host
+        self._port = 5222
 
         self._observers = observers
         myJid = jid.JID('/'.join((user, resource)))
@@ -82,7 +84,11 @@ class BasicClient:
         #            connector = XMPPClientConnector(reactor, host, self._factory)
         #            connector.connect()
 
-        self._connector = reactor.connectTCP(host, 5222, self._factory)
+        # Give time to load commands
+        reactor.callLater(3, self._connect)
+
+    def _connect(self):
+        reactor.connectTCP(self._host, self._port, self._factory)
 
     def _failed_auth(self, error):
         """ overwrite in derivated class """

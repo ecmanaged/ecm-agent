@@ -77,10 +77,6 @@ class SMAgentXMPP(Client):
         self.command_runner = CommandRunner(config['Plugins'])
         self.crypto_available = True
 
-        # Time to load commands before connect
-        from time import sleep
-        sleep(5)
-
         l.debug("Loading XMPP...")
         observers = [
             ('/iq', self.__onIq),
