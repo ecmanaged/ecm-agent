@@ -354,7 +354,7 @@ class ectools():
 
     def _renice_me(self, nice):
         ''' Changes execution priority  '''
-        if nice and self.is_number(nice):
+        if nice and self._is_number(nice):
             try:
                 os.nice(int(nice))
                 return(0)
@@ -364,7 +364,7 @@ class ectools():
         else:
             return(1)
 
-    def is_number(self,s):
+    def _is_number(self,s):
         ''' Helper function '''
         try:
             float(s)

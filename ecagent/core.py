@@ -114,7 +114,7 @@ class BasicClient:
         """
         l.info("XMPPClient authenticated")
 
-        #Keepalive: Send a whitespace every 60 seconds
+        #Keepalive: Send a newline every 60 seconds
         #to avoid server disconnect
         self._keep_alive_lc = LoopingCall(self._xs.send, '\n')
         self._keep_alive_lc.start(60)
