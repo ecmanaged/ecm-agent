@@ -31,7 +31,7 @@ import ecagent.twlogging as l
 
 #Parse config file or end execution
 try:
-    config_filename = join(dirname(__file__), 'ecagent.cfg')
+    config_filename = join(dirname(__file__), './config/ecagent.cfg')
     config = SMConfigObj(config_filename)
 except:
     print 'Unable to read the config file at %s' % config_filename

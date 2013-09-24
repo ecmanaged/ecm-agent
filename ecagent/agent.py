@@ -73,9 +73,20 @@ class SMAgentXMPP(Client):
         l.info("Starting agent...")
         self.config = config
 
+        l.info("Setting up certificate")
+        self.publickey = None
+        try:
+            if Crypto.version_info[:2] >= (2, 2):
+                key = PublicKey.RSA.importKey(PUB_KEY)
+                self.publickey = key.publickey()
+        except:
+            pass
+
+        if not self.publickey:
+            l.warn('PyCrypto not available or version is < 2.2: Please upgrade: http://www.pycrypto.org/')
+
         l.info("Loading commands...")
         self.command_runner = CommandRunner(config['Plugins'])
-        self.crypto_available = True
 
         l.debug("Loading XMPP...")
         observers = [
@@ -123,7 +134,7 @@ class SMAgentXMPP(Client):
         l.debug('Process Command')
 
         verified = False
-        if self.crypto_available:
+        if self.publickey:
             verified = self._verify_message(message)
             if verified == False:
                 # Crypto rutines are working and message has bad signature
@@ -131,6 +142,8 @@ class SMAgentXMPP(Client):
                 result=(E_UNVERIFIED_COMMAND, '', 'Bad signature', 0)
                 self._onCallFinished(result,message)
                 return
+        else:
+            l.warn('[RSA Verify] PyCrypto not available: Running unverified Command from %s' % message.from_)
 
         flush_callback = self._Flush
         message.command_replaced = message.command.replace('.','_')
@@ -201,38 +214,29 @@ class SMAgentXMPP(Client):
                 return
             return '\x00\x01' + ps + '\x00' + T
 
-        try:
-            if Crypto.version_info[:2] >= (2, 2):
-                key = PublicKey.RSA.importKey(PUB_KEY)
-                pub = key.publickey()
+        signature = base64.b64decode(signature)
+        em = _emsa_pkcs1_v1_5_encode(text, len(signature))
 
-                signature = base64.b64decode(signature)
-                em = _emsa_pkcs1_v1_5_encode(text, len(signature))
+        if em:
+            signature = number.bytes_to_long(signature)
+            return self.publickey.verify(em, (signature,))
 
-                if em:
-                    signature = number.bytes_to_long(signature)
-                    return pub.verify(em, (signature,))
-
-                return False
-        except:
-            pass
-
-        l.info('PyCrypto version is < 2.2: Please upgrade: http://www.pycrypto.org/')
-        self.crypto_available = False
-        return None
-
+        return False
 
 class CommandRunner():
     def __init__(self, config):
-        self.command_paths = [os.path.join(os.path.dirname(__file__),
-                                           '..', 'plugins')]  # Built-in commands (absolute path)
-        if 'plugin_paths' in config:
-            self.command_paths.extend(config['plugin_paths'])
 
         if system() == "Windows":
             self._python_runner = config['python_interpreter_windows']
+            self.command_paths = [os.path.join(os.path.dirname(__file__), '../../..')]  # Built-in commands (on root dir)
+
         else:
             self._python_runner = config['python_interpreter_linux']
+            self.command_paths = [os.path.join(os.path.dirname(__file__), '..', 'plugins')]  # Built-in commands (absolute path)
+
+
+        if 'plugin_paths' in config:
+            self.command_paths.extend(config['plugin_paths'])
 
         self.timeout = int(config['timeout'])
         self.env = os.environ
@@ -251,6 +255,8 @@ class CommandRunner():
             try:
                 if os.path.isdir(path):
                     for filename in os.listdir(path):
+                        if system() == "Windows" and not filename.startswith('plugin'):
+                            continue
                         l.debug("  Queuing plugin %s for process." % filename)
                         full_filename = os.path.join(path, filename)
                         d = self._runProcess(full_filename, '', [])
