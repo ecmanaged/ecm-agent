@@ -235,9 +235,6 @@ class CommandRunner():
             self.command_paths = [os.path.join(os.path.dirname(__file__), '..', 'plugins')]  # Built-in commands (absolute path)
 
 
-        if 'plugin_paths' in config:
-            self.command_paths.extend(config['plugin_paths'])
-
         self.timeout = int(config['timeout'])
         self.env = os.environ
         self.env['PYTHONPATH'] = os.path.dirname(__file__)
@@ -255,8 +252,7 @@ class CommandRunner():
             try:
                 if os.path.isdir(path):
                     for filename in os.listdir(path):
-                        if system() == "Windows" and not filename.startswith('plugin'):
-                            continue
+                        if not filename.startswith('plugin_'): continue
                         l.debug("  Queuing plugin %s for process." % filename)
                         full_filename = os.path.join(path, filename)
                         d = self._runProcess(full_filename, '', [])
