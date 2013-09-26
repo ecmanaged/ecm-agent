@@ -234,7 +234,6 @@ class CommandRunner():
             self._python_runner = config['python_interpreter_linux']
             self.command_paths = [os.path.join(os.path.dirname(__file__), '..', 'plugins')]  # Built-in commands (absolute path)
 
-
         self.timeout = int(config['timeout'])
         self.env = os.environ
         self.env['PYTHONPATH'] = os.path.dirname(__file__)

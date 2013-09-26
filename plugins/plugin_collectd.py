@@ -52,7 +52,6 @@ class ECMCollectd(ecplugin):
         return ret
 
 class Collectd():
-
     def __init__(self, path='/var/run/collectd-unixsock', noisy=False):
         self.noisy = noisy
         self.path = path

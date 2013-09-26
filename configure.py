@@ -22,7 +22,7 @@ else:
 
 #Parse config file or end execution
 try:
-    config_filename = join(dirname(__file__), 'ecagent.cfg')
+    config_filename = join(dirname(__file__), './config/ecagent.cfg')
     config = ConfigObj(config_filename)
 except:
     print 'Unable to read the config file at %s' % config_filename
