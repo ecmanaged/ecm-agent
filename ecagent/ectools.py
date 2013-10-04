@@ -214,8 +214,11 @@ class ectools():
 
                 return retval,self.thread_stdout,self.thread_stderr
 
-        except Exception as e:
-            return 255,'',e
+        except OSError, e:
+            return e[0], '', "Execution failed: %s" % e[1]
+
+        except Excption as e:
+            return 255,'','Unknown error'
 
     def _execute_file(self, file, stdin=None, runas=None, workdir = None, envars = None):
         """ Execute a script file and flush stdout/stderr using threads
@@ -280,8 +283,11 @@ class ectools():
 
                 return retval,self.thread_stdout,self.thread_stderr
 
-        except Exception as e:
-            return 255,'',e
+        except OSError, e:
+            return e[0], '', "Execution failed: %s" % e[1]
+
+        except Excption as e:
+            return 255,'','Unknown error'
 
     def _flush_worker(self, stdout, stderr):
         ''' needs to be in a thread so we can read the stdout w/o blocking '''
