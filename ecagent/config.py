@@ -13,8 +13,9 @@ import ecagent.twlogging as l
 #Python
 from uuid import getnode
 from time import sleep
-import random
-import re
+from platform import node
+import random, re, socket
+
 
 #External
 from configobj import ConfigObj
@@ -104,7 +105,15 @@ class SMConfigObj(ConfigObj):
 
     @inlineCallbacks
     def _getUUIDViaWeb(self):
-        retr = yield getPage("https://my.ecmanaged.com/agent/meta-data/uuid")
+        hostname = ''
+        address = ''
+        try:
+            hostname = node()
+            address = self._get_ip()
+        except:
+            pass
+
+        retr = yield getPage("https://my.ecmanaged.com/agent/meta-data/uuid/?ipaddress=%s&hostname=%s" %(address,hostname))
         for line in retr.splitlines():
             if line and line.startswith('uuid:'):
                 returnValue(line.split(':')[1])
@@ -120,6 +129,12 @@ class SMConfigObj(ConfigObj):
             returnValue(str(match.group(1)).lower())
 
         returnValue('')
+
+    def _get_ip(self):
+        'Create dummy socket to get address'
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('my.ecmanaged.com', 0))
+        return s.getsockname()[0]
 
     def _getStoredUUID(self):
         return self['XMPP']['user'].split('@')[0]

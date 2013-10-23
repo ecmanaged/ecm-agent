@@ -165,6 +165,7 @@ class ECMBase(ecplugin):
                 if line.startswith('btime'):
                     f.close()
                     return float(line.strip().split()[1])
+            f.close()
             return 0
 
         except:
@@ -174,7 +175,6 @@ class ECMBase(ecplugin):
         try:
             from time import time
             import uptime
-
             return int(time() - uptime.uptime())
         except:
             return 0
@@ -182,7 +182,7 @@ class ECMBase(ecplugin):
     def _get_ip(self):
         'Create dummy socket to get address'
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(('google.com', 0))
+        s.connect(('my.ecmanaged.com', 0))
         return s.getsockname()[0]
 
     def _dist(self):

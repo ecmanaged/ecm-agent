@@ -34,7 +34,6 @@ config['XMPP']['user'] = '%s@%s' % (uuid, config['XMPP']['host'])
 config['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
 config['XMPP']['mac'] = str(getnode)
 config['XMPP']['manual'] = True
-
 config.write()
 
 print 'Manual configuration override succeeded.'
