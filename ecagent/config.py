@@ -11,7 +11,6 @@ from twisted.internet.error import ProcessTerminated, ProcessDone
 import ecagent.twlogging as l
 
 #Python
-from uuid import getnode
 from time import sleep
 from platform import node
 import random, re, socket
@@ -37,7 +36,7 @@ class SMConfigObj(ConfigObj):
 
     @inlineCallbacks
     def checkUUID(self):
-        mac = getnode()
+        mac = self._get_mac()
 
         # Always generate a new password if not is set
         if not self['XMPP']['password']:
@@ -85,6 +84,11 @@ class SMConfigObj(ConfigObj):
             return self['XMPP']['user'].split('@')[0]
 
         else:
+            # Try to get from preconfigured
+            l.info("try to get UUID via preconfiguration")
+            uuid = self._getUUIDPreConfig()
+            if uuid: return uuid
+
             # Try to configure via URL (ECM meta-data)
             l.info("try to get UUID via URL (ecagent meta-data)")
             uuid = self._getUUIDViaWeb()
@@ -119,16 +123,39 @@ class SMConfigObj(ConfigObj):
                 returnValue(line.split(':')[1])
         returnValue('')
 
+    def _getUUIDPreConfig(self):
+        from os import remove
+        from os.path import dirname, abspath, join, exists
+        uuid_file = join(dirname(__file__), './config/_uuid.cfg')
+        if exists(uuid_file):
+            f = open(uuid_file, 'r')
+            for line in f:
+                if line.startswith('uuid:'):
+                    return line.split(':')[1]
+            f.close()
+            remove(uuid_file)
+
+        return None
+
     def _getUUIDViaCommand(self):
         # using direct binary access
-        exit_code, stdout, stderr = yield self._run("dmidecode",
-                                                    "-s system-uuid")
-
+        exit_code, stdout, stderr = yield self._run("dmidecode", "-s system-uuid")
         match = re.match('^([\d|\w|\-]{30,50})$', stdout)
         if match and match.group(1):
             returnValue(str(match.group(1)).lower())
 
         returnValue('')
+
+    def _run(self, command, args):
+        spp = SimpleProcessProtocol()
+        d = spp.getDeferredResult()
+        reactor.spawnProcess(spp, command, args.split())
+        d.addErrback(self._onErrorRunning)
+        return d
+
+    def _onErrorRunning(self, failure):
+        l.warn('Command failed to execute: %s' % failure)
+        return (255, '', '')
 
     def _get_ip(self):
         'Create dummy socket to get address'
@@ -142,17 +169,25 @@ class SMConfigObj(ConfigObj):
     def _getStoredMAC(self):
         return self['XMPP']['mac']
 
-    def _run(self, command, args):
-        spp = SimpleProcessProtocol()
-        d = spp.getDeferredResult()
-        reactor.spawnProcess(spp, command, args.split())
-        d.addErrback(self._onErrorRunning)
-        return d
+    def _get_mac(self):
+        """
+            Try to get a unique identified, Amazon may change mac on stop/start
+        """
+        uuid = None
+        try:
+            import urllib
+            urlopen = urllib.urlopen("http://169.254.169.254/latest/meta-data/instance-id")
+            for line in urlopen.readlines():
+                if ("i-" in line): uuid = hex(line)
+            urlopen.close()
+        except: pass
 
-    def _onErrorRunning(self, failure):
-        l.warn('Command failed to execute: %s' % failure)
-        return (255, '', '')
+        # Use network mac for non aws
+        if not uuid:
+            from uuid import getnode
+            uuid = getnode()
 
+        return uuid
 
 class SimpleProcessProtocol(ProcessProtocol):
     def __init__(self):

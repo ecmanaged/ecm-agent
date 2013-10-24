@@ -44,8 +44,8 @@ except:
     pass
 
 #Parse config file or end execution
+config_filename = join(dirname(__file__), './config/ecagent.cfg')
 try:
-    config_filename = join(dirname(__file__), './config/ecagent.cfg')
     config = SMConfigObj(config_filename)
 
     if configure_uuid:

@@ -4,6 +4,7 @@ import sys
 import inspect
 import simplejson as json
 from base64 import b64decode
+from os import environ
 
 # Local
 from ectools import ectools

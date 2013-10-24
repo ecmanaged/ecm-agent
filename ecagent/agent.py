@@ -225,20 +225,22 @@ class SMAgentXMPP(Client):
 
 class CommandRunner():
     def __init__(self, config):
-
         if system() == "Windows":
             self._python_runner = config['python_interpreter_windows']
             self.command_paths = [os.path.join(os.path.dirname(__file__), '../../..')]  # Built-in commands (on root dir)
+            tools_path = config['tools_path_windows']
 
         else:
             self._python_runner = config['python_interpreter_linux']
             self.command_paths = [os.path.join(os.path.dirname(__file__), '..', 'plugins')]  # Built-in commands (absolute path)
+            tools_path = config['tools_path_linux']
 
         self.timeout = int(config['timeout'])
         self.env = os.environ
         self.env['PYTHONPATH'] = os.path.dirname(__file__)
         self.env['LANG']='en_US.utf8'
         self.env['PWD']='/root/'
+        self.env["PATH"] += os.pathsep + tools_path
 
         l.debug("ENV: %s" % self.env)
         #reactor.callLater(0, self._loadCommands)
