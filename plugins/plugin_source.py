@@ -127,7 +127,7 @@ class Git(ectools):
 
     def _is_available(self):
         which_posix  = procutils.which('git')
-        which_win    = procutils.which('git.cmd')
+        which_win    = procutils.which('git.exe')
 
         try: self.git_cmd = which_posix[0]
         except IndexError:
