@@ -14,7 +14,6 @@ import ecagent.twlogging as l
 #Python
 import os
 import sys
-from platform import system
 import simplejson as json
 import zlib, base64
 from time import time
@@ -225,7 +224,7 @@ class SMAgentXMPP(Client):
 
 class CommandRunner():
     def __init__(self, config):
-        if system() == "Windows":
+        if sys.platform.startswith("win32"):
             self._python_runner = config['python_interpreter_windows']
             self.command_paths = [os.path.join(os.path.dirname(__file__), '../../..')]  # Built-in commands (on root dir)
             tools_path = config.get('tools_path_windows')

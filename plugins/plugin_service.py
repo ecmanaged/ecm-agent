@@ -2,9 +2,8 @@
 
 from ecplugin import ecplugin
 
-from platform import platform
 import time
-import os, re
+import sys, os, re
 
 RCD         = '/etc/rc'
 INITD       = '/etc/init.d'
@@ -20,6 +19,9 @@ class ECMLinux(ecplugin):
         daemon = kwargs.get('daemon',None)
         action = kwargs.get('action',None)
         force = kwargs.get('force',0)
+
+        if not (daemon and action):
+            raise Exception(self.cmd_service_control.__doc__)
 
         if not force:
             # try to get init.d daemon
@@ -37,7 +39,7 @@ class ECMLinux(ecplugin):
     def cmd_service_runlevel(self, *argv, **kwargs):
         return self._get_runlevel()
 
-    def cmd_service_initd_exists(self, *argv, **kwargs):
+    def cmd_service_exists(self, *argv, **kwargs):
         """Syntax: service.control daemon action <force: 0/1>"""
 
         daemon = kwargs.get('daemon',None)
@@ -87,18 +89,12 @@ class ECMLinux(ecplugin):
         return False
 
 class ECMWindows(ecplugin):
-    def cmd_system_uptime(self, *argv, **kwargs):
-        """Syntax: system.uptime """
-
-        server = wmi.WMI('localhost')
-        secs_up = int([uptime.SystemUpTime for uptime in server.Win32_PerfFormattedData_PerfOS_System()][0])
-        return(secs_up)
-
     def cmd_service_control(self, *argv, **kwargs):
         """Syntax: service.control daemon action"""
 
         daemon = kwargs.get('daemon',None)
         action = kwargs.get('action',None)
+        force =  kwargs.get('force',0)
 
         if not (daemon and action):
             raise Exception(self.cmd_service_control.__doc__)
@@ -112,52 +108,85 @@ class ECMWindows(ecplugin):
 
         if action == 'start':
             ws.StartService(handle, None)
-            stat = ws.QueryServiceStatus(handle)
 
             while (time.time() < maxtime):
+                stat = ws.QueryServiceStatus(handle)
                 time.sleep(.5)
                 if stat[1]==ws.SERVICE_RUNNING:
-                    return(0,"Service %s is running ", lserv)
-            raise Exception("Timeout starting service %s ", lserv)
+                    return(0,"Service %s is running " %lserv)
+            raise Exception("Timeout starting service %s " %lserv)
 
         elif action == 'stop':
             ws.ControlService(handle, ws.SERVICE_CONTROL_STOP)
-            stat = ws.QueryServiceStatus(handle)
 
             while (time.time() < maxtime):
+                stat = ws.QueryServiceStatus(handle)
                 time.sleep(.5)
                 if stat[1]==ws.SERVICE_STOPPED:
-                    return(0,"Service %s is stopped ", lserv)
-            raise Exception("Timeout stopping service %s ", lserv)
+                    return(0,"Service %s is stopped " %lserv)
+            raise Exception("Timeout stopping service %s " %lserv)
 
         elif action == 'restart':
             # stop
             ws.ControlService(handle, ws.SERVICE_CONTROL_STOP)
-            stat = ws.QueryServiceStatus(handle)
 
             while (time.time() < maxtime):
+                stat = ws.QueryServiceStatus(handle)
                 time.sleep(.5)
                 if stat[1]==ws.SERVICE_STOPPED:
                     break
-                    # start
+
+            # start
             ws.StartService(handle, None)
-            stat = ws.QueryServiceStatus(handle)
 
             while (time.time() < maxtime):
+                stat = ws.QueryServiceStatus(handle)
                 time.sleep(.5)
                 if stat[1]==ws.SERVICE_RUNNING:
-                    return(0,"Service %s is running ", lserv)
-            raise Exception("Timeout restarting service %s ", lserv)
+                    return(0,"Service %s is running " %lserv)
+            raise Exception("Timeout restarting service %s " %lserv)
 
-    def cmd_system_dist(self, *argv, **kwargs):
-        """"""
-        return("NOT_SUPPORTED")
+    def cmd_service_runlevel(self, *argv, **kwargs):
+        return 0
 
-    def cmd_system_update(self, *argv, **kwargs):
-        """Syntax: system.update[update command args]"""
-        return("NOT_SUPPORTED")
+    def cmd_service_exists(self, *argv, **kwargs):
+        """Syntax: service.exists daemon"""
 
-    def _svc_getname(self, scmhandle, service):
+        daemon = kwargs.get('daemon',None)
+        scmhandle = ws.OpenSCManager(None, None, ws.SC_MANAGER_ALL_ACCESS)
+        sserv, lserv = self._svc_getname(scmhandle,daemon)
+
+        return self._svc_getname(lserv)
+
+    def cmd_collectd_get(self, *argv, **kwargs):
+        try:
+            sf = StatFetcher(None,None,None)
+            return self._collectd(sf)
+
+        except Exception, e:
+            raise Exception("error with wmi connection")
+
+    def _collectd(self,sf):
+        collector_map = {}
+        collector_map['cpu_util'] = sf.get_cpu_util()
+        collector_map['cpu_util_maxcore'] = sf.get_cpu_util_maxcore()
+        collector_map['cpu_queue_length'] = sf.get_cpu_queue_length()
+        collector_map['cpu_context_switches'] = sf.get_cpu_context_switches()
+        collector_map['net_bits_total'] = sf.get_net_bits_total()
+        collector_map['net_bits_in'] = sf.get_net_bits_in()
+        collector_map['net_bits_out'] = sf.get_net_bits_out()
+        collector_map['mem_available_bytes'] = sf.get_mem_available_bytes()
+        collector_map['mem_cache_bytes'] = sf.get_mem_cache_bytes()
+        collector_map['mem_committed_bytes'] = sf.get_mem_committed_bytes()
+        collector_map['mem_pages'] = sf.get_mem_pages()
+        collector_map['mem_page_faults'] = sf.get_mem_page_faults()
+        collector_map['disk_queue_length_avg'] = sf.get_disk_queue_length_avg()
+        collector_map['disk_queue_length_current'] = sf.get_disk_queue_length_current()
+        collector_map['disk_bytes_transferred'] = sf.get_disk_bytes_transferred()
+
+        return collector_map
+
+def _svc_getname(self, scmhandle, service):
         snames=ws.EnumServicesStatus(scmhandle)
         for i in snames:
             if i[0].lower() == service.lower():
@@ -165,13 +194,83 @@ class ECMWindows(ecplugin):
             if i[1].lower() == service.lower():
                 return i[0], i[1]; break
 
-        raise Exception("The %s service doesn't seem to exist." % service)
+        raise Exception("The %s service doesn't seem to exist." %service)
+
+class StatFetcher(object):
+    def __init__(self, computer, user, password):
+        wmi = __import__("wmi")
+        self.c = wmi.WMI(find_classes=False, computer=computer, user=user, password=password)
+
+    def get_cpu_util(self):
+        cpu_utils = [cpu.LoadPercentage for cpu in self.c.Win32_Processor()]
+        for i, item in enumerate(cpu_utils):
+            if item is None:  # replace None's with zero
+                cpu_utils[i] = 0
+        cpu_util = int(sum(cpu_utils) / len(cpu_utils))  # avg all cores/processors
+        return cpu_util
+
+    def get_cpu_util_maxcore(self):
+        cpu_max = max([int(cpu.LoadPercentage) for cpu in self.c.Win32_Processor()])  # max of all cores/processors
+        return cpu_max
+
+    def get_cpu_queue_length(self):
+        cpu_queue_length = sum([int(cpu.ProcessorQueueLength) for cpu in self.c.Win32_PerfRawData_PerfOS_System()])
+        return cpu_queue_length
+
+    def get_cpu_context_switches(self):
+        cpu_context_switches = sum([int(cpu.ContextSwitchesPerSec) for cpu in self.c.Win32_PerfRawData_PerfOS_System()])
+        return cpu_context_switches
+
+    def get_net_bits_total(self):
+        total_bytes = sum([int(net_interface.BytesTotalPerSec) for net_interface in self.c.Win32_PerfRawData_Tcpip_NetworkInterface()])
+        total_bits = total_bytes * 8
+        return total_bits
+
+    def get_net_bits_in(self):
+        recv_bytes = sum([int(net_interface.BytesReceivedPerSec) for net_interface in self.c.Win32_PerfRawData_Tcpip_NetworkInterface()])
+        recv_bits = recv_bytes * 8
+        return recv_bits
+
+    def get_net_bits_out(self):
+        sent_bytes = sum([int(net_interface.BytesSentPerSec) for net_interface in self.c.Win32_PerfRawData_Tcpip_NetworkInterface()])
+        sent_bits = sent_bytes * 8
+        return sent_bits
+
+    def get_mem_available_bytes(self):
+        mem_available_bytes = sum([int(mem.AvailableBytes) for mem in self.c.Win32_PerfRawData_PerfOS_Memory()])
+        return mem_available_bytes
+
+    def get_mem_cache_bytes(self):
+        mem_cache_bytes = sum([int(mem.CacheBytes) for mem in self.c.Win32_PerfRawData_PerfOS_Memory()])
+        return mem_cache_bytes
+
+    def get_mem_committed_bytes(self):
+        mem_committed_bytes = sum([int(mem.CommittedBytes) for mem in self.c.Win32_PerfRawData_PerfOS_Memory()])
+        return mem_committed_bytes
+
+    def get_mem_pages(self):
+        mem_pages = sum([int(mem.PagesPerSec) for mem in self.c.Win32_PerfRawData_PerfOS_Memory()])
+        return mem_pages
+
+    def get_mem_page_faults(self):
+        mem_page_faults = sum([int(mem.PageFaultsPerSec) for mem in self.c.Win32_PerfRawData_PerfOS_Memory()])
+        return mem_page_faults
+
+    def get_disk_queue_length_avg(self):
+        disk_queue_length_avg = sum([int(disk.AvgDiskQueueLength) for disk in self.c.Win32_PerfRawData_PerfDisk_PhysicalDisk()])
+        return disk_queue_length_avg
+
+    def get_disk_queue_length_current(self):
+        disk_queue_length_current = sum([int(disk.CurrentDiskQueueLength) for disk in self.c.Win32_PerfRawData_PerfDisk_PhysicalDisk()])
+        return disk_queue_length_current
+
+    def get_disk_bytes_transferred(self):
+        disk_bytes_transferred = sum([int(disk.DiskBytesPerSec) for disk in self.c.Win32_PerfRawData_PerfDisk_PhysicalDisk()])
+        return disk_bytes_transferred
 
 # Load class based on platform()
-if platform().upper() == 'WINDOWS':
-    win32pipe = __import__("win32pipe")
-    wmi = __import__("wmi")
-    ws = __import__("win32service")
+if sys.platform.startswith("win32"):
+    ws  = __import__("win32service")
     ECMWindows().run()
 
 else:

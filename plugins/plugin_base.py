@@ -2,7 +2,7 @@
 
 from ecplugin import ecplugin
 
-import os, platform, psutil
+import sys, os, platform, psutil
 import socket
 
 class ECMBase(ecplugin):
@@ -91,15 +91,21 @@ class ECMBase(ecplugin):
         try:
             retr=[]
             for part in psutil.disk_partitions(all=False):
-                usage = psutil.disk_usage(part.mountpoint)
-                strpart={}
-                if hasattr(part,  'mountpoint'): strpart['mountpoint'] = part.mountpoint
-                if hasattr(part,  'device'):     strpart['device'] = part.device
-                if hasattr(usage, 'total'):      strpart['total'] = self.aux_convert_bytes(usage.total)
-                if hasattr(usage, 'used'):       strpart['used'] = self.aux_convert_bytes(usage.used)
-                if hasattr(usage, 'free'):       strpart['free'] = self.aux_convert_bytes(usage.free)
-                if hasattr(usage, 'percent'):    strpart['percent'] = usage.percent
-                retr.append(strpart)
+                # Ignore error on specific devices (CD-ROM)
+                try:
+                    usage = psutil.disk_usage(part.mountpoint)
+                    strpart={}
+                    if hasattr(part,  'mountpoint'): strpart['mountpoint'] = part.mountpoint
+                    if hasattr(part,  'device'):     strpart['device'] = part.device
+                    if hasattr(usage, 'total'):      strpart['total'] = self.aux_convert_bytes(usage.total)
+                    if hasattr(usage, 'used'):       strpart['used'] = self.aux_convert_bytes(usage.used)
+                    if hasattr(usage, 'free'):       strpart['free'] = self.aux_convert_bytes(usage.free)
+                    if hasattr(usage, 'percent'):    strpart['percent'] = usage.percent
+                    retr.append(strpart)
+
+                except:
+                    pass
+
             return retr
 
         except:
@@ -142,18 +148,11 @@ class ECMBase(ecplugin):
                 value = float(n) / prefix[s]
                 return '%.1f%s' % (value, s)
 
-    def cmd_command_exists(self, *argv, **kwargs):
-        command = kwargs.get('command',None)
-        if not command: raise Exception("Invalid params")
 
-        cmd = 'type ' + command
-        out,stdout,stderr = self._execute_command(cmd)
-
-        return (out == 0)
 
     def _boottime(self):
         'Server boottime'
-        if platform.system() == "Windows":
+        if sys.platform.startswith("win32"):
             return self._boottime_windows()
 
         return self._boottime_linux()
@@ -187,7 +186,7 @@ class ECMBase(ecplugin):
 
     def _dist(self):
         'Server boottime'
-        if platform.system() == "Windows":
+        if sys.platform.startswith("win32"):
             os_distrib = platform.release()
             os_version = platform.version()
         else:

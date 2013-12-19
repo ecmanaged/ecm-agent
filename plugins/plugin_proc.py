@@ -6,7 +6,6 @@ import os, re
 import psutil
 
 class ECMProc(ecplugin):
-
     def cmd_proc_num_name(self, *argv, **kwargs):
         """Syntax: proc.num [name]"""
 
@@ -162,5 +161,13 @@ class ECMProc(ecplugin):
         else:
             return('%s: Killed' % str(killed))
 
+    def cmd_command_exists(self, *argv, **kwargs):
+        command = kwargs.get('command',None)
+        if not command: raise Exception("Invalid params")
+
+        cmd = 'type ' + command
+        out,stdout,stderr = self._execute_command(cmd)
+
+        return (out == 0)
 
 ECMProc().run()
