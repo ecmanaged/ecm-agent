@@ -24,6 +24,9 @@ INFO_FILE = DIR + '/node_info'
 
 FLUSH_WORKER_SLEEP_TIME = 0.2
 
+DEFAULT_GROUP_LINUX = 'root'
+DEFAULT_GROUP_WINDOWS = 'Administrators'
+
 class ectools():
     def _file_write(self,file,content=None):
         try:
@@ -87,7 +90,7 @@ class ectools():
         except:
             return False
 
-    def _chown(self, path, user, group, recursive = True):
+    def _chown(self, path, user, group, recursive = False):
         try:
             from pwd import getpwnam
             from grp import getgrnam
@@ -165,10 +168,12 @@ class ectools():
         if workdir:
             workdir = os.path.abspath(workdir)
 
-        if runas:
+        if runas and system() != "Windows":
             command = ['su','-',runas,'-c',command]
         else:
             command = split(command)
+
+        # :TODO: Runas for windows
 
         # Get current env
         if not envars or not isinstance(envars, dict):
@@ -217,7 +222,7 @@ class ectools():
         except OSError, e:
             return e[0], '', "Execution failed: %s" % e[1]
 
-        except Excption as e:
+        except Exception as e:
             return 255,'','Unknown error'
 
     def _execute_file(self, file, stdin=None, runas=None, workdir = None, envars = None):
@@ -238,14 +243,16 @@ class ectools():
             workdir = os.path.abspath(workdir)
 
         try:
-            if runas:
-                command = ['su','-','-c',file]
-                # Change file owner before execute
-                self._chown(path=file,user=runas,group='root',recursive=True)
-
             # +x flag to file
             os.chmod(file,0700)
-            command = [file]
+            command = file
+
+            if runas and system() != "Windows":
+                # Change file owner before execute
+                self._chown(path=workdir,user=runas,group=DEFAULT_GROUP_LINUX,recursive=True)
+                command = ['su','-',runas,'-c',file]
+
+            # :TODO: Runas for windows
 
             p = Popen(
                 command,
@@ -286,7 +293,7 @@ class ectools():
         except OSError, e:
             return e[0], '', "Execution failed: %s" % e[1]
 
-        except Excption as e:
+        except Exception as e:
             return 255,'','Unknown error'
 
     def _flush_worker(self, stdout, stderr):
@@ -403,3 +410,4 @@ class ectools():
         ''' Helper function: microtime '''
         str_time = str(time()).replace('.','_')
         return str_time
+

@@ -48,7 +48,7 @@ class ECMConfigfile(ecplugin):
             # Chown to specified user/group
             if chown_user and chown_group and os.path.isfile(path):
                 self._chown(path,chown_user,chown_group)
-                ret['stdout'] += self._output("Configfile owner changed to '%s':'%s'" %(chown_user,chown_group))
+                ret['stdout'] += self._output("Owner changed to '%s':'%s'" %(chown_user,chown_group))
 
         except Exception as e:
             raise Exception("Unable to change owner for configfile: %s" %e)

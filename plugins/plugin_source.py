@@ -62,7 +62,8 @@ class ECMSource(ecplugin):
 
         # Chown to specified user/group
         if chown_user and chown_group and os.path.isdir(path):
-            self._chown(path,chown_user,chown_group)
+            self._chown(path,chown_user,chown_group,recursive=True)
+            retval['stdout'] += self._output("Owner changed to '%s':'%s'" %(chown_user,chown_group))
 
         return self._return(retval)
 
