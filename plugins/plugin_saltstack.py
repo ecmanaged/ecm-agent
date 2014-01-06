@@ -79,7 +79,7 @@ class ECMSaltstack(ecplugin):
             # salt-call state.highstate
             command = [saltstack_cmd, 'state.highstate', '--local', '-l debug']
 
-            out,stdout,stderr = self._execute_command(command)
+            out,stdout,stderr = self._execute_command(command,workdir=module_path)
             return self._format_output(out,stdout,stderr)
 
         except Exception as e:

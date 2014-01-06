@@ -17,7 +17,7 @@ import twisted.python.procutils as procutils
 import simplejson as json
 import sys
 
-if system() != 'Windows':
+if sys.platform.startswith("win32"):
     import fcntl
 
 DIR = '/etc/ecmanaged'
@@ -34,7 +34,9 @@ class ectools():
     def _is_windows(self):
         """ Returns True if is a windows system
         """
-        if system() == 'Windows': return True
+        if sys.platform.startswith("win32"):
+            return True
+
         return False
 
     def _file_write(self,file,content=None):
@@ -242,7 +244,7 @@ class ectools():
                 p.stdin.flush()
                 p.stdin.close()
 
-            if system() == "Windows":
+            if self._is_windows():
                 stdout, stderr = p.communicate()
                 return p.wait(),stdout,stderr
 
@@ -296,7 +298,7 @@ class ectools():
                 for arg in args:
                     command.append(arg)
 
-            if runas and system() != "Windows":
+            if runas and not self._is_windows():
                 # Change file owner before execute
                 self._chown(path=workdir,user=runas,group=DEFAULT_GROUP_LINUX,recursive=True)
                 command = ['su','-',runas,'-c',' '.join(map(str,command))]
@@ -318,7 +320,7 @@ class ectools():
                 p.stdin.flush()
                 p.stdin.close()
 
-            if system() == "Windows":
+            if self._is_windows():
                 stdout, stderr = p.communicate()
                 return p.wait(),stdout,stderr
 

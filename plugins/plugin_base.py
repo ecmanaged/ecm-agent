@@ -152,7 +152,7 @@ class ECMBase(ecplugin):
 
     def _boottime(self):
         'Server boottime'
-        if sys.platform.startswith("win32"):
+        if self._is_windows():
             return self._boottime_windows()
 
         return self._boottime_linux()
@@ -186,7 +186,7 @@ class ECMBase(ecplugin):
 
     def _dist(self):
         'Server boottime'
-        if sys.platform.startswith("win32"):
+        if self._is_windows():
             os_distrib = platform.release()
             os_version = platform.version()
         else:
