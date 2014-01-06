@@ -12,6 +12,8 @@ from threading import Thread
 from time import sleep
 from platform import system
 
+import twisted.python.procutils as procutils
+
 import simplejson as json
 import sys
 
@@ -28,7 +30,15 @@ DEFAULT_GROUP_LINUX = 'root'
 DEFAULT_GROUP_WINDOWS = 'Administrators'
 
 class ectools():
+
+    def _is_windows(self):
+        """ Returns True if is a windows system
+        """
+        if system() == 'Windows': return True
+        return False
+
     def _file_write(self,file,content=None):
+
         try:
             if content:
                 _path = os.path.dirname(file)
@@ -43,6 +53,8 @@ class ectools():
             raise Exception("Unable to write file: %s" % file)
 
     def _file_read(self,file):
+        """ Reads a file and returns content
+        """
         try:
             if os.path.isfile(file):
                 f = open(file,'r')
@@ -53,9 +65,11 @@ class ectools():
         except:
             raise Exception("Unable to read file: %s" % file)
 
-    def _secret_gen(self):
+    def _secret_gen(self,length = 60):
+        """ Generates random chars
+        """
         chars = string.ascii_uppercase + string.digits  + '!@#$%^&*()'
-        return ''.join(random.choice(chars) for x in range(60))
+        return ''.join(random.choice(chars) for x in range(length))
 
     def _clean_stdout(self,output):
         """ Remove color chars from output
@@ -83,6 +97,8 @@ class ectools():
         return file
 
     def _chmod(self, file, mode):
+        """ chmod a file
+        """
         try:
             os.chmod(file,mode)
             return True
@@ -90,7 +106,20 @@ class ectools():
         except:
             return False
 
+    def _which(self,command):
+        """ search executable on path
+        """
+        found = procutils.which(command)
+
+        try: cmd = found[0]
+        except IndexError:
+            return False
+
+        return cmd
+
     def _chown(self, path, user, group, recursive = False):
+        """ chown a file or path
+        """
         try:
             from pwd import getpwnam
             from grp import getgrnam
@@ -154,7 +183,7 @@ class ectools():
         except Exception as e:
             raise Exception("Error installing packages %s: %s" % packages,e)
 
-    def _execute_command(self, command, stdin = None, runas=None, workdir = None, envars=None):
+    def _execute_command(self, command, args=None, stdin = None, runas=None, workdir = None, envars=None):
         """ Execute command and flush stdout/stderr using threads
         """
         self.thread_stdout = ''
@@ -162,21 +191,25 @@ class ectools():
         self.thread_run = 1
 
         # Create a full command line to split later
-        if isinstance(command, list):
+        if self.is_list_like(command):
             command = ' '.join(command)
 
         if workdir:
             workdir = os.path.abspath(workdir)
 
+        # create command array and add args
+        command = split(command)
+        if args and self.is_list_like(args):
+            for arg in args:
+                command.append(arg)
+
         if runas and system() != "Windows":
-            command = ['su','-',runas,'-c',command]
-        else:
-            command = split(command)
+            command = ['su','-',runas,'-c',' '.join(map(str,command))]
 
         # :TODO: Runas for windows
 
         # Get current env
-        if not envars or not isinstance(envars, dict):
+        if not envars or not self.is_dict_like(envars):
             envars = {}
 
         for env in os.environ.keys():
@@ -225,7 +258,7 @@ class ectools():
         except Exception as e:
             return 255,'','Unknown error'
 
-    def _execute_file(self, file, stdin=None, runas=None, workdir = None, envars = None):
+    def _execute_file(self, file,  args=None, stdin=None, runas=None, workdir = None, envars = None):
         """ Execute a script file and flush stdout/stderr using threads
         """
         self.thread_stdout = ''
@@ -233,7 +266,7 @@ class ectools():
         self.thread_run = 1
 
         # Get current env
-        if not envars or not isinstance(envars, dict):
+        if not envars or not self.is_dict_like(envars):
             envars = {}
 
         for env in os.environ.keys():
@@ -245,12 +278,17 @@ class ectools():
         try:
             # +x flag to file
             os.chmod(file,0700)
-            command = file
+            command = [file]
+
+            # Add command line args
+            if args and self.is_list_like(args):
+                for arg in args:
+                    command.append(arg)
 
             if runas and system() != "Windows":
                 # Change file owner before execute
                 self._chown(path=workdir,user=runas,group=DEFAULT_GROUP_LINUX,recursive=True)
-                command = ['su','-',runas,'-c',file]
+                command = ['su','-',runas,'-c',' '.join(map(str,command))]
 
             # :TODO: Runas for windows
 
@@ -343,7 +381,7 @@ class ectools():
 
     def _write_envars_facts(self, envars=None, facts=None):
         ''' Writes env and facts file variables '''
-        if envars and isinstance(envars, dict):
+        if envars and self.is_dict_like(envars):
             try:
                 content_env = ''
                 for var in sorted(envars.keys()):
@@ -353,7 +391,7 @@ class ectools():
             except:
                 return False
 
-        if facts and isinstance(facts, dict):
+        if facts and self.is_dict_like(envars):
             try:
                 content_facts= ''
                 for var in sorted(facts.keys()):
@@ -410,4 +448,19 @@ class ectools():
         ''' Helper function: microtime '''
         str_time = str(time()).replace('.','_')
         return str_time
+
+    def is_dict_like(self,obj):
+        """Check if the object appears to be dictionary-like."""
+        if obj and (hasattr(obj, '__dict__') or (hasattr(obj, 'keys') and hasattr(obj, '__getitem__'))):
+            return True
+        else:
+            return False
+
+    def is_list_like(self,obj):
+        """Check if the object appears to be list-like."""
+        if obj and (not hasattr(obj, 'keys')) and hasattr(obj, '__getitem__'):
+            return True
+        else:
+            return False
+
 

@@ -4,14 +4,11 @@ from ecplugin import ecplugin
 from ectools import ectools
 
 from tempfile import mkdtemp
-from base64 import b64decode
 from urlparse import urlparse
 import urllib2
 
 import os
-import twisted.python.procutils as procutils
 
-import simplejson as json
 from shutil import move, rmtree
 
 try:
@@ -127,20 +124,12 @@ class Git(ectools):
         return result_exec
 
     def _is_available(self):
-        which_posix  = procutils.which('git')
-        which_win    = procutils.which('git.exe')
-
-        try: self.git_cmd = which_posix[0]
-        except IndexError:
-            try: self.git_cmd = which_win[0]
-            except IndexError:
-                return False
-
-        return True
+        if(self._is_windows()): return self._which('git.exe')
+        return self._which('git')
 
     def _install(self):
         self._install_package('git')
-        return self._is_available()
+        return bool(self._is_available())
 
 class Svn(ectools):
     def __init__(self,working_dir,rotate):
@@ -182,16 +171,8 @@ class Svn(ectools):
         return result_exec
 
     def _is_available(self):
-        which_posix  = procutils.which('svn')
-        which_win    = procutils.which('svn.cmd')
-
-        try: self.svn_cmd = which_posix[0]
-        except IndexError:
-            try: self.svn_cmd = which_win[0]
-            except IndexError:
-                return False
-
-        return True
+        if(self._is_windows()): return self._which('svn.cmd')
+        return self._which('svn')
 
     def _install(self):
         out,stdout,stderr = self._install_package('subversion')
