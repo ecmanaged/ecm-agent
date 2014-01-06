@@ -80,10 +80,21 @@ class ectools():
         except:
             return output
 
-    def _download_file(self, url, file):
+    def _download_file(self, url, file, user = None, passwd=None):
         """ Downloads remote file
         """
+
         try:
+            if user and passwd:
+                password_manager = urllib2.HTTPPasswordMgrWithDefaultRealm()
+                password_manager.add_password(None, url, user, passwd)
+
+                auth_manager = urllib2.HTTPBasicAuthHandler(password_manager)
+                opener = urllib2.build_opener(auth_manager)
+
+                # ...and install it globally so it can be used with urlopen.
+                urllib2.install_opener(opener)
+
             req = urllib2.urlopen(url.replace("'",""))
             CHUNK = 256 * 10240
             with open(file, 'wb') as fp:
@@ -183,7 +194,7 @@ class ectools():
         except Exception as e:
             raise Exception("Error installing packages %s: %s" % packages,e)
 
-    def _execute_command(self, command, args=None, stdin = None, runas=None, workdir = None, envars=None):
+    def _execute_command(self, command, args=None, stdin=None, runas=None, workdir=None, envars=None):
         """ Execute command and flush stdout/stderr using threads
         """
         self.thread_stdout = ''
@@ -191,7 +202,7 @@ class ectools():
         self.thread_run = 1
 
         # Create a full command line to split later
-        if self.is_list_like(command):
+        if self.is_list(command):
             command = ' '.join(command)
 
         if workdir:
@@ -199,17 +210,17 @@ class ectools():
 
         # create command array and add args
         command = split(command)
-        if args and self.is_list_like(args):
+        if args and self.is_list(args):
             for arg in args:
                 command.append(arg)
 
-        if runas and system() != "Windows":
+        if runas and not self._is_windows():
             command = ['su','-',runas,'-c',' '.join(map(str,command))]
 
         # :TODO: Runas for windows
 
         # Get current env
-        if not envars or not self.is_dict_like(envars):
+        if not envars or not self.is_dict(envars):
             envars = {}
 
         for env in os.environ.keys():
@@ -266,7 +277,7 @@ class ectools():
         self.thread_run = 1
 
         # Get current env
-        if not envars or not self.is_dict_like(envars):
+        if not envars or not self.is_dict(envars):
             envars = {}
 
         for env in os.environ.keys():
@@ -281,7 +292,7 @@ class ectools():
             command = [file]
 
             # Add command line args
-            if args and self.is_list_like(args):
+            if args and self.is_list(args):
                 for arg in args:
                     command.append(arg)
 
@@ -335,7 +346,7 @@ class ectools():
             return 255,'','Unknown error'
 
     def _flush_worker(self, stdout, stderr):
-        ''' needs to be in a thread so we can read the stdout w/o blocking '''
+        """ needs to be in a thread so we can read the stdout w/o blocking """
         while self.thread_run:
             # Avoid Exception in thread Thread-1 (most likely raised during interpreter shutdown):
             try:
@@ -355,7 +366,7 @@ class ectools():
                 pass
 
     def _non_block_read(self, output):
-        ''' even in a thread, a normal read with block until the buffer is full '''
+        """ even in a thread, a normal read with block until the buffer is full """
         try:
             fd = output.fileno()
             fl = fcntl.fcntl(fd, fcntl.F_GETFL)
@@ -366,7 +377,7 @@ class ectools():
             return ''
 
     def _envars_decode(self,coded_envars = None):
-        ''' Decode base64/json envars '''
+        """ Decode base64/json envars """
         envars = None
         try:
             if coded_envars:
@@ -380,8 +391,8 @@ class ectools():
         return envars
 
     def _write_envars_facts(self, envars=None, facts=None):
-        ''' Writes env and facts file variables '''
-        if envars and self.is_dict_like(envars):
+        """ Writes env and facts file variables """
+        if envars and self.is_dict(envars):
             try:
                 content_env = ''
                 for var in sorted(envars.keys()):
@@ -391,7 +402,7 @@ class ectools():
             except:
                 return False
 
-        if facts and self.is_dict_like(envars):
+        if facts and self.is_dict(envars):
             try:
                 content_facts= ''
                 for var in sorted(facts.keys()):
@@ -404,7 +415,7 @@ class ectools():
         return True
 
     def _renice_me(self, nice):
-        ''' Changes execution priority  '''
+        """ Changes execution priority  """
         if nice and self._is_number(nice):
             try:
                 os.nice(int(nice))
@@ -416,7 +427,7 @@ class ectools():
             return(1)
 
     def _is_number(self,s):
-        ''' Helper function '''
+        """ Helper function """
         try:
             float(s)
             return True
@@ -424,11 +435,11 @@ class ectools():
             return False
 
     def _output(self,string):
-        ''' Helper function '''
+        """ Helper function """
         return '[' + str(time()) + '] ' + str(string) + "\n"
 
     def _format_output(self,out,stdout,stderr):
-        ''' Helper function '''
+        """ Helper function """
         format_out = {}
         format_out['out'] = out
         format_out['stdout'] = stdout
@@ -437,7 +448,7 @@ class ectools():
         return format_out
 
     def _mkdir_p(self,path):
-        ''' Recursive Mkdir '''
+        """ Recursive Mkdir """
         try:
             if not os.path.isdir(path):
                 os.makedirs(path)
@@ -445,22 +456,21 @@ class ectools():
             pass
 
     def _utime(self):
-        ''' Helper function: microtime '''
+        """ Helper function: microtime """
         str_time = str(time()).replace('.','_')
         return str_time
 
-    def is_dict_like(self,obj):
-        """Check if the object appears to be dictionary-like."""
-        if obj and (hasattr(obj, '__dict__') or (hasattr(obj, 'keys') and hasattr(obj, '__getitem__'))):
+    def is_dict(self,obj):
+        """Check if the object is a dictionary."""
+        return isinstance(obj, dict)
+
+    def is_list(self,obj):
+        """Check if the object is a list"""
+        return isinstance(obj, list)
+
+    def is_string(self,obj):
+        """Check if the object is a list"""
+        if isinstance(obj, str) or isinstance(obj, unicode):
             return True
-        else:
-            return False
-
-    def is_list_like(self,obj):
-        """Check if the object appears to be list-like."""
-        if obj and (not hasattr(obj, 'keys')) and hasattr(obj, '__getitem__'):
-            return True
-        else:
-            return False
-
-
+        return False
+                

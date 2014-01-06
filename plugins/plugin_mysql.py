@@ -5,7 +5,7 @@ import simplejson as json
 
 class ECMMysql(ecplugin):
     def cmd_mysql_exec(self, *argv, **kwargs):
-        ''' Syntax mysql.exec[hostname],[user],[password],[database],[query] '''
+        """ Syntax mysql.exec[hostname],[user],[password],[database],[query] """
 
         try:
             _mysql = __import__("MySQLdb")

@@ -5,11 +5,9 @@ from ectools import ectools
 
 from tempfile import mkdtemp
 from urlparse import urlparse
-import urllib2
+from shutil import move, rmtree
 
 import os
-
-from shutil import move, rmtree
 
 try:
     import tarfile
@@ -30,20 +28,19 @@ class ECMSource(ecplugin):
         chown_user      = kwargs.get('chown_user',None)
         chown_group     = kwargs.get('chown_group',None)
         rotate          = kwargs.get('rotate',False)
+        type            = kwargs.get('type',None)
 
-        if (not path or not url):
+        if not path or not url or not type:
             raise Exception("Invalid parameters")
 
-        type = kwargs.get('type',None)
+        if type.upper() in ('URI','FILE'):
+            source = FILE(path,rotate)
 
-        if type and type.upper() in ('URI','FILE'):
-            source = File(path,rotate)
+        elif type.upper() == 'GIT':
+            source = GIT(path,rotate)
 
-        elif type and type.upper() == 'GIT':
-            source = Git(path,rotate)
-
-        elif type and type.upper() == 'SVN':
-            source = Svn(path,rotate)
+        elif type.upper() == 'SVN':
+            source = SVN(path,rotate)
 
         else: raise Exception("Unknown source")
 
@@ -54,8 +51,8 @@ class ECMSource(ecplugin):
         # Update envars and facts file
         self._write_envars_facts(envars,facts)
 
-        retval = source.clone(url=url, envars=envars,\
-                              username=user, password=passwd, private_key=private_key)
+        retval = source.clone(url=url, envars=envars, username=user, password=passwd,
+                              private_key=private_key)
 
         # Chown to specified user/group
         if chown_user and chown_group and os.path.isdir(path):
@@ -72,8 +69,10 @@ class ECMSource(ecplugin):
         }
         return output
 
-class Git(ectools):
+class GIT(ectools):
+
     def __init__(self,working_dir,rotate):
+
         if not working_dir:
             raise Exception("Invalid path")
 
@@ -84,18 +83,26 @@ class Git(ectools):
         deploy = Deploy(self.working_dir,rotate)
         self.old_dir = deploy.prepare()
 
-        if not self._is_available():
+        # Get git path
+        self.git_cmd = self._is_available()
+
+        if not self.git_cmd:
             if not self._install():
                 raise Exception('Unable to find or install git')
+            self.git_cmd = self._is_available()
 
     def clone(self, url, envars, username, password, private_key):
+        """ runs git clone URL
+        """
+
+
         command_clone = self.git_cmd + " clone --quiet --verbose '" + url + "' ."
         command_pull  = self.git_cmd + " pull --quiet --verbose"
 
         command = command_clone
         if os.path.isdir(self.working_dir + '/.git'):
             if not self.rotate:
-                # Git clone will fail: no empty dir (so make a pull and hope...)
+                # GIT clone will fail: no empty dir (so make a pull and hope...)
                 command = command_pull
 
         else:
@@ -124,15 +131,21 @@ class Git(ectools):
         return result_exec
 
     def _is_available(self):
-        if(self._is_windows()): return self._which('git.exe')
+        """ checks if git is on path
+        """
+        if self._is_windows(): return self._which('git.exe')
         return self._which('git')
 
     def _install(self):
+        """ Try to install git
+        """
         self._install_package('git')
         return bool(self._is_available())
 
-class Svn(ectools):
+class SVN(ectools):
+
     def __init__(self,working_dir,rotate):
+
         if not working_dir:
             raise Exception("Invalid path")
 
@@ -143,11 +156,18 @@ class Svn(ectools):
         deploy = Deploy(self.working_dir,rotate)
         self.old_dir = deploy.prepare()
 
-        if not self._is_available():
+        # Get git path
+        self.svn_cmd = self._is_available()
+
+        if not self.svn_cmd:
             if not self._install():
                 raise Exception('Unable to find or install subversion')
+            self.svn_cmd = self._is_available()
 
     def clone(self, url, envars, username, password, private_key):
+        """ svn co URL
+        """
+
         # Add username and password to url
         if username and password:
             url = url.replace('://','://' + username + ':' + password + '@')
@@ -171,15 +191,21 @@ class Svn(ectools):
         return result_exec
 
     def _is_available(self):
-        if(self._is_windows()): return self._which('svn.cmd')
+        """ is svn on path
+        """
+        if self._is_windows(): return self._which('svn.cmd')
         return self._which('svn')
 
     def _install(self):
+        """ try to install subversion
+        """
         out,stdout,stderr = self._install_package('subversion')
         return self._is_available()
 
-class File(ectools):
+class FILE(ectools):
+
     def __init__(self,working_dir,rotate):
+
         if not working_dir:
             raise Exception("Invalid path")
 
@@ -191,6 +217,9 @@ class File(ectools):
         self.old_dir = deploy.prepare()
 
     def clone(self, envars, url, username, password, private_key):
+        """ Downloads a file from a remote url and decompress it
+        """
+
         file_name = 'downloaded.file'
         tmp_dir = mkdtemp()
 
@@ -225,10 +254,13 @@ class File(ectools):
         return ret
 
     def _extract(self, file):
+        """ extractor helper
+        """
+
         try:
             file_type = self._get_file_type(file)
             if file_type == 'zip':
-                opener, mode = zipfile.ZipFile, 'r'
+                opener, mode = zipfile.ZipFILE, 'r'
 
             elif file_type == 'gz':
                 opener, mode = tarfile.open, 'r:gz'
@@ -243,7 +275,7 @@ class File(ectools):
 
             # if first member is dir, skip 1st container path
             is_packed = None
-            if(file_type == 'zip'):
+            if file_type == 'zip':
                 members = cfile.namelist()
             else:
                 members = cfile.getmembers()
@@ -262,7 +294,7 @@ class File(ectools):
                     cfile.extract(member,self.working_dir)
             else:
                 for member in members:
-                    if(file_type == 'zip'): member_name = member
+                    if file_type == 'zip': member_name = member
                     else: member_name = member.name
 
                     stdout +=  "Extracted " + member_name + "\n"
@@ -276,6 +308,9 @@ class File(ectools):
         return ret
 
     def _get_file_type(self,file):
+        """ get compressed file type based on marks
+        """
+
         magic_dict = {
             "\x1f\x8b\x08": "gz",
             "\x42\x5a\x68": "bz2",
@@ -290,37 +325,17 @@ class File(ectools):
                     return filetype
         return False
 
-    def _download_file(self, url, file, user = None, passwd=None):
-        try:
-            if user and passwd:
-                password_manager = urllib2.HTTPPasswordMgrWithDefaultRealm()
-                password_manager.add_password(None, url, user, passwd)
-
-                auth_manager = urllib2.HTTPBasicAuthHandler(password_manager)
-                opener = urllib2.build_opener(auth_manager)
-
-                # ...and install it globally so it can be used with urlopen.
-                urllib2.install_opener(opener)
-
-            req = urllib2.urlopen(url.replace("'",""))
-            CHUNK = 256 * 10240
-            with open(file, 'wb') as fp:
-                while True:
-                    chunk = req.read(CHUNK)
-                    if not chunk: break
-                    fp.write(chunk)
-        except:
-            return False
-
-        return file
-
-
 class Deploy(ectools):
+
     def __init__(self, working_dir, rotate):
+
         self.working_dir = os.path.abspath(working_dir)
         self.rotate = rotate
 
     def prepare(self):
+        """ Common function to create and rotate
+        """
+
         to_dir = None
         if self.rotate and os.path.isdir(self.working_dir):
             if not self.working_dir == '/':
@@ -334,6 +349,7 @@ class Deploy(ectools):
         return to_dir
 
     def rollback(self,path):
+
         return
 
 ECMSource().run()
