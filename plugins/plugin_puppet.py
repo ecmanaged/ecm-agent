@@ -42,7 +42,7 @@ class ECMPuppet(ecplugin):
             raise Exception("Invalid argument")
 
         module_path = MODULES_PATH
-        if self._is_windows(): module_path = MODULES_PATH_WINDOWS
+        if self._is_windows: module_path = MODULES_PATH_WINDOWS
         module_path = kwargs.get('module_path', module_path)
 
         # Set environment variables before execution
@@ -86,7 +86,7 @@ class ECMPuppet(ecplugin):
         recipe_file = None
         recipe_path = None
         module_path = MODULES_PATH
-        if self._is_windows(): module_path = MODULES_PATH_WINDOWS
+        if self._is_windows: module_path = MODULES_PATH_WINDOWS
         module_path = kwargs.get('module_path', module_path)
 
         # Set environment variables before execution
@@ -126,7 +126,7 @@ class ECMPuppet(ecplugin):
 
     def _is_available(self):
 
-        if self._is_windows(): return self._which('puppet.exe')
+        if self._is_windows: return self._which('puppet.exe')
         return self._which('puppet')
 
     def _run_catalog(self, recipe_file, recipe_path, module_path, envars=None):

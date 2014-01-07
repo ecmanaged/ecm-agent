@@ -28,12 +28,12 @@ class ECMSaltstack(ecplugin):
         if self._is_available(): return True
 
         bootstrap = SALTSTACK_BOOTSTRAP
-        if self._is_windows(): bootstrap = SALTSTACK_BOOTSTRAP_WINDOWS
+        if self._is_windows: bootstrap = SALTSTACK_BOOTSTRAP_WINDOWS
 
         if not self._install(bootstrap):
-            # Try alternative
+            # Try alternative bootstrap
             bootstrap = SALTSTACK_BOOTSTRAP_ALT
-            if self._is_windows(): bootstrap = SALTSTACK_BOOTSTRAP_WINDOWS_ALT
+            if self._is_windows: bootstrap = SALTSTACK_BOOTSTRAP_WINDOWS_ALT
 
             if not self._install(bootstrap):
                 raise Exception("Unable to install saltstack")
@@ -55,7 +55,7 @@ class ECMSaltstack(ecplugin):
             raise Exception('Saltstack no available')
 
         default_path = DEFAULT_PATH
-        if self._is_windows(): default_path = DEFAULT_PATH_WINDOWS
+        if self._is_windows: default_path = DEFAULT_PATH_WINDOWS
         module_path = kwargs.get('module_path', default_path)
 
         # Set environment variables before execution
@@ -77,7 +77,6 @@ class ECMSaltstack(ecplugin):
 
         try:
             # salt-call state.highstate
-            envars = {'DEBIAN_FRONTEND': 'noninteractive'}
             command = [saltstack_cmd, 'state.highstate', '--local', '--no-color', '-l debug']
 
             out, stdout, stderr = self._execute_command(command, envars=envars, workdir=module_path)
@@ -98,7 +97,7 @@ class ECMSaltstack(ecplugin):
     def _is_available(self):
         """ it's salt-call on path?
         """
-        if self._is_windows(): return self._which('salt-call.exe')
+        if self._is_windows: return self._which('salt-call.exe')
         return self._which('salt-call')
 
     def _install(self, bootstrap_url):
@@ -130,8 +129,7 @@ class ECMSaltstack(ecplugin):
 
         if self._file_read(bootstrap_file):
             envars = {'DEBIAN_FRONTEND': 'noninteractive'}
-            self._install_package('git')
-            self._execute_file(bootstrap_file, args=['-n', '-D', '-X'], envars=envars)
+            self._execute_file(bootstrap_file, args=['-n', '-P', '-X'], envars=envars)
 
         rmtree(tmp_dir)
         return bool(self._is_available())

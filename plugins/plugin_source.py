@@ -134,7 +134,7 @@ class GIT(ectools):
     def _is_available(self):
         """ checks if git is on path
         """
-        if self._is_windows(): return self._which('git.exe')
+        if self._is_windows: return self._which('git.exe')
         return self._which('git')
 
     def _install(self):
@@ -194,7 +194,7 @@ class SVN(ectools):
     def _is_available(self):
         """ is svn on path
         """
-        if self._is_windows(): return self._which('svn.cmd')
+        if self._is_windows: return self._which('svn.cmd')
         return self._which('svn')
 
     def _install(self):

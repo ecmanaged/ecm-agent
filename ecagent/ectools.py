@@ -31,6 +31,7 @@ DEFAULT_GROUP_WINDOWS = 'Administrators'
 
 class ectools():
     def __init__(self):
+        self.is_windows = self._is_windows()
         self.thread_stdout = ''
         self.thread_stderr = ''
         self.thread_run = 1
@@ -226,7 +227,7 @@ class ectools():
                 command.append(arg)
 
         if runas:
-            if not self._is_windows():
+            if not self._is_windows:
                 command = ['su', '-', runas, '-c', ' '.join(map(str, command))]
 
                 # :TODO: Runas for windows
@@ -254,7 +255,7 @@ class ectools():
                 p.stdin.flush()
                 p.stdin.close()
 
-            if self._is_windows():
+            if self._is_windows:
                 stdout, stderr = p.communicate()
                 return p.wait(), stdout, stderr
 
@@ -309,7 +310,7 @@ class ectools():
                     command.append(arg)
 
             if runas:
-                if not self._is_windows():
+                if not self._is_windows:
                     # Change file owner before execute
                     self._chown(path=workdir, user=runas, group=DEFAULT_GROUP_LINUX, recursive=True)
                     command = ['su', '-', runas, '-c', ' '.join(map(str, command))]
@@ -331,7 +332,7 @@ class ectools():
                 p.stdin.flush()
                 p.stdin.close()
 
-            if self._is_windows():
+            if self._is_windows:
                 stdout, stderr = p.communicate()
                 return p.wait(), stdout, stderr
 
