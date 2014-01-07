@@ -17,7 +17,7 @@ import twisted.python.procutils as procutils
 import simplejson as json
 import sys
 
-if sys.platform.startswith("win32"):
+if not sys.platform.startswith("win32"):
     import fcntl
 
 DIR = '/etc/ecmanaged'
@@ -30,6 +30,10 @@ DEFAULT_GROUP_LINUX = 'root'
 DEFAULT_GROUP_WINDOWS = 'Administrators'
 
 class ectools():
+    def __init__(self):
+        self.thread_stdout = ''
+        self.thread_stderr = ''
+        self.thread_run = 1
 
     def _is_windows(self):
         """ Returns True if is a windows system
@@ -216,10 +220,11 @@ class ectools():
             for arg in args:
                 command.append(arg)
 
-        if runas and not self._is_windows():
-            command = ['su','-',runas,'-c',' '.join(map(str,command))]
+        if runas:
+            if not self._is_windows():
+                command = ['su','-',runas,'-c',' '.join(map(str,command))]
 
-        # :TODO: Runas for windows
+            # :TODO: Runas for windows
 
         # Get current env
         if not envars or not self.is_dict(envars):
@@ -227,7 +232,7 @@ class ectools():
 
         for env in os.environ.keys():
             envars[env] = os.environ[env]
-
+            
         try:
             p = Popen(
                 command,
@@ -249,7 +254,7 @@ class ectools():
                 return p.wait(),stdout,stderr
 
             else:
-                thread = Thread(target=self._flush_worker, args=[p.stdout,p.stderr])
+                thread = Thread(target=self._thread_flush_worker, args=[p.stdout,p.stderr])
                 thread.daemon = True
                 thread.start()
 
@@ -298,12 +303,13 @@ class ectools():
                 for arg in args:
                     command.append(arg)
 
-            if runas and not self._is_windows():
-                # Change file owner before execute
-                self._chown(path=workdir,user=runas,group=DEFAULT_GROUP_LINUX,recursive=True)
-                command = ['su','-',runas,'-c',' '.join(map(str,command))]
+            if runas:
+                if not self._is_windows():
+                    # Change file owner before execute
+                    self._chown(path=workdir,user=runas,group=DEFAULT_GROUP_LINUX,recursive=True)
+                    command = ['su','-',runas,'-c',' '.join(map(str,command))]
 
-            # :TODO: Runas for windows
+                # :TODO: Runas for windows
 
             p = Popen(
                 command,
@@ -325,7 +331,7 @@ class ectools():
                 return p.wait(),stdout,stderr
 
             else:
-                thread = Thread(target=self._flush_worker, args=[p.stdout,p.stderr])
+                thread = Thread(target=self._thread_flush_worker, args=[p.stdout,p.stderr])
                 thread.daemon = True
                 thread.start()
 
@@ -338,7 +344,7 @@ class ectools():
                 # Stop Thread
                 self.thread_run = 0
                 thread.join(timeout=1)
-
+                
                 return retval,self.thread_stdout,self.thread_stderr
 
         except OSError, e:
@@ -347,7 +353,7 @@ class ectools():
         except Exception as e:
             return 255,'','Unknown error'
 
-    def _flush_worker(self, stdout, stderr):
+    def _thread_flush_worker(self, stdout, stderr):
         """ needs to be in a thread so we can read the stdout w/o blocking """
         while self.thread_run:
             # Avoid Exception in thread Thread-1 (most likely raised during interpreter shutdown):
@@ -474,5 +480,5 @@ class ectools():
         """Check if the object is a list"""
         if isinstance(obj, str) or isinstance(obj, unicode):
             return True
+
         return False
-                

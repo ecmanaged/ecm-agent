@@ -10,6 +10,7 @@ import logging as l
 #Local
 from core import BasicClient
 
+
 class Client(BasicClient):
     def __init__(self, config, observers, resource='XMPPClient'):
         """
@@ -20,9 +21,9 @@ class Client(BasicClient):
         @param observers: Iterable of ("resource", callback') tuples.
         """
         my_observers = [
-                ('/presence', self._onPresence),
-                ('/iq', self._onPossibleErrorIq),
-            ]
+            ('/presence', self._onPresence),
+            ('/iq', self._onPossibleErrorIq),
+        ]
         my_observers.extend(observers)
 
         self._online_contacts = set()
@@ -41,13 +42,13 @@ class Client(BasicClient):
         self._my_full_jid = '/'.join((config['user'], resource))
 
         BasicClient.__init__(self,
-                            config['user'],
-                            config['password'],
-                            config['host'],
-                            my_observers,
-                            resource=resource,
-                            max_delay=max_delay,
-                           )
+                             config['user'],
+                             config['password'],
+                             config['host'],
+                             my_observers,
+                             resource=resource,
+                             max_delay=max_delay,
+        )
 
     def _onPossibleErrorIq(self, elem):
         if elem['type'] == "error":

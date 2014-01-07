@@ -33,15 +33,16 @@ from sys import stderr
 
 import socket
 
+
 class ECMCollectd(ecplugin):
     def cmd_collectd_get(self, *argv, **kwargs):
-        sock_file = kwargs.get('sock_file',None)
+        sock_file = kwargs.get('sock_file', None)
         if not sock_file: sock_file = '/var/run/collectd-unixsock'
 
         c = Collectd(sock_file, noisy=False)
         list = c.listval()
         ret = {}
-        
+
         for val in list:
             stamp, identifier = val.split()
             ret[identifier] = {}
@@ -50,6 +51,7 @@ class ECMCollectd(ecplugin):
             ret[identifier]['values'] = values
 
         return ret
+
 
 class Collectd():
     def __init__(self, path='/var/run/collectd-unixsock', noisy=False):
@@ -164,7 +166,7 @@ class Collectd():
             return self._cmdattempt(c)
         except socket.error, (errno, errstr):
             stderr.write("[error] Sending to socket failed: [%d] %s\n"
-                             % (errno, errstr))
+                         % (errno, errstr))
             self._sock = self._connect()
             return self._cmdattempt(c)
 
@@ -194,7 +196,7 @@ class Collectd():
             return sock
         except socket.error, (errno, errstr):
             stderr.write("[error] Connecting to socket failed: [%d] %s"
-                             % (errno, errstr))
+                         % (errno, errstr))
             return None
 
     def _readline(self):
@@ -215,7 +217,7 @@ class Collectd():
             return ''.join(buf)
         except socket.error, (errno, errstr):
             stderr.write("[error] Reading from socket failed: [%d] %s"
-                             % (errno, errstr))
+                         % (errno, errstr))
             self._sock = self._connect()
             return None
 
@@ -240,6 +242,7 @@ class Collectd():
             self._sock.close()
         except socket.error, (errno, errstr):
             stderr.write("[error] Closing socket failed: [%d] %s"
-                             % (errno, errstr))
+                         % (errno, errstr))
+
 
 ECMCollectd().run()

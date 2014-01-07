@@ -15,10 +15,9 @@ from random import random
 
 # Add registerAccount to XMPPAuthenticator
 class FixedXMPPAuthenticator(client.XMPPAuthenticator):
+    AUTH_FAILED_EVENT = "//event/client/xmpp/authfailed"
 
-    AUTH_FAILED_EVENT     = "//event/client/xmpp/authfailed"
-
-    def registerAccount(self, username = None, password = None):
+    def registerAccount(self, username=None, password=None):
         if username:
             self.jid.user = username
         if password:
@@ -26,8 +25,8 @@ class FixedXMPPAuthenticator(client.XMPPAuthenticator):
 
         iq = IQ(self.xmlstream, "set")
         iq.addElement(("jabber:iq:register", "query"))
-        iq.query.addElement("username", content = self.jid.user)
-        iq.query.addElement("password", content = self.password)
+        iq.query.addElement("username", content=self.jid.user)
+        iq.query.addElement("password", content=self.password)
 
         iq.addCallback(self._registerResultEvent)
 
@@ -41,7 +40,9 @@ class FixedXMPPAuthenticator(client.XMPPAuthenticator):
         else:
             self.xmlstream.dispatch(iq, self.AUTH_FAILED_EVENT)
 
+
 client.XMPPAuthenticator = FixedXMPPAuthenticator
+
 
 class BasicClient:
     def __init__(self, user, password, host, observers,

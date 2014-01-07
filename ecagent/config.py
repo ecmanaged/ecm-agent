@@ -31,6 +31,7 @@ class SMConfigObj(ConfigObj):
     A simple wrapper for ConfigObj that will check the MAC and try to
     reconfigure if it has changed before launching the agent.
     """
+
     def __init__(self, filename):
         ConfigObj.__init__(self, filename)
 
@@ -47,14 +48,16 @@ class SMConfigObj(ConfigObj):
                 l.debug("MAC has not changed. Skip UUID check")
             else:
                 # Try to get uuid
+                uuid = None
                 for i in range(30):
                     try:
                         uuid = yield self._getUUID()
                         if uuid: break
-                    except: pass
+                    except:
+                        pass
                     sleep(20)
 
-                else:
+                if not uuid:
                     l.error("ERROR: Could not obtain UUID. please set up XMPP manually in %s" % self.filename)
                     returnValue(False)
 
@@ -112,12 +115,14 @@ class SMConfigObj(ConfigObj):
         hostname = ''
         address = ''
         try:
-            hostname = node()
-            address = self._get_ip()
+            hostname = self._get_hostname()
+            address  = self._get_ip()
         except:
             pass
 
-        retr = yield getPage("https://my.ecmanaged.com/agent/meta-data/uuid/?ipaddress=%s&hostname=%s" %(address,hostname))
+        retr = yield getPage(
+            "https://my.ecmanaged.com/agent/meta-data/uuid/?ipaddress=%s&hostname=%s" % (address, hostname))
+
         for line in retr.splitlines():
             if line and line.startswith('uuid:'):
                 returnValue(line.split(':')[1])
@@ -126,6 +131,7 @@ class SMConfigObj(ConfigObj):
     def _getUUIDPreConfig(self):
         from os import remove
         from os.path import dirname, abspath, join, exists
+
         uuid_file = join(dirname(__file__), './config/_uuid.cfg')
         if exists(uuid_file):
             f = open(uuid_file, 'r')
@@ -163,6 +169,9 @@ class SMConfigObj(ConfigObj):
         s.connect(('my.ecmanaged.com', 0))
         return s.getsockname()[0]
 
+    def _get_hostname(self):
+        return node()
+
     def _getStoredUUID(self):
         return self['XMPP']['user'].split('@')[0]
 
@@ -176,18 +185,22 @@ class SMConfigObj(ConfigObj):
         uuid = None
         try:
             import urllib
+
             urlopen = urllib.urlopen("http://169.254.169.254/latest/meta-data/instance-id")
             for line in urlopen.readlines():
                 if ("i-" in line): uuid = hex(line)
             urlopen.close()
-        except: pass
+        except:
+            pass
 
         # Use network mac for non aws
         if not uuid:
             from uuid import getnode
+
             uuid = getnode()
 
         return uuid
+
 
 class SimpleProcessProtocol(ProcessProtocol):
     def __init__(self):

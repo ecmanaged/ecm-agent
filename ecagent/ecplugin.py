@@ -4,7 +4,6 @@ import sys
 import inspect
 import simplejson as json
 from base64 import b64decode
-from os import environ
 
 # Local
 from ectools import ectools
@@ -15,6 +14,7 @@ STDOUT_FINAL_OUTPUT_STR = '[__ecagent::response__]'
 
 sys.stdout.flush()
 sys.stderr.flush()
+
 
 class ecplugin(ectools):
     def _listCommands(self):

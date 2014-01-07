@@ -4,6 +4,7 @@ import httplib2
 import urlparse
 import urllib
 
+
 class HTTPConnection:
     def __init__(self, base_url, username=None, password=None):
         self.base_url = base_url
@@ -21,25 +22,25 @@ class HTTPConnection:
         if username and password:
             self.h.add_credentials(username, password)
 
-    def request_get(self, resource, args = None, headers={}):
+    def request_get(self, resource, args=None, headers={}):
         return self.request(resource, "get", args, headers=headers)
 
-    def request_delete(self, resource, args = None, headers={}):
+    def request_delete(self, resource, args=None, headers={}):
         return self.request(resource, "delete", args, headers=headers)
 
-    def request_head(self, resource, args = None, headers={}):
+    def request_head(self, resource, args=None, headers={}):
         return self.request(resource, "head", args, headers=headers)
 
-    def request_post(self, resource, args = None, body = None, headers={}):
-        return self.request(resource, "post", args , body = body, headers=headers)
+    def request_post(self, resource, args=None, body=None, headers={}):
+        return self.request(resource, "post", args, body=body, headers=headers)
 
-    def request_put(self, resource, args = None, body = None, headers={}):
-        return self.request(resource, "put", args , body = body, headers=headers)
+    def request_put(self, resource, args=None, body=None, headers={}):
+        return self.request(resource, "put", args, body=body, headers=headers)
 
-    def request(self, resource, method = "get", args = None, body = None, headers={}):
+    def request(self, resource, method="get", args=None, body=None, headers={}):
         path = resource
         headers['User-Agent'] = 'Basic Agent'
-        headers['Content-Type']='application/json'
+        headers['Content-Type'] = 'application/json'
 
         if args: path += u"?" + urllib.urlencode(args)
 
@@ -54,61 +55,63 @@ class HTTPConnection:
             else:
                 request_path.append(path)
 
-        resp, content = self.h.request(u"%s://%s%s" % (self.scheme, self.host, u'/'.join(request_path)), method.upper(), body=body, headers=headers )
-        return {u'headers':resp, u'body':content.decode('UTF-8')}
+        resp, content = self.h.request(u"%s://%s%s" % (self.scheme, self.host, u'/'.join(request_path)), method.upper(),
+                                       body=body, headers=headers)
+        return {u'headers': resp, u'body': content.decode('UTF-8')}
 
 
 from ecplugin import ecplugin
 import simplejson as json
 import inspect
 
+
 class ECMLoadb(ecplugin):
     def __init__(self, *argv, **kwargs):
-        url      = kwargs.get('url',     None)
-        username = kwargs.get('username','admin')
-        password = kwargs.get('password',None)
+        url = kwargs.get('url', None)
+        username = kwargs.get('username', 'admin')
+        password = kwargs.get('password', None)
 
         # Make connection (but not for run())
         if not 'run()' in str(inspect.stack()[1][4]):
-            self.conn = self._connect(url,username,password)
+            self.conn = self._connect(url, username, password)
 
     def cmd_loadb_info(self, *argv, **kwargs):
-        retval = self._get_resource('GET','/')
+        retval = self._get_resource('GET', '/')
 
         return self._return(retval)
 
     def cmd_loadb_service_info(self, *argv, **kwargs):
-        service_id = kwargs.get('service_id',  None)
-            
+        service_id = kwargs.get('service_id', None)
+
         if not service_id: raise Exception("Invalid parameters")
         loadb_info = self.cmd_loadb_info()
         # TODO: filter it
 
     def cmd_loadb_service_add(self, *argv, **kwargs):
-        service_id   = kwargs.get('service_id',  None)
-        service_ip   = kwargs.get('service_ip',  None)
-        service_port = kwargs.get('service_port',None)
+        service_id = kwargs.get('service_id', None)
+        service_ip = kwargs.get('service_ip', None)
+        service_port = kwargs.get('service_port', None)
 
         if not (service_id and service_ip and service_port):
             raise Exception("Invalid parameters")
 
-        data = {'ip':service_ip,'port':service_port}
-        retval = self._get_resource('POST','/service/' + service_id + '/',data)
+        data = {'ip': service_ip, 'port': service_port}
+        retval = self._get_resource('POST', '/service/' + service_id + '/', data)
 
         return self._return(retval)
 
     def cmd_loadb_service_delete(self, *argv, **kwargs):
-        service_id = kwargs.get('service_id',None)
+        service_id = kwargs.get('service_id', None)
 
         if not service_id:
             raise Exception("Invalid parameters")
 
-        retval = self._get_resource('DELETE','/service/' + service_id + '/')
+        retval = self._get_resource('DELETE', '/service/' + service_id + '/')
 
         return self._return(retval)
 
     def cmd_loadb_node_info(self, *argv, **kwargs):
-        node_id = kwargs.get('node_id',   None)
+        node_id = kwargs.get('node_id', None)
 
         if not node_id: raise Exception("Invalid parameters")
 
@@ -116,40 +119,40 @@ class ECMLoadb(ecplugin):
         # TODO: filter it
 
     def cmd_loadb_node_add(self, *argv, **kwargs):
-        service_id = kwargs.get('service_id',None)
-        node_id    = kwargs.get('node_id',   None)
-        node_ip    = kwargs.get('node_ip',   None)
-        node_port  = kwargs.get('node_port', None)
+        service_id = kwargs.get('service_id', None)
+        node_id = kwargs.get('node_id', None)
+        node_ip = kwargs.get('node_ip', None)
+        node_port = kwargs.get('node_port', None)
 
         if not (service_id and node_id and node_ip and node_port):
             raise Exception("Invalid parameters")
 
-        data = {'ip':node_ip,'port':node_port}
-        retval = self._get_resource('POST','/service/' + service_id + '/' + node_id + '/',data)
+        data = {'ip': node_ip, 'port': node_port}
+        retval = self._get_resource('POST', '/service/' + service_id + '/' + node_id + '/', data)
 
         return self._return(retval)
 
     def cmd_loadb_node_delete(self, *argv, **kwargs):
-        service_id = kwargs.get('service_id',None)
-        node_id    = kwargs.get('node_id',   None)
+        service_id = kwargs.get('service_id', None)
+        node_id = kwargs.get('node_id', None)
 
         if not (node_id and service_id):
             raise Exception("Invalid parameters")
 
-        retval = self._get_resource('DELETE','/service/' + service_id + '/' + node_id + '/')
+        retval = self._get_resource('DELETE', '/service/' + service_id + '/' + node_id + '/')
 
         return self._return(retval)
 
-    def _connect(self,url,user,password):
+    def _connect(self, url, user, password):
         try:
             # connect and test get info
-            conn = HTTPConnection(url,user,password)
+            conn = HTTPConnection(url, user, password)
             conn.cmd_loadb_info()
             return conn
         except:
             raise Exception("Unable to connect to %s" % url)
 
-    def _get_resource(self,method,resource,data = None):
+    def _get_resource(self, method, resource, data=None):
         retval = None
         if method == 'GET':
             retval = self.conn.request_get(resource)
@@ -157,13 +160,13 @@ class ECMLoadb(ecplugin):
             retval = self.conn.request_delete(resource)
         elif method == 'POST':
             data = json.dumps(data)
-            retval = self.conn.request_post(resource,body=data)
+            retval = self.conn.request_post(resource, body=data)
         else:
             raise Exception("Invalid method requested")
 
         return retval
 
-    def _return(self,body):
+    def _return(self, body):
         retval = 'Unknown'
         try:
             retval = body['body']
@@ -174,6 +177,7 @@ class ECMLoadb(ecplugin):
                 raise Exception("Error: %s" % retval['message'])
         except:
             raise Exception("Unknown response error: %s" % retval)
+
 
 ECMLoadb().run()
 

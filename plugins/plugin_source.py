@@ -16,62 +16,64 @@ try:
 except:
     pass
 
+
 class ECMSource(ecplugin):
     def cmd_source_run(self, *argv, **kwargs):
-        path            = kwargs.get('path',None)
-        url             = kwargs.get('source',None)
-        source_envars   = kwargs.get('envars',None)
-        source_facts    = kwargs.get('facts',None)
-        user            = kwargs.get('username',None)
-        passwd          = kwargs.get('password',None)
-        private_key     = kwargs.get('private_key',None)
-        chown_user      = kwargs.get('chown_user',None)
-        chown_group     = kwargs.get('chown_group',None)
-        rotate          = kwargs.get('rotate',False)
-        type            = kwargs.get('type',None)
+        path = kwargs.get('path', None)
+        url = kwargs.get('source', None)
+        source_envars = kwargs.get('envars', None)
+        source_facts = kwargs.get('facts', None)
+        user = kwargs.get('username', None)
+        passwd = kwargs.get('password', None)
+        private_key = kwargs.get('private_key', None)
+        chown_user = kwargs.get('chown_user', None)
+        chown_group = kwargs.get('chown_group', None)
+        rotate = kwargs.get('rotate', False)
+        type = kwargs.get('type', None)
 
         if not path or not url or not type:
             raise Exception("Invalid parameters")
 
-        if type.upper() in ('URI','FILE'):
-            source = FILE(path,rotate)
+        if type.upper() in ('URI', 'FILE'):
+            source = FILE(path, rotate)
 
         elif type.upper() == 'GIT':
-            source = GIT(path,rotate)
+            source = GIT(path, rotate)
 
         elif type.upper() == 'SVN':
-            source = SVN(path,rotate)
+            source = SVN(path, rotate)
 
-        else: raise Exception("Unknown source")
+        else:
+            raise Exception("Unknown source")
 
         # Set environment variables before execution
         envars = self._envars_decode(source_envars)
-        facts  = self._envars_decode(source_facts)
+        facts = self._envars_decode(source_facts)
 
         # Update envars and facts file
-        self._write_envars_facts(envars,facts)
+        self._write_envars_facts(envars, facts)
 
         retval = source.clone(url=url, envars=envars, username=user, password=passwd,
                               private_key=private_key)
 
         # Chown to specified user/group
         if chown_user and chown_group and os.path.isdir(path):
-            self._chown(path,chown_user,chown_group,recursive=True)
-            retval['stdout'] += self._output("Owner changed to '%s':'%s'" %(chown_user,chown_group))
+            self._chown(path, chown_user, chown_group, recursive=True)
+            retval['stdout'] += self._output("Owner changed to '%s':'%s'" % (chown_user, chown_group))
 
         return self._return(retval)
 
-    def _return(self,ret):
+    def _return(self, ret):
         output = {
-            'out': ret.get('out',1),
-            'stderr': ret.get('stderr',''),
-            'stdout': ret.get('stdout','')
+            'out': ret.get('out', 1),
+            'stderr': ret.get('stderr', ''),
+            'stdout': ret.get('stdout', '')
         }
         return output
 
-class GIT(ectools):
 
-    def __init__(self,working_dir,rotate):
+class GIT(ectools):
+    def __init__(self, working_dir, rotate):
 
         if not working_dir:
             raise Exception("Invalid path")
@@ -80,7 +82,7 @@ class GIT(ectools):
         self.rotate = rotate
 
         # Create or rename working_dir
-        deploy = Deploy(self.working_dir,rotate)
+        deploy = Deploy(self.working_dir, rotate)
         self.old_dir = deploy.prepare()
 
         # Get git path
@@ -95,9 +97,8 @@ class GIT(ectools):
         """ runs git clone URL
         """
 
-
         command_clone = self.git_cmd + " clone --quiet --verbose '" + url + "' ."
-        command_pull  = self.git_cmd + " pull --quiet --verbose"
+        command_pull = self.git_cmd + " pull --quiet --verbose"
 
         command = command_clone
         if os.path.isdir(self.working_dir + '/.git'):
@@ -107,20 +108,20 @@ class GIT(ectools):
 
         else:
             # Rotate this dir or will fail
-            deploy = Deploy(self.working_dir,True)
+            deploy = Deploy(self.working_dir, True)
             self.old_dir = deploy.prepare()
 
         # Create git command with user and password
         if username and password:
             parsed = urlparse(url)
-            if parsed.scheme in ('http','https'):
-                command = command.replace('://','://' + username + ':' + password + '@')
+            if parsed.scheme in ('http', 'https'):
+                command = command.replace('://', '://' + username + ':' + password + '@')
 
             elif parsed.scheme == 'ssh':
-                command = command.replace('://','://' + username + '@')
+                command = command.replace('://', '://' + username + '@')
 
-        out,stdout,stderr = self._execute_command(command = command, workdir = self.working_dir, envars = envars)
-        result_exec = self._format_output(out,stdout,stderr)
+        out, stdout, stderr = self._execute_command(command=command, workdir=self.working_dir, envars=envars)
+        result_exec = self._format_output(out, stdout, stderr)
 
         if not result_exec['out']:
             extra_msg = self._output("Source deployed successfully to '%s'" % self.working_dir)
@@ -142,9 +143,9 @@ class GIT(ectools):
         self._install_package('git')
         return bool(self._is_available())
 
-class SVN(ectools):
 
-    def __init__(self,working_dir,rotate):
+class SVN(ectools):
+    def __init__(self, working_dir, rotate):
 
         if not working_dir:
             raise Exception("Invalid path")
@@ -153,7 +154,7 @@ class SVN(ectools):
         self.rotate = rotate
 
         # Create or rename working_dir
-        deploy = Deploy(self.working_dir,rotate)
+        deploy = Deploy(self.working_dir, rotate)
         self.old_dir = deploy.prepare()
 
         # Get git path
@@ -170,12 +171,12 @@ class SVN(ectools):
 
         # Add username and password to url
         if username and password:
-            url = url.replace('://','://' + username + ':' + password + '@')
+            url = url.replace('://', '://' + username + ':' + password + '@')
 
         command = self.svn_cmd + " co '" + url + "' ."
 
-        out,stdout,stderr = self._execute_command(command = command, workdir = self.working_dir, envars = envars)
-        result_exec = self._format_output(out,stdout,stderr)
+        out, stdout, stderr = self._execute_command(command=command, workdir=self.working_dir, envars=envars)
+        result_exec = self._format_output(out, stdout, stderr)
 
         if not result_exec['out']:
             extra_msg = self._output("Source deployed successfully to '%s'" % self.working_dir)
@@ -199,12 +200,12 @@ class SVN(ectools):
     def _install(self):
         """ try to install subversion
         """
-        out,stdout,stderr = self._install_package('subversion')
+        out, stdout, stderr = self._install_package('subversion')
         return self._is_available()
 
-class FILE(ectools):
 
-    def __init__(self,working_dir,rotate):
+class FILE(ectools):
+    def __init__(self, working_dir, rotate):
 
         if not working_dir:
             raise Exception("Invalid path")
@@ -213,7 +214,7 @@ class FILE(ectools):
         self.rotate = rotate
 
         # Create or rename working_dir
-        deploy = Deploy(self.working_dir,rotate)
+        deploy = Deploy(self.working_dir, rotate)
         self.old_dir = deploy.prepare()
 
     def clone(self, envars, url, username, password, private_key):
@@ -224,32 +225,32 @@ class FILE(ectools):
         tmp_dir = mkdtemp()
 
         file_downloaded = self._download_file(
-            url = url,
-            file = tmp_dir + '/' + file_name,
-            user = username,
-            passwd = password
+            url=url,
+            file=tmp_dir + '/' + file_name,
+            user=username,
+            passwd=password
         )
 
         if file_downloaded:
             extract = self._extract(file_downloaded)
             if extract:
                 extract['head'] = ''
-                if extract.get('stdout',None):
+                if extract.get('stdout', None):
                     extract['head'] = self._output("Source deployed successfully to '%s'" % self.working_dir)
 
-                if extract.get('stdout',None) and self.old_dir:
+                if extract.get('stdout', None) and self.old_dir:
                     extract['head'] += self._output("Old source files moved to '%s'" % self.old_dir)
 
         else:
-            rmtree(tmp_dir, ignore_errors = True)
+            rmtree(tmp_dir, ignore_errors=True)
             raise Exception("Unable to download file")
 
         # Clean and output
-        rmtree(tmp_dir, ignore_errors = True)
+        rmtree(tmp_dir, ignore_errors=True)
         ret = {
-            'stdout': extract.get('head','') + extract.get('stdout',''),
-            'stderr': extract.get('stderr','Unable to download file'),
-            'out': extract.get('out',1)
+            'stdout': extract.get('head', '') + extract.get('stdout', ''),
+            'stderr': extract.get('stderr', 'Unable to download file'),
+            'out': extract.get('out', 1)
         }
         return ret
 
@@ -285,29 +286,31 @@ class FILE(ectools):
             stdout = ''
             if is_packed:
                 for member in members:
-                    member.name = member.name.replace(is_packed,'.')
+                    member.name = member.name.replace(is_packed, '.')
                     if member.name.endswith('/.'): continue
                     if member.name == './': continue
                     if member.name == '.': continue
 
-                    stdout +=  "Extracted " + member.name + "\n"
-                    cfile.extract(member,self.working_dir)
+                    stdout += "Extracted " + member.name + "\n"
+                    cfile.extract(member, self.working_dir)
             else:
                 for member in members:
-                    if file_type == 'zip': member_name = member
-                    else: member_name = member.name
+                    if file_type == 'zip':
+                        member_name = member
+                    else:
+                        member_name = member.name
 
-                    stdout +=  "Extracted " + member_name + "\n"
+                    stdout += "Extracted " + member_name + "\n"
                 cfile.extractall(self.working_dir)
             cfile.close()
 
         except Exception as e:
             raise Exception("Could not extract file: %s" % e)
 
-        ret = { 'out': 0, 'stderr': '', 'stdout': stdout }
+        ret = {'out': 0, 'stderr': '', 'stdout': stdout}
         return ret
 
-    def _get_file_type(self,file):
+    def _get_file_type(self, file):
         """ get compressed file type based on marks
         """
 
@@ -325,8 +328,8 @@ class FILE(ectools):
                     return filetype
         return False
 
-class Deploy(ectools):
 
+class Deploy(ectools):
     def __init__(self, working_dir, rotate):
 
         self.working_dir = os.path.abspath(working_dir)
@@ -340,7 +343,7 @@ class Deploy(ectools):
         if self.rotate and os.path.isdir(self.working_dir):
             if not self.working_dir == '/':
                 to_dir = self.working_dir + '_rotated_' + self._utime()
-                move(self.working_dir,to_dir)
+                move(self.working_dir, to_dir)
 
         # create working dir
         if not os.path.isdir(self.working_dir):
@@ -348,8 +351,9 @@ class Deploy(ectools):
 
         return to_dir
 
-    def rollback(self,path):
+    def rollback(self, path):
 
         return
+
 
 ECMSource().run()

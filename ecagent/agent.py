@@ -24,7 +24,8 @@ try:
     import Crypto.PublicKey.RSA
     from Crypto.Util import number
     from Crypto.Hash import SHA
-except: pass
+except:
+    pass
 
 E_RUNNING_COMMAND = 253
 E_COMMAND_NOT_DEFINED = 252
@@ -42,6 +43,7 @@ IqlNJia2BUKKDa1EuQIDAQAB
 AGENT_VERSION = 1
 FLUSH_MIN_LENGTH = 5
 FLUSH_TIME = 5
+
 
 class SMAgent:
     def __init__(self, config):
@@ -63,6 +65,7 @@ class SMAgent:
         l.critical("Configuration check failed with: %s, exiting." % failure)
         l.critical("Please try configuring the XMPP subsystem manually.")
         reactor.stop()
+
 
 class SMAgentXMPP(Client):
     def __init__(self, config):
@@ -90,7 +93,7 @@ class SMAgentXMPP(Client):
         l.debug("Loading XMPP...")
         observers = [
             ('/iq', self.__onIq),
-            ]
+        ]
         Client.__init__(self,
                         self.config['XMPP'],
                         observers,
@@ -138,36 +141,37 @@ class SMAgentXMPP(Client):
             if verified == False:
                 # Crypto rutines are working and message has bad signature
                 l.info('[RSA Invalid] Command from %s has bad signature (Ignored)' % message.from_)
-                result=(E_UNVERIFIED_COMMAND, '', 'Bad signature', 0)
-                self._onCallFinished(result,message)
+                result = (E_UNVERIFIED_COMMAND, '', 'Bad signature', 0)
+                self._onCallFinished(result, message)
                 return
         else:
             l.warn('[RSA Verify] PyCrypto not available: Running unverified Command from %s' % message.from_)
 
         flush_callback = self._Flush
-        message.command_replaced = message.command.replace('.','_')
-        d = self.command_runner.runCommand(message.command_replaced, message.command_args, flush_callback, message, verified)
+        message.command_replaced = message.command.replace('.', '_')
+        d = self.command_runner.runCommand(message.command_replaced, message.command_args, flush_callback, message,
+                                           verified)
         if d:
             d.addCallbacks(self._onCallFinished, self._onCallFailed,
                            callbackKeywords={'message': message},
                            errbackKeywords={'message': message},
-                           )
+            )
             return d
 
         else:
             l.debug('Command Ignored: Unknown command')
-            result=(E_RUNNING_COMMAND, '', 'Unknown command', 0)
-            self._onCallFinished(result,message)
+            result = (E_RUNNING_COMMAND, '', 'Unknown command', 0)
+            self._onCallFinished(result, message)
 
         return
 
     def _onCallFinished(self, result, message):
         l.debug('Call Finished')
-        self._send(result,message)
+        self._send(result, message)
 
     def _Flush(self, result, message):
         l.debug('Flush Message')
-        self._send(result,message)
+        self._send(result, message)
 
     def _onCallFailed(self, failure, *argv, **kwargs):
         l.error("onCallFailed")
@@ -175,28 +179,28 @@ class SMAgentXMPP(Client):
         if 'message' in kwargs:
             message = kwargs['message']
             result = (2, '', failure, 0)
-            self._onCallFinished(result,message)
+            self._onCallFinished(result, message)
 
     def _send(self, result, message):
         l.debug('Send Response')
         message.toResult(*result)
         self.send(message.toEtree())
 
-    def _verify_message(self,message):
+    def _verify_message(self, message):
         l.debug('Verify Message')
 
         args_encoded = ''
         for arg in sorted(message.command_args.keys()):
             args_encoded += arg + ':' + message.command_args[arg] + ':'
 
-        text = message.from_.split('/')[0] + '::' +\
-               message.to.split('/')[0] + '::' +\
-               message.command + '::' +\
+        text = message.from_.split('/')[0] + '::' + \
+               message.to.split('/')[0] + '::' + \
+               message.command + '::' + \
                args_encoded
 
-        return self._rsa_verify(text,message.signature)
+        return self._rsa_verify(text, message.signature)
 
-    def _rsa_verify(self,text,signature):
+    def _rsa_verify(self, text, signature):
         def _emsa_pkcs1_v1_5_encode(M, emLen):
             # for PKCS1_V1_5 signing:
             SHA1DER = '\x30\x21\x30\x09\x06\x05\x2b\x0e\x03\x02\x1a\x05\x00\x04\x14'
@@ -222,24 +226,27 @@ class SMAgentXMPP(Client):
 
         return False
 
+
 class CommandRunner():
     def __init__(self, config):
         if sys.platform.startswith("win32"):
             self._python_runner = config['python_interpreter_windows']
-            self.command_paths = [os.path.join(os.path.dirname(__file__), '../../..')]  # Built-in commands (on root dir)
+            self.command_paths = [
+                os.path.join(os.path.dirname(__file__), '../../..')]  # Built-in commands (on root dir)
             tools_path = config.get('tools_path_windows')
 
         else:
             self._python_runner = config['python_interpreter_linux']
-            self.command_paths = [os.path.join(os.path.dirname(__file__), '..', 'plugins')]  # Built-in commands (absolute path)
+            self.command_paths = [
+                os.path.join(os.path.dirname(__file__), '..', 'plugins')]  # Built-in commands (absolute path)
             tools_path = config.get('tools_path_linux')
 
         self.timeout = int(config['timeout'])
         self.env = os.environ
         self.env['DEBIAN_FRONTEND'] = 'noninteractive'
         self.env['PYTHONPATH'] = os.path.dirname(__file__)
-        self.env['LANG']='en_US.utf8'
-        self.env['PWD']='/root/'
+        self.env['LANG'] = 'en_US.utf8'
+        self.env['PWD'] = '/root/'
 
         if tools_path:
             self.env["PATH"] += os.pathsep + tools_path
@@ -274,18 +281,18 @@ class CommandRunner():
             l.error('Error adding commands from %s: %s'
                     % (kwargs['filename'], data))
 
-    def runCommand(self, command, command_args, flush_callback = None, message = None, verified = None):
+    def runCommand(self, command, command_args, flush_callback=None, message=None, verified=None):
         if (command in self._commands):
             l.debug("executing %s with args: %s" % (command, command_args))
             return self._runProcess(self._commands[command], command, command_args, flush_callback, message, verified)
         return
 
-    def _runProcess(self, filename, command_name, command_args, flush_callback=None, message=None, verified = None):
+    def _runProcess(self, filename, command_name, command_args, flush_callback=None, message=None, verified=None):
         ext = os.path.splitext(filename)[1]
         if ext in ('.py', '.pyw', '.pyc'):
             command = self._python_runner
             # -u: sets unbuffered output
-            args = [command, '-u', '-W ignore::DeprecationWarning',filename, command_name]
+            args = [command, '-u', '-W ignore::DeprecationWarning', filename, command_name]
         else:
             command = filename
             args = [command, command_name]
@@ -308,8 +315,9 @@ class CommandRunner():
         reactor.spawnProcess(crp, command, args, env=self.env)
         return d
 
+
 class CommandRunnerProcess(ProcessProtocol):
-    def __init__(self, timeout, command_args, flush_callback = None, message=None):
+    def __init__(self, timeout, command_args, flush_callback=None, message=None):
         self.stdout = ""
         self.stderr = ""
         self.deferreds = []
@@ -364,18 +372,22 @@ class CommandRunnerProcess(ProcessProtocol):
                 self.last_send_data_size = total_out
                 self.last_send_data_time = curr_time
 
-                l.debug("Scheduling a flush response: %s" %self.stdout)
+                l.debug("Scheduling a flush response: %s" % self.stdout)
                 self._cancel_flush(self.flush_later_forced)
-                self.flush_later = reactor.callLater(1,self.flush_callback,(None, self.stdout, self.stderr, 0, total_out), self.message)
+                self.flush_later = reactor.callLater(1, self.flush_callback,
+                                                     (None, self.stdout, self.stderr, 0, total_out), self.message)
 
         if not self.flush_later:
             self._cancel_flush(self.flush_later_forced)
-            self.flush_later_forced = reactor.callLater(FLUSH_TIME,self.flush_callback,(None, self.stdout, self.stderr, 0, total_out), self.message)
+            self.flush_later_forced = reactor.callLater(FLUSH_TIME, self.flush_callback,
+                                                        (None, self.stdout, self.stderr, 0, total_out), self.message)
 
-    def _cancel_flush(self,flush_reactor):
+    def _cancel_flush(self, flush_reactor):
         if flush_reactor:
-            try: flush_reactor.cancel()
-            except: pass
+            try:
+                flush_reactor.cancel()
+            except:
+                pass
 
     def processEnded(self, status):
         l.debug("Process ended")
@@ -407,6 +419,7 @@ class CommandRunnerProcess(ProcessProtocol):
         self.deferreds.append(d)
         return d
 
+
 class IqMessage:
     """
     Received IQs parser and validator.
@@ -424,6 +437,7 @@ class IqMessage:
     </iq>
 
     """
+
     def __init__(self, elem=None):
         if elem:
             try:
@@ -433,8 +447,9 @@ class IqMessage:
                 el_ecm_message = elem.firstChildElement()
                 self.version = el_ecm_message['version']
 
-                if(int(self.version) > AGENT_VERSION):
-                    raise Exception("Message format  (%s) is greater than supported version (%s)" % (self.version, AGENT_VERSION))
+                if (int(self.version) > AGENT_VERSION):
+                    raise Exception(
+                        "Message format (%s) is greater than supported version (%s)" % (self.version, AGENT_VERSION))
 
                 self.type = elem['type']
                 self.id = elem['id']
@@ -445,10 +460,10 @@ class IqMessage:
                 if len(self.resource) > 1:
                     self.resource = self.resource[-1]
                 else:
-                    self.resource= None
+                    self.resource = None
 
-                el_command      = el_ecm_message.firstChildElement()
-                self.command    = el_command['name']
+                el_command = el_ecm_message.firstChildElement()
+                self.command = el_command['name']
 
                 el_args = el_command.firstChildElement()
                 self.command_args = el_args.attributes
@@ -480,9 +495,9 @@ class IqMessage:
             ecm_message['signature'] = self.signature
 
             result = ecm_message.addElement('result')
-            result['retvalue']  = self.retvalue
+            result['retvalue'] = self.retvalue
             result['timed_out'] = self.timed_out
-            result['partial']   = self.partial
+            result['partial'] = self.partial
 
             # compress out
             result.addElement('gzip_stdout').addContent(base64.b64encode(zlib.compress(self.stdout)))
@@ -500,8 +515,8 @@ class IqMessage:
             self.from_, self.to = self.to, self.from_
             self.type = 'result'
 
-        self.retvalue  = str(retvalue)
-        self.stdout    = str(stdout)
-        self.stderr    = str(stderr)
+        self.retvalue = str(retvalue)
+        self.stdout = str(stdout)
+        self.stderr = str(stderr)
         self.timed_out = str(timed_out)
-        self.partial   = str(partial)
+        self.partial = str(partial)

@@ -9,16 +9,17 @@ from os import environ
 
 import simplejson as json
 
+
 class ECMScript(ecplugin):
     def cmd_script_run(self, *argv, **kwargs):
         """script.run script(b64) extension envars runas executable"""
 
-        script_base64       = kwargs.get('script',None)
-        script_extension    = kwargs.get('extension',None)
-        script_envars       = kwargs.get('envars',None)
-        script_facts        = kwargs.get('facts',None)
-        script_runas        = kwargs.get('runas',None)
-        script_executable   = kwargs.get('executable',None)
+        script_base64 = kwargs.get('script', None)
+        script_extension = kwargs.get('extension', None)
+        script_envars = kwargs.get('envars', None)
+        script_facts = kwargs.get('facts', None)
+        script_runas = kwargs.get('runas', None)
+        script_executable = kwargs.get('executable', None)
 
         if not script_extension:
             script_extension = '.cmd'
@@ -39,18 +40,19 @@ class ECMScript(ecplugin):
 
         # Set environment variables before execution
         envars = self._envars_decode(script_envars)
-        facts  = self._envars_decode(script_facts)
+        facts = self._envars_decode(script_facts)
 
         # Update envars and facts file
-        self._write_envars_facts(envars,facts)
+        self._write_envars_facts(envars, facts)
 
         if script_executable:
             cmd = script_executable + ' ' + tmp_file
             out, stdout, stderr = self._execute_command(cmd, runas=script_runas, workdir=tmp_dir, envars=envars)
         else:
-            out, stdout, stderr = self._execute_file(tmp_file, runas=script_runas, workdir = tmp_dir, envars=envars)
+            out, stdout, stderr = self._execute_file(tmp_file, runas=script_runas, workdir=tmp_dir, envars=envars)
 
-        rmtree(tmp_dir, ignore_errors = True)
-        return  self._format_output(out, stdout, stderr)
+        rmtree(tmp_dir, ignore_errors=True)
+        return self._format_output(out, stdout, stderr)
+
 
 ECMScript().run()

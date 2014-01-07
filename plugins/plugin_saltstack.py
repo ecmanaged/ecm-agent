@@ -15,8 +15,8 @@ SALTSTACK_BOOTSTRAP_WINDOWS = 'http://bootstrap.saltstack.org'
 SALTSTACK_BOOTSTRAP_ALT = 'http://bootstrap-saltstack.ecmanaged.com'
 SALTSTACK_BOOTSTRAP_WINDOWS_ALT = 'http://bootstrap-saltstack.ecmanaged.com'
 
-class ECMSaltstack(ecplugin):
 
+class ECMSaltstack(ecplugin):
     def cmd_saltstack_available(self, *argv, **kwargs):
         """ Checks if saltstack commands are available
         """
@@ -43,9 +43,9 @@ class ECMSaltstack(ecplugin):
     def cmd_saltstack_apply(self, *argv, **kwargs):
         """ Apply a saltstack manifest
         """
-        recipe_base64 = kwargs.get('recipe_code',None)
-        recipe_envars = kwargs.get('envars',None)
-        recipe_facts  = kwargs.get('facts',None)
+        recipe_base64 = kwargs.get('recipe_code', None)
+        recipe_envars = kwargs.get('envars', None)
+        recipe_facts = kwargs.get('facts', None)
 
         if not recipe_base64:
             raise Exception("Invalid arguments")
@@ -56,43 +56,44 @@ class ECMSaltstack(ecplugin):
 
         default_path = DEFAULT_PATH
         if self._is_windows(): default_path = DEFAULT_PATH_WINDOWS
-        module_path =  kwargs.get('module_path',default_path)
+        module_path = kwargs.get('module_path', default_path)
 
         # Set environment variables before execution
         envars = self._envars_decode(recipe_envars)
-        facts  = self._envars_decode(recipe_facts)
+        facts = self._envars_decode(recipe_facts)
 
         # Update envars and facts file
-        self._write_envars_facts(envars,facts)
+        self._write_envars_facts(envars, facts)
 
         try:
             # Create top file
             self._create_top_file(module_path)
 
             recipe_file = module_path + '/ecmanaged.sls'
-            self._file_write(recipe_file,b64decode(recipe_base64))
+            self._file_write(recipe_file, b64decode(recipe_base64))
 
         except:
             raise Exception("Unable to write recipe")
 
         try:
             # salt-call state.highstate
-            command = [saltstack_cmd, 'state.highstate', '--local', '-l debug']
+            envars = {'DEBIAN_FRONTEND': 'noninteractive'}
+            command = [saltstack_cmd, 'state.highstate', '--local', '--no-color', '-l debug']
 
-            out,stdout,stderr = self._execute_command(command,workdir=module_path)
-            return self._format_output(out,stdout,stderr)
+            out, stdout, stderr = self._execute_command(command, envars=envars, workdir=module_path)
+            return self._format_output(out, stdout, stderr)
 
         except Exception as e:
-            raise Exception("Error running saltstack state.highstate: %s" %e)
+            raise Exception("Error running saltstack state.highstate: %s" % e)
 
-    def _create_top_file(self,module_path):
+    def _create_top_file(self, module_path):
         top_file = module_path + '/top.sls'
         top_content = """
         base:
           '*':
             - ecmanaged
         """
-        self._file_write(top_file,top_content)
+        self._file_write(top_file, top_content)
 
     def _is_available(self):
         """ it's salt-call on path?
@@ -100,12 +101,12 @@ class ECMSaltstack(ecplugin):
         if self._is_windows(): return self._which('salt-call.exe')
         return self._which('salt-call')
 
-    def _install(self,bootstrap_url):
+    def _install(self, bootstrap_url):
         """ Installs saltstack using bootstrap url
         """
         tmp_dir = mkdtemp()
         bootstrap_file = tmp_dir + '/bootstrap-salt.sh'
-        self._download_file(bootstrap_url,bootstrap_file)
+        self._download_file(bootstrap_url, bootstrap_file)
 
         # wget -O - http://bootstrap.saltstack.org | sudo sh
 
@@ -130,9 +131,10 @@ class ECMSaltstack(ecplugin):
         if self._file_read(bootstrap_file):
             envars = {'DEBIAN_FRONTEND': 'noninteractive'}
             self._install_package('git')
-            self._execute_file(bootstrap_file,args=['-n','-D','-X'],envars=envars)
+            self._execute_file(bootstrap_file, args=['-n', '-D', '-X'], envars=envars)
 
         rmtree(tmp_dir)
         return bool(self._is_available())
+
 
 ECMSaltstack().run()

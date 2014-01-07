@@ -18,7 +18,7 @@ class PkgRelation(object):
     # XXX *NOT* a real dependency parser, and that is not even a goal here, we
     # just parse as much as we need to split the various parts composing a
     # dependency, checking their correctness wrt policy is out of scope
-    __dep_RE = re.compile(\
+    __dep_RE = re.compile( \
         r'^\s*(?P<name>[a-zA-Z0-9.+\-]{2,})(\s*\(\s*(?P<relop>[>=<]+)\s*(?P<version>[0-9a-zA-Z:\-+~.]+)\s*\))?(\s*\[(?P<archs>[\s!\w\-]+)\])?\s*$')
     __comma_sep_RE = re.compile(r'\s*,\s*')
     __pipe_sep_RE = re.compile(r'\s*\|\s*')
@@ -29,6 +29,7 @@ class PkgRelation(object):
         """Parse a package relationship string (i.e. the value of a field like
         Depends, Recommends, Build-Depends ...)
         """
+
         def parse_archs(raw):
             # assumption: no space beween '!' and architecture name
             archs = []
@@ -43,7 +44,7 @@ class PkgRelation(object):
             match = cls.__dep_RE.match(raw)
             if match:
                 parts = match.groupdict()
-                d = { 'name': parts['name'] }
+                d = {'name': parts['name']}
                 if not (parts['relop'] is None or parts['version'] is None):
                     d['version'] = (parts['relop'], parts['version'])
                 else:
@@ -54,7 +55,7 @@ class PkgRelation(object):
                     d['arch'] = parse_archs(parts['archs'])
                 return d
             else:
-                return { 'name': raw, 'version': None, 'arch': None }
+                return {'name': raw, 'version': None, 'arch': None}
 
         tl_deps = cls.__comma_sep_RE.split(raw.strip()) # top-level deps
         cnf = map(cls.__pipe_sep_RE.split, tl_deps)
@@ -64,15 +65,18 @@ class PkgRelation(object):
 from ecplugin import ecplugin
 import base64
 
+
 class ECMPackage(ecplugin):
     def cmd_packages_install(self, *argv, **kwargs):
         """ Install packages received in csv or in debian packages "Depends" format
         """
-        packages_b64 = kwargs.get('packages',None)
+        packages_b64 = kwargs.get('packages', None)
 
         if not packages_b64: raise Exception("Invalid argument")
-        try: str_packages = base64.b64decode(packages_b64)
-        except: raise Exception("Invalid b64 received")
+        try:
+            str_packages = base64.b64decode(packages_b64)
+        except:
+            raise Exception("Invalid b64 received")
 
         packages = self._parse_package_string(str_packages)
 
@@ -87,7 +91,7 @@ class ECMPackage(ecplugin):
             'stderr': '',
         }
 
-        for i in range(0,100):
+        for i in range(0, 100):
             there_are_pending = False
             for pkg in packages:
                 if not pkg[0]['installed']:
@@ -97,7 +101,7 @@ class ECMPackage(ecplugin):
                     except KeyError:
                         continue
 
-                    out,stdout,stderr = self._install_package(package_name,refresh_db)
+                    out, stdout, stderr = self._install_package(package_name, refresh_db)
                     ret['stdout'] += stdout
                     ret['stderr'] += stderr
                     ret['out'] = out
@@ -118,6 +122,7 @@ class ECMPackage(ecplugin):
         for pkg in parsed: pkg[0]['installed'] = 0
 
         return parsed
+
 
 ECMPackage().run()
 
