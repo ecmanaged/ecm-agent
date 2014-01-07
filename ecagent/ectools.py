@@ -10,7 +10,6 @@ from shlex import split
 from base64 import b64decode
 from threading import Thread
 from time import sleep
-from platform import system
 
 import twisted.python.procutils as procutils
 
@@ -29,6 +28,7 @@ FLUSH_WORKER_SLEEP_TIME = 0.2
 DEFAULT_GROUP_LINUX = 'root'
 DEFAULT_GROUP_WINDOWS = 'Administrators'
 
+
 class ectools():
     def __init__(self):
         self.thread_stdout = ''
@@ -43,7 +43,7 @@ class ectools():
 
         return False
 
-    def _file_write(self,file,content=None):
+    def _file_write(self, file, content=None):
 
         try:
             if content:
@@ -51,19 +51,19 @@ class ectools():
                 if not os.path.exists(_path):
                     os.mkdir(_path)
 
-                f = open(file,'w')
+                f = open(file, 'w')
                 f.write(content)
                 f.close()
 
         except:
             raise Exception("Unable to write file: %s" % file)
 
-    def _file_read(self,file):
+    def _file_read(self, file):
         """ Reads a file and returns content
         """
         try:
             if os.path.isfile(file):
-                f = open(file,'r')
+                f = open(file, 'r')
                 retval = f.read()
                 f.close()
                 return retval
@@ -71,13 +71,13 @@ class ectools():
         except:
             raise Exception("Unable to read file: %s" % file)
 
-    def _secret_gen(self,length = 60):
+    def _secret_gen(self, length=60):
         """ Generates random chars
         """
-        chars = string.ascii_uppercase + string.digits  + '!@#$%^&*()'
+        chars = string.ascii_uppercase + string.digits + '!@#$%^&*()'
         return ''.join(random.choice(chars) for x in range(length))
 
-    def _clean_stdout(self,output):
+    def _clean_stdout(self, output):
         """ Remove color chars from output
         """
         try:
@@ -86,7 +86,7 @@ class ectools():
         except:
             return output
 
-    def _download_file(self, url, file, user = None, passwd=None):
+    def _download_file(self, url, file, user=None, passwd=None):
         """ Downloads remote file
         """
 
@@ -101,7 +101,7 @@ class ectools():
                 # ...and install it globally so it can be used with urlopen.
                 urllib2.install_opener(opener)
 
-            req = urllib2.urlopen(url.replace("'",""))
+            req = urllib2.urlopen(url.replace("'", ""))
             CHUNK = 256 * 10240
             with open(file, 'wb') as fp:
                 while True:
@@ -117,24 +117,25 @@ class ectools():
         """ chmod a file
         """
         try:
-            os.chmod(file,mode)
+            os.chmod(file, mode)
             return True
 
         except:
             return False
 
-    def _which(self,command):
+    def _which(self, command):
         """ search executable on path
         """
         found = procutils.which(command)
 
-        try: cmd = found[0]
+        try:
+            cmd = found[0]
         except IndexError:
             return False
 
         return cmd
 
-    def _chown(self, path, user, group, recursive = False):
+    def _chown(self, path, user, group, recursive=False):
         """ chown a file or path
         """
         try:
@@ -143,11 +144,15 @@ class ectools():
 
             uid = 0
             gid = 0
-            try: uid = getpwnam(user)[2]
-            except KeyError: pass
+            try:
+                uid = getpwnam(user)[2]
+            except KeyError:
+                pass
 
-            try: gid = getgrnam(group)[2]
-            except KeyError: pass
+            try:
+                gid = getgrnam(group)[2]
+            except KeyError:
+                pass
 
             if recursive:
                 # Recursive chown
@@ -167,38 +172,38 @@ class ectools():
 
         return True
 
-    def _install_package(self,packages,update = True):
+    def _install_package(self, packages, update=True):
         """ Install packages
         """
         envars = {}
         try:
-            (distribution,version,tmp)=platform.dist()
+            (distribution, version, tmp) = platform.dist()
 
             if distribution.lower() == 'debian' or distribution.lower() == 'ubuntu':
                 envars['DEBIAN_FRONTEND'] = 'noninteractive'
 
-                if update: self._execute_command(['apt-get','-y','-qq','update'])
-                command = ['apt-get','-o','Dpkg::Options::=--force-confold',
-                           '--allow-unauthenticated','--force-yes',
-                           '-y','-qq','install',packages]
+                if update: self._execute_command(['apt-get', '-y', '-qq', 'update'])
+                command = ['apt-get', '-o', 'Dpkg::Options::=--force-confold',
+                           '--allow-unauthenticated', '--force-yes',
+                           '-y', '-qq', 'install', packages]
 
             elif distribution.lower() == 'centos' or distribution.lower() == 'redhat' or distribution.lower() == 'fedora':
-                if update: self._execute_command(['yum','-y','clean','all'])
-                command = ['yum','-y','--nogpgcheck','install',packages]
+                if update: self._execute_command(['yum', '-y', 'clean', 'all'])
+                command = ['yum', '-y', '--nogpgcheck', 'install', packages]
 
             elif distribution.lower() == 'arch':
-                if update: self._execute_command(['pacman','-Sy'])
-                if update: self._execute_command(['pacman','-S','--noconfirm','pacman'])
-                command = ['pacman','-S','--noconfirm',packages]
+                if update: self._execute_command(['pacman', '-Sy'])
+                if update: self._execute_command(['pacman', '-S', '--noconfirm', 'pacman'])
+                command = ['pacman', '-S', '--noconfirm', packages]
 
             else:
                 raise Exception("Distribution not supported: " + distribution)
 
-            out,stdout,stderr = self._execute_command(command, envars=envars)
-            return out,stdout,stderr
+            out, stdout, stderr = self._execute_command(command, envars=envars)
+            return out, stdout, stderr
 
         except Exception as e:
-            raise Exception("Error installing packages %s: %s" % packages,e)
+            raise Exception("Error installing packages %s: %s" % packages, e)
 
     def _execute_command(self, command, args=None, stdin=None, runas=None, workdir=None, envars=None):
         """ Execute command and flush stdout/stderr using threads
@@ -222,9 +227,9 @@ class ectools():
 
         if runas:
             if not self._is_windows():
-                command = ['su','-',runas,'-c',' '.join(map(str,command))]
+                command = ['su', '-', runas, '-c', ' '.join(map(str, command))]
 
-            # :TODO: Runas for windows
+                # :TODO: Runas for windows
 
         # Get current env
         if not envars or not self.is_dict(envars):
@@ -232,15 +237,15 @@ class ectools():
 
         for env in os.environ.keys():
             envars[env] = os.environ[env]
-            
+
         try:
             p = Popen(
                 command,
-                env = envars,
-                bufsize=0, stdin = PIPE, stdout=PIPE, stderr=PIPE,
+                env=envars,
+                bufsize=0, stdin=PIPE, stdout=PIPE, stderr=PIPE,
                 cwd=workdir,
                 universal_newlines=True,
-                close_fds=(os.name=='posix')
+                close_fds=(os.name == 'posix')
             )
 
             # Write stdin if set
@@ -251,10 +256,10 @@ class ectools():
 
             if self._is_windows():
                 stdout, stderr = p.communicate()
-                return p.wait(),stdout,stderr
+                return p.wait(), stdout, stderr
 
             else:
-                thread = Thread(target=self._thread_flush_worker, args=[p.stdout,p.stderr])
+                thread = Thread(target=self._thread_flush_worker, args=[p.stdout, p.stderr])
                 thread.daemon = True
                 thread.start()
 
@@ -262,21 +267,21 @@ class ectools():
                 retval = p.wait()
 
                 # Ensure to get last output from Thread
-                sleep(FLUSH_WORKER_SLEEP_TIME*2)
+                sleep(FLUSH_WORKER_SLEEP_TIME * 2)
 
                 # Stop Thread
                 self.thread_run = 0
                 thread.join(timeout=1)
 
-                return retval,self.thread_stdout,self.thread_stderr
+                return retval, self.thread_stdout, self.thread_stderr
 
         except OSError, e:
             return e[0], '', "Execution failed: %s" % e[1]
 
         except Exception as e:
-            return 255,'','Unknown error'
+            return 255, '', 'Unknown error'
 
-    def _execute_file(self, file,  args=None, stdin=None, runas=None, workdir = None, envars = None):
+    def _execute_file(self, file, args=None, stdin=None, runas=None, workdir=None, envars=None):
         """ Execute a script file and flush stdout/stderr using threads
         """
         self.thread_stdout = ''
@@ -295,7 +300,7 @@ class ectools():
 
         try:
             # +x flag to file
-            os.chmod(file,0700)
+            os.chmod(file, 0700)
             command = [file]
 
             # Add command line args
@@ -306,18 +311,18 @@ class ectools():
             if runas:
                 if not self._is_windows():
                     # Change file owner before execute
-                    self._chown(path=workdir,user=runas,group=DEFAULT_GROUP_LINUX,recursive=True)
-                    command = ['su','-',runas,'-c',' '.join(map(str,command))]
+                    self._chown(path=workdir, user=runas, group=DEFAULT_GROUP_LINUX, recursive=True)
+                    command = ['su', '-', runas, '-c', ' '.join(map(str, command))]
 
-                # :TODO: Runas for windows
+                    # :TODO: Runas for windows
 
             p = Popen(
                 command,
-                env = envars,
-                bufsize=0,  stdin = PIPE, stdout=PIPE, stderr=PIPE,
+                env=envars,
+                bufsize=0, stdin=PIPE, stdout=PIPE, stderr=PIPE,
                 cwd=workdir,
                 universal_newlines=True,
-                close_fds=(os.name=='posix')
+                close_fds=(os.name == 'posix')
             )
 
             # Write stdin if set
@@ -328,10 +333,10 @@ class ectools():
 
             if self._is_windows():
                 stdout, stderr = p.communicate()
-                return p.wait(),stdout,stderr
+                return p.wait(), stdout, stderr
 
             else:
-                thread = Thread(target=self._thread_flush_worker, args=[p.stdout,p.stderr])
+                thread = Thread(target=self._thread_flush_worker, args=[p.stdout, p.stderr])
                 thread.daemon = True
                 thread.start()
 
@@ -339,19 +344,19 @@ class ectools():
                 retval = p.wait()
 
                 # Ensure to get last output from Thread
-                sleep(FLUSH_WORKER_SLEEP_TIME*2)
+                sleep(FLUSH_WORKER_SLEEP_TIME * 2)
 
                 # Stop Thread
                 self.thread_run = 0
                 thread.join(timeout=1)
-                
-                return retval,self.thread_stdout,self.thread_stderr
+
+                return retval, self.thread_stdout, self.thread_stderr
 
         except OSError, e:
             return e[0], '', "Execution failed: %s" % e[1]
 
         except Exception as e:
-            return 255,'','Unknown error'
+            return 255, '', 'Unknown error'
 
     def _thread_flush_worker(self, stdout, stderr):
         """ needs to be in a thread so we can read the stdout w/o blocking """
@@ -384,7 +389,7 @@ class ectools():
         except:
             return ''
 
-    def _envars_decode(self,coded_envars = None):
+    def _envars_decode(self, coded_envars=None):
         """ Decode base64/json envars """
         envars = None
         try:
@@ -395,7 +400,8 @@ class ectools():
                     if not envars[var]: envars[var] = ''
                     envars[var] = str(envars[var])
 
-        except: pass
+        except:
+            pass
         return envars
 
     def _write_envars_facts(self, envars=None, facts=None):
@@ -405,17 +411,17 @@ class ectools():
                 content_env = ''
                 for var in sorted(envars.keys()):
                     content_env += "export " + str(var) + '="' + str(envars[var]) + "\"\n"
-                self._file_write(ENV_FILE,content_env)
+                self._file_write(ENV_FILE, content_env)
 
             except:
                 return False
 
         if facts and self.is_dict(envars):
             try:
-                content_facts= ''
+                content_facts = ''
                 for var in sorted(facts.keys()):
                     content_facts += str(var) + ':' + str(facts[var]) + "\n"
-                self._file_write(INFO_FILE,content_facts)
+                self._file_write(INFO_FILE, content_facts)
 
             except:
                 return False
@@ -427,14 +433,14 @@ class ectools():
         if nice and self._is_number(nice):
             try:
                 os.nice(int(nice))
-                return(0)
+                return (0)
 
             except:
-                return(1)
+                return (1)
         else:
-            return(1)
+            return (1)
 
-    def _is_number(self,s):
+    def _is_number(self, s):
         """ Helper function """
         try:
             float(s)
@@ -442,11 +448,11 @@ class ectools():
         except ValueError:
             return False
 
-    def _output(self,string):
+    def _output(self, string):
         """ Helper function """
         return '[' + str(time()) + '] ' + str(string) + "\n"
 
-    def _format_output(self,out,stdout,stderr):
+    def _format_output(self, out, stdout, stderr):
         """ Helper function """
         format_out = {}
         format_out['out'] = out
@@ -455,7 +461,7 @@ class ectools():
 
         return format_out
 
-    def _mkdir_p(self,path):
+    def _mkdir_p(self, path):
         """ Recursive Mkdir """
         try:
             if not os.path.isdir(path):
@@ -465,18 +471,18 @@ class ectools():
 
     def _utime(self):
         """ Helper function: microtime """
-        str_time = str(time()).replace('.','_')
+        str_time = str(time()).replace('.', '_')
         return str_time
 
-    def is_dict(self,obj):
+    def is_dict(self, obj):
         """Check if the object is a dictionary."""
         return isinstance(obj, dict)
 
-    def is_list(self,obj):
+    def is_list(self, obj):
         """Check if the object is a list"""
         return isinstance(obj, list)
 
-    def is_string(self,obj):
+    def is_string(self, obj):
         """Check if the object is a list"""
         if isinstance(obj, str) or isinstance(obj, unicode):
             return True
