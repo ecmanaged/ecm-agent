@@ -83,11 +83,11 @@ class GIT(ectools):
 
         # Create or rename working_dir
         deploy = Deploy(self.working_dir, rotate)
-        self.old_dir = deploy.prepare
+        self.old_dir = deploy.prepare()
 
         # Get git path
         self.git_cmd = self._is_available()
-
+        
         if not self.git_cmd:
             if not self._install():
                 raise Exception('Unable to find or install git')
@@ -99,17 +99,12 @@ class GIT(ectools):
 
         command_clone = self.git_cmd + " clone --quiet --verbose '" + url + "' ."
         command_pull = self.git_cmd + " pull --quiet --verbose"
-
+        
         command = command_clone
         if os.path.isdir(self.working_dir + '/.git'):
             if not self.rotate:
                 # GIT clone will fail: no empty dir (so make a pull and hope...)
                 command = command_pull
-
-        else:
-            # Rotate this dir or will fail
-            deploy = Deploy(self.working_dir, True)
-            self.old_dir = deploy.prepare
 
         # Create git command with user and password
         if username and password:
@@ -155,7 +150,7 @@ class SVN(ectools):
 
         # Create or rename working_dir
         deploy = Deploy(self.working_dir, rotate)
-        self.old_dir = deploy.prepare
+        self.old_dir = deploy.prepare()
 
         # Get git path
         self.svn_cmd = self._is_available()
@@ -215,7 +210,7 @@ class FILE(ectools):
 
         # Create or rename working_dir
         deploy = Deploy(self.working_dir, rotate)
-        self.old_dir = deploy.prepare
+        self.old_dir = deploy.prepare()
 
     def clone(self, envars, url, username, password, private_key):
         """ Downloads a file from a remote url and decompress it
@@ -349,10 +344,10 @@ class Deploy(ectools):
             except IndexError:
                 # Unsafe rotate
                 self.rotate = False
-                return to_dir
 
-            to_dir = self.working_dir + '_rotated_' + self._utime()
-            move(self.working_dir, to_dir)
+            if self.rotate:
+                to_dir = self.working_dir + '_rotated_' + self._utime()
+                move(self.working_dir, to_dir)
 
         # create working dir
         if not os.path.isdir(self.working_dir):
