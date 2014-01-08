@@ -83,7 +83,7 @@ class GIT(ectools):
 
         # Create or rename working_dir
         deploy = Deploy(self.working_dir, rotate)
-        self.old_dir = deploy.prepare()
+        self.old_dir = deploy.prepare
 
         # Get git path
         self.git_cmd = self._is_available()
@@ -109,7 +109,7 @@ class GIT(ectools):
         else:
             # Rotate this dir or will fail
             deploy = Deploy(self.working_dir, True)
-            self.old_dir = deploy.prepare()
+            self.old_dir = deploy.prepare
 
         # Create git command with user and password
         if username and password:
@@ -155,7 +155,7 @@ class SVN(ectools):
 
         # Create or rename working_dir
         deploy = Deploy(self.working_dir, rotate)
-        self.old_dir = deploy.prepare()
+        self.old_dir = deploy.prepare
 
         # Get git path
         self.svn_cmd = self._is_available()
@@ -215,7 +215,7 @@ class FILE(ectools):
 
         # Create or rename working_dir
         deploy = Deploy(self.working_dir, rotate)
-        self.old_dir = deploy.prepare()
+        self.old_dir = deploy.prepare
 
     def clone(self, envars, url, username, password, private_key):
         """ Downloads a file from a remote url and decompress it
@@ -341,9 +341,18 @@ class Deploy(ectools):
 
         to_dir = None
         if self.rotate and os.path.isdir(self.working_dir):
-            if not self.working_dir == '/':
-                to_dir = self.working_dir + '_rotated_' + self._utime()
-                move(self.working_dir, to_dir)
+            drive, path = os.path.splitdrive(self.working_dir)
+            split_path = self._split_path(path)
+
+            try:
+                a = split_path[1]
+            except IndexError:
+                # Unsafe rotate
+                self.rotate = False
+                return to_dir
+
+            to_dir = self.working_dir + '_rotated_' + self._utime()
+            move(self.working_dir, to_dir)
 
         # create working dir
         if not os.path.isdir(self.working_dir):

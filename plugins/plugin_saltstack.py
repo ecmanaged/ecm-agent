@@ -6,14 +6,22 @@ from tempfile import mkdtemp
 from shutil import rmtree
 from base64 import b64decode
 
-DEFAULT_PATH = '/srv/salt'
-DEFAULT_PATH_WINDOWS = 'C:\ECM\SALTSTACK'
+DEFAULT_SALT_PATH = '/srv/salt'
+DEFAULT_SALT_PATH_WINDOWS = 'C:\ECM\SALTSTACK\salt'
+
+DEFAULT_PILLAR_PATH = '/srv/pillar'
+DEFAULT_PILLAR_PATH_WINDOWS = 'C:\ECM\SALTSTACK\pillar'
 
 SALTSTACK_BOOTSTRAP = 'http://bootstrap.saltstack.org'
 SALTSTACK_BOOTSTRAP_WINDOWS = 'http://bootstrap.saltstack.org'
 
 SALTSTACK_BOOTSTRAP_ALT = 'http://bootstrap-saltstack.ecmanaged.com'
 SALTSTACK_BOOTSTRAP_WINDOWS_ALT = 'http://bootstrap-saltstack.ecmanaged.com'
+
+TOP_CONTENT = """base:
+  '*':
+    - ecmanaged
+"""
 
 
 class ECMSaltstack(ecplugin):
@@ -44,6 +52,7 @@ class ECMSaltstack(ecplugin):
         """ Apply a saltstack manifest
         """
         recipe_base64 = kwargs.get('recipe_code', None)
+        pillar_base64 = kwargs.get('pillar_code', None)
         recipe_envars = kwargs.get('envars', None)
         recipe_facts = kwargs.get('facts', None)
 
@@ -54,9 +63,13 @@ class ECMSaltstack(ecplugin):
         if not saltstack_cmd:
             raise Exception('Saltstack no available')
 
-        default_path = DEFAULT_PATH
-        if self._is_windows(): default_path = DEFAULT_PATH_WINDOWS
+        default_path = DEFAULT_SALT_PATH
+        if self._is_windows(): default_path = DEFAULT_SALT_PATH_WINDOWS
         module_path = kwargs.get('module_path', default_path)
+
+        default_pillar_path = DEFAULT_PILLAR_PATH
+        if self._is_windows(): default_pillar_path = DEFAULT_PILLAR_PATH_WINDOWS
+        pillar_path = kwargs.get('pillar_path', default_pillar_path)
 
         # Set environment variables before execution
         envars = self._envars_decode(recipe_envars)
@@ -72,6 +85,11 @@ class ECMSaltstack(ecplugin):
             recipe_file = module_path + '/ecmanaged.sls'
             self._file_write(recipe_file, b64decode(recipe_base64))
 
+            if pillar_base64:
+                self._create_top_file(pillar_path)
+                pillar_file = pillar_path + '/ecmanaged.sls'
+                self._file_write(pillar_file, b64decode(pillar_base64))
+
         except:
             raise Exception("Unable to write recipe")
 
@@ -85,14 +103,9 @@ class ECMSaltstack(ecplugin):
         except Exception as e:
             raise Exception("Error running saltstack state.highstate: %s" % e)
 
-    def _create_top_file(self, module_path):
-        top_file = module_path + '/top.sls'
-        top_content = """
-        base:
-          '*':
-            - ecmanaged
-        """
-        self._file_write(top_file, top_content)
+    def _create_top_file(self, path):
+        top_file = path + '/top.sls'
+        self._file_write(top_file, TOP_CONTENT)
 
     def _is_available(self):
         """ it's salt-call on path?

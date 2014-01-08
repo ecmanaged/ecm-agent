@@ -44,7 +44,7 @@ class ectools():
             if content:
                 _path = os.path.dirname(file)
                 if not os.path.exists(_path):
-                    os.mkdir(_path)
+                    self._mkdir_p(_path)
 
                 f = open(file, 'w')
                 f.write(content)
@@ -483,3 +483,12 @@ class ectools():
             return True
 
         return False
+
+    def _split_path(self,path):
+        components = []
+        while True:
+            (path,tail) = os.path.split(path)
+            if tail == "":
+                components.reverse()
+                return components
+            components.append(tail)
