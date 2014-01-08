@@ -10,7 +10,6 @@ import logging as l
 #Local
 from core import BasicClient
 
-
 class Client(BasicClient):
     def __init__(self, config, observers, resource='XMPPClient'):
         """

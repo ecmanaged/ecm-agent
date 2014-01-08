@@ -7,18 +7,6 @@ import psutil
 
 
 class ECMProc(ecplugin):
-    def cmd_proc_num_name(self, *argv, **kwargs):
-        """Syntax: proc.num [name]"""
-
-        proc_name = kwargs.get('name', None)
-
-        if proc_name:
-            try:
-                return int(len(filter(lambda x: x.name == proc_name, psutil.process_iter())))
-            except:
-                return 0
-        else:
-            return len(psutil.get_pid_list())
 
     def cmd_proc_mem_name(self, *argv, **kwargs):
         """Syntax: proc.mem_name ['name' = name]"""
@@ -41,15 +29,15 @@ class ECMProc(ecplugin):
             except:
                 return 0
         else:
-            raise Exception(self.cmd_proc_num_regex.__doc__)
+            raise Exception(self.cmd_proc_mem_name.__doc__)
 
-    def cmd_proc_num_regex(self, *argv, **kwargs):
+    def cmd_proc_mem_regex(self, *argv, **kwargs):
         """Syntax: proc.num.regex <regex>"""
 
         regex = kwargs.get('regex', None)
 
         if not regex:
-            raise Exception(self.cmd_proc_num_regex.__doc__)
+            raise Exception(self.cmd_proc_mem_regex.__doc__)
 
         total_rss = 0
         total_vms = 0
@@ -62,6 +50,19 @@ class ECMProc(ecplugin):
                 total_vms += mem.vms
 
         return [total_rss, total_vms]
+
+    def cmd_proc_num_name(self, *argv, **kwargs):
+        """Syntax: proc.num [name]"""
+
+        proc_name = kwargs.get('name', None)
+
+        if proc_name:
+            try:
+                return int(len(filter(lambda x: x.name == proc_name, psutil.process_iter())))
+            except:
+                return 0
+        else:
+            return len(psutil.get_pid_list())
 
     def cmd_proc_num_regex(self, *argv, **kwargs):
         """Syntax: proc.num.regex <regex>"""

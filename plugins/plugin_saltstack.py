@@ -23,7 +23,6 @@ TOP_CONTENT = """base:
     - ecmanaged
 """
 
-
 class ECMSaltstack(ecplugin):
     def cmd_saltstack_available(self, *argv, **kwargs):
         """ Checks if saltstack commands are available
@@ -51,10 +50,10 @@ class ECMSaltstack(ecplugin):
     def cmd_saltstack_apply(self, *argv, **kwargs):
         """ Apply a saltstack manifest
         """
-        recipe_base64 = kwargs.get('recipe_code', None)
-        pillar_base64 = kwargs.get('pillar_code', None)
-        recipe_envars = kwargs.get('envars', None)
-        recipe_facts = kwargs.get('facts', None)
+        recipe_base64   = kwargs.get('recipe_code', None)
+        pillar_base64   = kwargs.get('pillar_code', None)
+        recipe_envars   = kwargs.get('envars', None)
+        recipe_facts    = kwargs.get('facts', None)
 
         if not recipe_base64:
             raise Exception("Invalid arguments")
@@ -63,6 +62,7 @@ class ECMSaltstack(ecplugin):
         if not saltstack_cmd:
             raise Exception('Saltstack no available')
 
+        # Get default paths
         default_path = DEFAULT_SALT_PATH
         if self._is_windows(): default_path = DEFAULT_SALT_PATH_WINDOWS
         module_path = kwargs.get('module_path', default_path)

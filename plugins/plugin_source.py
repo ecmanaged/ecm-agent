@@ -19,17 +19,17 @@ except:
 
 class ECMSource(ecplugin):
     def cmd_source_run(self, *argv, **kwargs):
-        path = kwargs.get('path', None)
-        url = kwargs.get('source', None)
-        source_envars = kwargs.get('envars', None)
-        source_facts = kwargs.get('facts', None)
-        user = kwargs.get('username', None)
-        passwd = kwargs.get('password', None)
-        private_key = kwargs.get('private_key', None)
-        chown_user = kwargs.get('chown_user', None)
-        chown_group = kwargs.get('chown_group', None)
-        rotate = kwargs.get('rotate', False)
-        type = kwargs.get('type', None)
+        path            = kwargs.get('path', None)
+        url             = kwargs.get('source', None)
+        source_envars   = kwargs.get('envars', None)
+        source_facts    = kwargs.get('facts', None)
+        user            = kwargs.get('username', None)
+        passwd          = kwargs.get('password', None)
+        private_key     = kwargs.get('private_key', None)
+        chown_user      = kwargs.get('chown_user', None)
+        chown_group     = kwargs.get('chown_group', None)
+        rotate          = kwargs.get('rotate', False)
+        type            = kwargs.get('type', None)
 
         if not path or not url or not type:
             raise Exception("Invalid parameters")
@@ -195,7 +195,7 @@ class SVN(ectools):
     def _install(self):
         """ try to install subversion
         """
-        out, stdout, stderr = self._install_package('subversion')
+        self._install_package('subversion')
         return self._is_available()
 
 
