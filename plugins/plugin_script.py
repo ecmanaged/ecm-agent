@@ -5,10 +5,6 @@ from ecplugin import ecplugin
 from tempfile import mkdtemp
 from base64 import b64decode
 from shutil import rmtree
-from os import environ
-
-import simplejson as json
-
 
 class ECMScript(ecplugin):
     def cmd_script_run(self, *argv, **kwargs):
@@ -31,9 +27,7 @@ class ECMScript(ecplugin):
             # Write down
             tmp_dir = mkdtemp()
             tmp_file = tmp_dir + '/script' + script_extension
-            fh = open(tmp_file, "wb")
-            fh.write(b64decode(script_base64))
-            fh.close()
+            self._file_write(tmp_file, b64decode(script_base64))
 
         except:
             raise Exception("Unable to decode script")

@@ -53,7 +53,6 @@ class ECMPuppet(ecplugin):
         self._write_envars_facts(envars, facts)
 
         try:
-            # Create temp file
             catalog = b64decode(recipe_base64)
         except:
             raise Exception("Unable to decode recipe")

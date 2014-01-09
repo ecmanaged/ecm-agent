@@ -3,9 +3,10 @@
 from ecplugin import ecplugin
 from ectools import ectools
 
-from tempfile import mkdtemp
+from tempfile import mkdtemp, NamedTemporaryFile
 from urlparse import urlparse
 from shutil import move, rmtree
+from base64 import b64decode
 
 import os
 
@@ -21,6 +22,7 @@ class ECMSource(ecplugin):
     def cmd_source_run(self, *argv, **kwargs):
         path            = kwargs.get('path', None)
         url             = kwargs.get('source', None)
+        branch          = kwargs.get('branch', None)
         source_envars   = kwargs.get('envars', None)
         source_facts    = kwargs.get('facts', None)
         user            = kwargs.get('username', None)
@@ -33,6 +35,12 @@ class ECMSource(ecplugin):
 
         if not path or not url or not type:
             raise Exception("Invalid parameters")
+            
+        if private_key:
+            try:
+                private_key = b64decode(private_key)
+            except:
+                raise Exception("Invalid private key format")
 
         if type.upper() in ('URI', 'FILE'):
             source = FILE(path, rotate)
@@ -53,7 +61,7 @@ class ECMSource(ecplugin):
         # Update envars and facts file
         self._write_envars_facts(envars, facts)
 
-        retval = source.clone(url=url, envars=envars, username=user, password=passwd,
+        retval = source.clone(url=url, branch=branch, envars=envars, username=user, password=passwd,
                               private_key=private_key)
 
         # Chown to specified user/group
@@ -93,18 +101,11 @@ class GIT(ectools):
                 raise Exception('Unable to find or install git')
             self.git_cmd = self._is_available()
 
-    def clone(self, url, envars, username, password, private_key):
+    def clone(self, url, branch, envars, username, password, private_key):
         """ runs git clone URL
         """
-
-        command_clone = self.git_cmd + " clone --quiet --verbose '" + url + "' ."
-        command_pull = self.git_cmd + " pull --quiet --verbose"
-        
-        command = command_clone
-        if os.path.isdir(self.working_dir + '/.git'):
-            if not self.rotate:
-                # GIT clone will fail: no empty dir (so make a pull and hope...)
-                command = command_pull
+            
+        command = self._get_command(url,branch)
 
         # Create git command with user and password
         if username and password:
@@ -115,6 +116,10 @@ class GIT(ectools):
             elif parsed.scheme == 'ssh':
                 command = command.replace('://', '://' + username + '@')
 
+        elif private_key:
+            helper, indetity = self._certificate_helper(private_key)
+            envars['GIT_SSH'] = helper
+
         out, stdout, stderr = self._execute_command(command=command, workdir=self.working_dir, envars=envars)
         result_exec = self._format_output(out, stdout, stderr)
 
@@ -122,9 +127,62 @@ class GIT(ectools):
             extra_msg = self._output("Source deployed successfully to '%s'" % self.working_dir)
             if self.old_dir:
                 extra_msg += self._output("Old source files moved to '%s'" % self.old_dir)
-            result_exec['stdout'] = extra_msg
+            result_exec['stdout'] += extra_msg
+
+        if private_key:
+            try:
+                os.unlink(helper)
+                os.unlink(indetity)
+            except:
+                pass
 
         return result_exec
+        
+    def _get_command(self,url,branch):
+        param = ''
+        if branch: param= " -b " + str(branch)
+        
+        command = self.git_cmd + " clone" + param + " --quiet --verbose '" + url + "' ."
+        command_pull = self.git_cmd + " pull --quiet --verbose"
+        
+        if os.path.isdir(self.working_dir + '/.git'):
+            # GIT clone on already .git repo, do a pull and hope...
+            command = command_pull
+                
+        return command
+
+    def _certificate_helper(self,private_key=None):
+        '''
+        Returns the path to a helper script which can be used in the GIT_SSH env
+        var to use a custom private key file.
+        '''
+        opts = {
+            'StrictHostKeyChecking': 'no',
+            'PasswordAuthentication': 'no',
+            'KbdInteractiveAuthentication': 'no',
+            'ChallengeResponseAuthentication': 'no',
+        }
+
+        # Create identity file
+        identity = NamedTemporaryFile(delete=False)
+        self._chmod(identity.name, 0600)
+        identity.writelines([private_key])
+        identity.close()
+
+        # Create helper script
+        helper = NamedTemporaryFile(delete=False)
+        helper.writelines([
+            '#!/bin/sh\n',
+            'exec ssh ' + 
+            ' '.join('-o%s=%s' % (key, value) for key, value in opts.items()) + 
+            ' -i ' + identity.name + 
+            ' $*\n'
+        ])
+
+        helper.close()
+        self._chmod(helper.name, 0750)
+
+        return helper.name, identity.name
 
     def _is_available(self):
         """ checks if git is on path
@@ -160,7 +218,7 @@ class SVN(ectools):
                 raise Exception('Unable to find or install subversion')
             self.svn_cmd = self._is_available()
 
-    def clone(self, url, envars, username, password, private_key):
+    def clone(self, url, branch, envars, username, password, private_key):
         """ svn co URL
         """
 
@@ -212,7 +270,7 @@ class FILE(ectools):
         deploy = Deploy(self.working_dir, rotate)
         self.old_dir = deploy.prepare()
 
-    def clone(self, envars, url, username, password, private_key):
+    def clone(self, branch, envars, url, username, password, private_key):
         """ Downloads a file from a remote url and decompress it
         """
 
