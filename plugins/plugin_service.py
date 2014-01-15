@@ -40,11 +40,24 @@ class ECMLinux(ecplugin):
     def cmd_service_runlevel(self, *argv, **kwargs):
         return self._get_runlevel()
 
+    def cmd_service_state(self, *argv, **kwargs):
+        """Syntax: service.exists daemon"""
+
+        name = kwargs.get('name', None)
+
+        if not name:
+            raise Exception(self.cmd_service_state.__doc__)
+
+        daemon = os.path.basename(name)
+        out, stdout, stderr = self._execute_command(INITD + '/' + name + ' status')
+
+        return not bool(out)
+
     def cmd_service_exists(self, *argv, **kwargs):
         """Syntax: service.control daemon action <force: 0/1>"""
 
         daemon = kwargs.get('daemon', None)
-        return self._get_rcd(daemon)
+        return bool(self._get_rcd(daemon))
 
     def _get_runlevel(self):
         (exit, stdout, stderr) = self._execute_command(RUNLEVEL)
@@ -82,7 +95,7 @@ class ECMLinux(ecplugin):
 
         return False
 
-    def _get_initd(self, daemon):
+    def _get_init(self, daemon):
         file = INITD + '/' + daemon
         if os.path.exists(INITD) and os.path.exists(file):
             return daemon
@@ -151,6 +164,22 @@ class ECMWindows(ecplugin):
     def cmd_service_runlevel(self, *argv, **kwargs):
         return 0
 
+    def cmd_service_state(self, *argv, **kwargs):
+        """Syntax: service.exists daemon"""
+
+        name = kwargs.get('name', None)
+
+        if not name:
+            raise Exception(self.cmd_service_state.__doc__)
+
+        scmhandle = ws.OpenSCManager(None, None, ws.SC_MANAGER_ALL_ACCESS)
+        sserv, lserv = self._svc_getname(scmhandle, name)
+
+        handle = ws.OpenService(scmhandle, sserv, ws.SERVICE_ALL_ACCESS)
+        stat = ws.QueryServiceStatus(handle)
+
+        return stat[1]
+
     def cmd_service_exists(self, *argv, **kwargs):
         """Syntax: service.exists daemon"""
 
@@ -158,7 +187,7 @@ class ECMWindows(ecplugin):
         scmhandle = ws.OpenSCManager(None, None, ws.SC_MANAGER_ALL_ACCESS)
         sserv, lserv = self._svc_getname(scmhandle, daemon)
 
-        return self._svc_getname(lserv)
+        return bool(lserv)
 
     def cmd_collectd_get(self, *argv, **kwargs):
         try:
@@ -188,18 +217,16 @@ class ECMWindows(ecplugin):
 
         return collector_map
 
+    def _svc_getname(self, scmhandle, service):
+        snames = ws.EnumServicesStatus(scmhandle)
+        for i in snames:
+            if i[0].lower() == service.lower():
+                return i[0], i[1]
 
-def _svc_getname(self, scmhandle, service):
-    snames = ws.EnumServicesStatus(scmhandle)
-    for i in snames:
-        if i[0].lower() == service.lower():
-            return i[0], i[1];
-            break
-        if i[1].lower() == service.lower():
-            return i[0], i[1];
-            break
+            if i[1].lower() == service.lower():
+                return i[0], i[1]
 
-    raise Exception("The %s service doesn't seem to exist." % service)
+        raise Exception("The %s service doesn't seem to exist." % service)
 
 
 class StatFetcher(object):

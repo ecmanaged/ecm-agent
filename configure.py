@@ -21,8 +21,8 @@ else:
 
 
 #Parse config file or end execution
+config_filename = join(dirname(__file__), './config/ecagent.cfg')
 try:
-    config_filename = join(dirname(__file__), './config/ecagent.cfg')
     config = ConfigObj(config_filename)
 except:
     print 'Unable to read the config file at %s' % config_filename
@@ -32,7 +32,7 @@ except:
 
 config['XMPP']['user'] = '%s@%s' % (uuid, config['XMPP']['host'])
 config['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
-config['XMPP']['mac'] = str(getnode)
+config['XMPP']['mac'] = str(getnode())
 config['XMPP']['manual'] = True
 config.write()
 

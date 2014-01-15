@@ -85,25 +85,25 @@ class ECMNetwork(ecplugin):
     def cmd_net_tcp(self, *argv, **kwargs):
         """Syntax net.tcp <hostname> <port>"""
 
-        host = kwargs.get('host', None)
-        port = kwargs.get('port', None)
+        host    = kwargs.get('host', None)
+        port    = kwargs.get('port', None)
+        timeout = kwargs.get('timeout', 30)
 
         if not (host and port):
             raise Exception(self.cmd_net_tcp.__doc__)
 
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.settimeout(30)
+            s.settimeout(timeout)
 
             data = ''
             s.connect((host, int(port)))
-            #            data = s.recv(1024)
             s.shutdown(2)
 
             return ("Connected: %s" % str(data))
 
         except socket.error, e:
-            raise Exception("Unable to connect: URL %s" % e[1])
+            raise Exception("Unable to connect: %s" % e[1])
 
 
 ECMNetwork().run()

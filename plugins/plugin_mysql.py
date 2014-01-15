@@ -1,8 +1,6 @@
 # -*- coding:utf-8 -*-
 
 from ecplugin import ecplugin
-import simplejson as json
-
 
 class ECMMysql(ecplugin):
     def cmd_mysql_exec(self, *argv, **kwargs):
@@ -12,7 +10,11 @@ class ECMMysql(ecplugin):
             _mysql = __import__("MySQLdb")
 
         except:
-            raise Exception("Unsupported MySQLdb")
+            # Try to install package and try again
+            self._install_package('python-mysqldb')
+
+            try: _mysql = __import__("MySQLdb")
+            except: raise Exception("Unsupported MySQLdb")
 
         user = kwargs.get('user', 'root')
         password = kwargs.get('password', '')

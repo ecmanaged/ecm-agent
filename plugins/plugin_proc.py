@@ -11,33 +11,38 @@ class ECMProc(ecplugin):
     def cmd_proc_mem_name(self, *argv, **kwargs):
         """Syntax: proc.mem_name ['name' = name]"""
 
-        proc_name = kwargs.get('name', None)
+        name = kwargs.get('name', None)
         total_rss = 0
         total_vms = 0
 
-        if proc_name:
-            try:
-                for process in psutil.process_iter():
-                    if process.name == proc_name:
-                        p = psutil.Process(process.pid)
-                        mem = p.get_memory_info()
-                        total_rss += mem.rss
-                        total_vms += mem.vms
-
-                return [total_rss, total_vms]
-
-            except:
-                return 0
-        else:
+        if not name:
             raise Exception(self.cmd_proc_mem_name.__doc__)
 
+        try:
+            for process in psutil.process_iter():
+                if process.name == name:
+                    p = psutil.Process(process.pid)
+                    mem = p.get_memory_info()
+                    total_rss += mem.rss
+                    total_vms += mem.vms
+
+            return [total_rss, total_vms]
+
+        except:
+            return 0
+
+
     def cmd_proc_mem_regex(self, *argv, **kwargs):
-        """Syntax: proc.num.regex <regex>"""
+        """Syntax: proc.mem.regex <regex>"""
 
         regex = kwargs.get('regex', None)
 
         if not regex:
             raise Exception(self.cmd_proc_mem_regex.__doc__)
+
+        # clean starting and ending slash
+        regex = re.sub(r'(^\/)', r'', regex)
+        regex = re.sub(r'(\/$)', r'', regex)
 
         total_rss = 0
         total_vms = 0
@@ -72,18 +77,16 @@ class ECMProc(ecplugin):
         if not regex:
             raise Exception(self.cmd_proc_num_regex.__doc__)
 
+        # clean starting and ending slash
+        regex = re.sub(r'(^\/)', r'', regex)
+        regex = re.sub(r'(\/$)', r'', regex)
+
         num = 0
         for proc in psutil.process_iter():
             if re.search(regex, proc.name):
                 num += 1
 
         return int(num)
-
-    def cmd_proc_sem_clean(self, *argv, **kwargs):
-        """Syntax: proc.sem.clean[user]"""
-
-        # :TODO: This
-        return False
 
     def cmd_proc_list_regex(self, *argv, **kwargs):
         """ Syntax: proc.num.regex <regex>"""
@@ -92,6 +95,10 @@ class ECMProc(ecplugin):
 
         if not regex:
             raise Exception(self.cmd_proc_list_regex.__doc__)
+
+        # clean starting and ending slash
+        regex = re.sub(r'(^\/)', r'', regex)
+        regex = re.sub(r'(\/$)', r'', regex)
 
         processes = []
         for proc in psutil.process_iter():
@@ -109,7 +116,7 @@ class ECMProc(ecplugin):
         proc_list = kwargs.get('name', None)
 
         if not proc_list:
-            raise Exception(self.cmd_proc_list_regex.__doc__)
+            raise Exception(self.cmd_proc_kill_name.__doc__)
 
         killed = []
         proc_name_array = proc_list.split(',')
@@ -130,7 +137,7 @@ class ECMProc(ecplugin):
         proc_list = kwargs.get('pid', None)
 
         if not proc_list:
-            raise Exception(self.cmd_proc_list_regex.__doc__)
+            raise Exception(self.cmd_proc_kill_pid.__doc__)
 
         killed = []
         proc_pid_array = proc_list.split(',')
@@ -150,7 +157,11 @@ class ECMProc(ecplugin):
         regex = kwargs.get('regex', None)
 
         if not regex:
-            raise Exception(self.cmd_proc_list_regex.__doc__)
+            raise Exception(self.cmd_proc_kill_regex.__doc__)
+
+        # clean starting and ending slash
+        regex = re.sub(r'(^\/)', r'', regex)
+        regex = re.sub(r'(\/$)', r'', regex)
 
         killed = []
         for proc in psutil.process_iter():
@@ -164,13 +175,23 @@ class ECMProc(ecplugin):
             return ('%s: Killed' % str(killed))
 
     def cmd_command_exists(self, *argv, **kwargs):
+        """Syntax: command.exists[command]"""
+
         command = kwargs.get('command', None)
-        if not command: raise Exception("Invalid params")
+
+        if not command:
+            raise Exception(self.cmd_command_exists.__doc__)
 
         cmd = 'type ' + command
         out, stdout, stderr = self._execute_command(cmd)
 
         return (out == 0)
+
+    def cmd_proc_sem_clean(self, *argv, **kwargs):
+        """Syntax: proc.sem.clean[user]"""
+
+        # :TODO: This
+        return False
 
 
 ECMProc().run()
