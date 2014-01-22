@@ -52,7 +52,7 @@ class ECMBase(ecplugin):
     def cmd_system_cpu_usage(self, *argv, **kwargs):
         'Syntax: load'
         try:
-            return psutil.cpu_percent(interval=5, percpu=True)
+            return psutil.cpu_percent(interval=0.5, percpu=True)
 
         except:
             raise Exception("Unable to get info from psutil")
@@ -159,6 +159,20 @@ class ECMBase(ecplugin):
         return self._boottime_linux()
 
     def _boottime_linux(self):
+
+        # Old psutil versions
+        try:
+            return psutil.BOOT_TIME
+        except:
+            pass
+
+        # psutil v2 versions
+        try:
+            return psutil.boot_time()
+        except:
+            pass
+
+        # By hand
         try:
             f = open('/proc/stat', 'r')
             for line in f:
@@ -167,9 +181,10 @@ class ECMBase(ecplugin):
                     return float(line.strip().split()[1])
             f.close()
             return 0
-
         except:
-            raise Exception("Cannot open file: /proc/stat")
+            pass
+
+        raise Exception("Cannot get uptime")
 
     def _boottime_windows(self):
         try:

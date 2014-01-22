@@ -206,9 +206,16 @@ class ectools():
         self.thread_stdout = ''
         self.thread_stderr = ''
         self.thread_run = 1
+        
+        # Prepare environment variables
+        if not envars or not self._is_dict(envars):
+            envars = {}
+            
+        env = os.environ.copy()
+        env = dict(env.items() + envars.items())
 
         # Create a full command line to split later
-        if self.is_list(command):
+        if self._is_list(command):
             command = ' '.join(command)
 
         if workdir:
@@ -216,27 +223,20 @@ class ectools():
 
         # create command array and add args
         command = split(command)
-        if args and self.is_list(args):
+        if args and self._is_list(args):
             for arg in args:
                 command.append(arg)
+        
+        if runas and not self._is_windows():
+            # dont use su - xxx or env variables will not be available
+            command = ['su', runas, '-c', ' '.join(map(str, command))]
 
-        if runas:
-            if not self._is_windows():
-                command = ['su', '-', runas, '-c', ' '.join(map(str, command))]
-
-                # :TODO: Runas for windows
-
-        # Get current env
-        if not envars or not self.is_dict(envars):
-            envars = {}
-
-        for env in os.environ.keys():
-            envars[env] = os.environ[env]
+            # :TODO: Runas for windows :S
 
         try:
             p = Popen(
                 command,
-                env=envars,
+                env=env,
                 bufsize=0, stdin=PIPE, stdout=PIPE, stderr=PIPE,
                 cwd=workdir,
                 universal_newlines=True,
@@ -247,7 +247,8 @@ class ectools():
             if stdin:
                 p.stdin.write(stdin)
                 p.stdin.flush()
-                p.stdin.close()
+                
+            p.stdin.close()
 
             if self._is_windows():
                 stdout, stderr = p.communicate()
@@ -282,38 +283,37 @@ class ectools():
         self.thread_stdout = ''
         self.thread_stderr = ''
         self.thread_run = 1
-
-        # Get current env
-        if not envars or not self.is_dict(envars):
+        
+        # Prepare environment variables
+        if not envars or not self._is_dict(envars):
             envars = {}
-
-        for env in os.environ.keys():
-            envars[env] = os.environ[env]
+            
+        env = os.environ.copy()
+        env = dict(env.items() + envars.items())
 
         if workdir:
             workdir = os.path.abspath(workdir)
-
+            
         try:
             # +x flag to file
             os.chmod(file, 0700)
             command = [file]
 
             # Add command line args
-            if args and self.is_list(args):
+            if args and self._is_list(args):
                 for arg in args:
                     command.append(arg)
 
-            if runas:
-                if not self._is_windows():
-                    # Change file owner before execute
-                    self._chown(path=workdir, user=runas, group=DEFAULT_GROUP_LINUX, recursive=True)
-                    command = ['su', '-', runas, '-c', ' '.join(map(str, command))]
+            if runas and not self._is_windows():
+                # Change file owner before execute (dont use su - xxx or env variables will not be available)
+                self._chown(path=workdir, user=runas, group=DEFAULT_GROUP_LINUX, recursive=True)
+                command = ['su', runas, '-c', ' '.join(map(str, command))]
 
-                    # :TODO: Runas for windows
-
+                # :TODO: Runas for windows :S
+                    
             p = Popen(
                 command,
-                env=envars,
+                env=env,
                 bufsize=0, stdin=PIPE, stdout=PIPE, stderr=PIPE,
                 cwd=workdir,
                 universal_newlines=True,
@@ -324,7 +324,8 @@ class ectools():
             if stdin:
                 p.stdin.write(stdin)
                 p.stdin.flush()
-                p.stdin.close()
+                
+            p.stdin.close() 
 
             if self._is_windows():
                 stdout, stderr = p.communicate()
@@ -393,7 +394,7 @@ class ectools():
                 envars = json.loads(envars)
                 for var in envars.keys():
                     if not envars[var]: envars[var] = ''
-                    envars[var] = str(envars[var])
+                    envars[var] = self._encode(envars[var])
 
         except:
             pass
@@ -401,21 +402,21 @@ class ectools():
 
     def _write_envars_facts(self, envars=None, facts=None):
         """ Writes env and facts file variables """
-        if envars and self.is_dict(envars):
+        if envars and self._is_dict(envars):
             try:
                 content_env = ''
                 for var in sorted(envars.keys()):
-                    content_env += "export " + str(var) + '="' + str(envars[var]) + "\"\n"
+                    content_env += "export " + str(var) + '="' + self._encode(envars[var]) + "\"\n"
                 self._file_write(ENV_FILE, content_env)
 
             except:
                 return False
 
-        if facts and self.is_dict(envars):
+        if facts and self._is_dict(envars):
             try:
                 content_facts = ''
                 for var in sorted(facts.keys()):
-                    content_facts += str(var) + ':' + str(facts[var]) + "\n"
+                    content_facts += str(var) + ':' + self._encode(facts[var]) + "\n"
                 self._file_write(INFO_FILE, content_facts)
 
             except:
@@ -469,20 +470,27 @@ class ectools():
         str_time = str(time()).replace('.', '_')
         return str_time
 
-    def is_dict(self, obj):
+    def _is_dict(self, obj):
         """Check if the object is a dictionary."""
         return isinstance(obj, dict)
 
-    def is_list(self, obj):
+    def _is_list(self, obj):
         """Check if the object is a list"""
         return isinstance(obj, list)
 
-    def is_string(self, obj):
+    def _is_string(self, obj):
         """Check if the object is a list"""
         if isinstance(obj, str) or isinstance(obj, unicode):
             return True
 
         return False
+        
+    def _encode(self, string):
+        try:
+            string = string.encode('utf-8')
+            return string
+        except:
+            return str(string)
 
     def _split_path(self,path):
         components = []
