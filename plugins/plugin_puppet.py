@@ -11,6 +11,11 @@ import tarfile
 MODULES_PATH = '/etc/puppet/modules'
 MODULES_PATH_WINDOWS = 'c:\ECM\puppet\modules'
 
+BOOTSTRAP = 'http://bootstrap.ecmanaged.com/puppet/linux/'
+BOOTSTRAP_ALT = 'http://bootstrap-devel.ecmanaged.com/puppet/linux/'
+
+BOOTSTRAP_WINDOWS = 'http://bootstrap.ecmanaged.com/puppet/windows/'
+BOOTSTRAP_WINDOWS_ALT = 'http://bootstrap-devel.ecmanaged.com/puppet/windows/'
 
 class ECMPuppet(ecplugin):
     def cmd_puppet_available(self, *argv, **kwargs):
@@ -19,16 +24,24 @@ class ECMPuppet(ecplugin):
         return bool(self._is_available())
 
     def cmd_puppet_install(self, *argv, **kwargs):
-        """ Installs puppet from packages
+        """ Installs saltstack using bootstrap scripts
         """
-        if self._is_available():
-            return True
+        if self._is_available(): return True
 
-        package = kwargs.get('package', 'puppet')
-        self._install_package(package)
+        bootstrap = BOOTSTRAP
+        bootstrap_file = 'bootstrap.sh'
+        if self._is_windows():
+            bootstrap = BOOTSTRAP_WINDOWS
+            bootstrap_file = 'bootstrap.ps1'
 
-        if not self._is_available():
-            raise Exception("Unable to install puppet")
+        if not self._install(bootstrap,bootstrap_file):
+            # Try alternative bootstrap
+            bootstrap = BOOTSTRAP_ALT
+            if self._is_windows():
+                bootstrap = BOOTSTRAP_WINDOWS_ALT
+
+            if not self._install(bootstrap,bootstrap_file):
+                raise Exception("Unable to install puppet")
 
         return True
 
@@ -163,6 +176,23 @@ class ECMPuppet(ecplugin):
         if "\nError: " in ret['stderr']: ret['out'] = 4
 
         return ret
+
+    def _install(self, bootstrap_url, bootstrap_file = 'bootstrap.sh'):
+        """ Installs puppet using bootstrap url
+        """
+
+        tmp_dir = mkdtemp()
+        bootstrap_file = tmp_dir + '/' + bootstrap_file
+        self._download_file(bootstrap_url, bootstrap_file)
+
+        # wget -O - http://bootstrap.ecmanaged.com/puppet/linux/ | sudo sh
+
+        if self._file_read(bootstrap_file):
+            envars = {'DEBIAN_FRONTEND': 'noninteractive'}
+            self._execute_file(bootstrap_file, envars=envars)
+
+        rmtree(tmp_dir)
+        return bool(self._is_available())
 
 
 ECMPuppet().run()

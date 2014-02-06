@@ -12,11 +12,11 @@ DEFAULT_SALT_PATH_WINDOWS = 'C:\ECM\SALTSTACK\salt'
 DEFAULT_PILLAR_PATH = '/srv/pillar'
 DEFAULT_PILLAR_PATH_WINDOWS = 'C:\ECM\SALTSTACK\pillar'
 
-SALTSTACK_BOOTSTRAP = 'http://bootstrap.saltstack.org'
-SALTSTACK_BOOTSTRAP_WINDOWS = 'http://bootstrap.saltstack.org'
+BOOTSTRAP = 'http://bootstrap.ecmanaged.com/saltstack/linux'
+BOOTSTRAP_ALT = 'http://bootstrap.saltstack.org'
 
-SALTSTACK_BOOTSTRAP_ALT = 'http://bootstrap-saltstack.ecmanaged.com'
-SALTSTACK_BOOTSTRAP_WINDOWS_ALT = 'http://bootstrap-saltstack.ecmanaged.com'
+BOOTSTRAP_WINDOWS = 'http://bootstrap.ecmanaged.com/saltstack/windows'
+BOOTSTRAP_WINDOWS_ALT = 'http://bootstrap.saltstack.org'
 
 TOP_CONTENT = """base:
   '*':
@@ -34,15 +34,20 @@ class ECMSaltstack(ecplugin):
         """
         if self._is_available(): return True
 
-        bootstrap = SALTSTACK_BOOTSTRAP
-        if self._is_windows(): bootstrap = SALTSTACK_BOOTSTRAP_WINDOWS
+        bootstrap = BOOTSTRAP
+        bootstrap_file = 'bootstrap.sh'
 
-        if not self._install(bootstrap):
+        if self._is_windows():
+            bootstrap = BOOTSTRAP_WINDOWS
+            bootstrap_file = 'bootstrap.ps1'
+
+        if not self._install(bootstrap,bootstrap_file):
             # Try alternative bootstrap
-            bootstrap = SALTSTACK_BOOTSTRAP_ALT
-            if self._is_windows(): bootstrap = SALTSTACK_BOOTSTRAP_WINDOWS_ALT
+            bootstrap = BOOTSTRAP_ALT
+            if self._is_windows():
+                bootstrap = BOOTSTRAP_WINDOWS_ALT
 
-            if not self._install(bootstrap):
+            if not self._install(bootstrap,bootstrap_file):
                 raise Exception("Unable to install saltstack")
 
         return True
@@ -114,11 +119,12 @@ class ECMSaltstack(ecplugin):
             return self._which('salt-call.exe')
         return self._which('salt-call')
 
-    def _install(self, bootstrap_url):
+    def _install(self, bootstrap_url, bootstrap_file = 'bootstrap.sh'):
         """ Installs saltstack using bootstrap url
         """
+
         tmp_dir = mkdtemp()
-        bootstrap_file = tmp_dir + '/bootstrap-salt.sh'
+        bootstrap_file = tmp_dir + '/' + bootstrap_file
         self._download_file(bootstrap_url, bootstrap_file)
 
         # wget -O - http://bootstrap.saltstack.org | sudo sh
