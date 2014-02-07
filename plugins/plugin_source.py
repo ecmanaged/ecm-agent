@@ -17,7 +17,6 @@ try:
 except:
     pass
 
-
 class ECMSource(ecplugin):
     def cmd_source_run(self, *argv, **kwargs):
         path            = kwargs.get('path', None)
@@ -30,7 +29,7 @@ class ECMSource(ecplugin):
         private_key     = kwargs.get('private_key', None)
         chown_user      = kwargs.get('chown_user', None)
         chown_group     = kwargs.get('chown_group', None)
-        rotate          = kwargs.get('rotate', False)
+        rotate          = kwargs.get('rotate', True)
         type            = kwargs.get('type', None)
 
         if not path or not url or not type:

@@ -172,9 +172,9 @@ class ectools():
         """
         envars = {}
         try:
-            (distribution, version, tmp) = platform.dist()
+            distribution, _version = self._get_distribution()
 
-            if distribution.lower() == 'debian' or distribution.lower() == 'ubuntu':
+            if distribution.lower() in ['debian','ubuntu']:
                 envars['DEBIAN_FRONTEND'] = 'noninteractive'
 
                 if update: self._execute_command(['apt-get', '-y', '-qq', 'update'])
@@ -182,11 +182,11 @@ class ectools():
                            '--allow-unauthenticated', '--force-yes',
                            '-y', '-qq', 'install', packages]
 
-            elif distribution.lower() == 'centos' or distribution.lower() == 'redhat' or distribution.lower() == 'fedora':
+            elif distribution.lower() in ['centos','redhat','fedora','amazon']:
                 if update: self._execute_command(['yum', '-y', 'clean', 'all'])
                 command = ['yum', '-y', '--nogpgcheck', 'install', packages]
 
-            elif distribution.lower() == 'arch':
+            elif distribution.lower() in ['arch']:
                 if update: self._execute_command(['pacman', '-Sy'])
                 if update: self._execute_command(['pacman', '-S', '--noconfirm', 'pacman'])
                 command = ['pacman', '-S', '--noconfirm', packages]
@@ -194,8 +194,7 @@ class ectools():
             else:
                 raise Exception("Distribution not supported: " + distribution)
 
-            out, stdout, stderr = self._execute_command(command, envars=envars)
-            return out, stdout, stderr
+            return self._execute_command(command, envars=envars)
 
         except Exception as e:
             raise Exception("Error installing packages %s: %s" % packages, e)
@@ -500,3 +499,49 @@ class ectools():
                 components.reverse()
                 return components
             components.append(tail)
+
+    def _get_distribution(self):
+        distribution, version = None, None
+
+        try:
+            (distribution, version, _id) = platform.dist()
+        except:
+            pass
+
+        if not distribution:
+            _release_filename = re.compile(r'(\w+)[-_](release|version)')
+            _release_version = re.compile(r'(.*)\s+release\s+(.*)\s+\((.*)\)\s+(.*)')
+            _release_version2 = re.compile(r'(.*?)\s.*\s+release\s+(.*)')
+
+            try:
+                etc_files = os.listdir('/etc')
+
+            except os.error:
+                # Probably not a Unix system
+                return distribution,version
+
+            for etc_file in etc_files:
+                m = _release_filename.match(etc_file)
+                if m is None or not os.path.isfile(etc_file):
+                    continue
+
+                try:
+                    f = open(etc_file, 'r')
+                    first_line = f.readline()
+                    f.close()
+                    m = _release_version.search(first_line)
+
+                    if m is not None:
+                        distribution, version, _id, _tmp = m.groups()
+                        break
+
+                    else:
+                        m = _release_version2.search(first_line)
+                        if m is not None:
+                            distribution, version = m.groups()
+                            break
+
+                except:
+                    pass
+
+        return distribution,version
