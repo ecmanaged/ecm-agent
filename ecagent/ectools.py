@@ -192,12 +192,12 @@ class ectools():
                 command = ['pacman', '-S', '--noconfirm', packages]
 
             else:
-                raise Exception("Distribution not supported: " + distribution)
+                return 1,'',"Distribution not supported: %s" %distribution
 
             return self._execute_command(command, envars=envars)
 
         except Exception as e:
-            raise Exception("Error installing packages %s: %s" % packages, e)
+            return (1,'',"Error installing packages %s: %s" % packages, e)
 
     def _execute_command(self, command, args=None, stdin=None, runas=None, workdir=None, envars=None):
         """ Execute command and flush stdout/stderr using threads
@@ -509,12 +509,13 @@ class ectools():
             pass
 
         if not distribution:
+            _etc = '/etc'
             _release_filename = re.compile(r'(\w+)[-_](release|version)')
             _release_version = re.compile(r'(.*)\s+release\s+(.*)\s+\((.*)\)\s+(.*)')
             _release_version2 = re.compile(r'(.*?)\s.*\s+release\s+(.*)')
 
             try:
-                etc_files = os.listdir('/etc')
+                etc_files = os.listdir(_etc)
 
             except os.error:
                 # Probably not a Unix system
@@ -522,11 +523,11 @@ class ectools():
 
             for etc_file in etc_files:
                 m = _release_filename.match(etc_file)
-                if m is None or not os.path.isfile(etc_file):
+                if m is None or not os.path.isfile(_etc + '/' + etc_file):
                     continue
-
+                    
                 try:
-                    f = open(etc_file, 'r')
+                    f = open(_etc + '/' + etc_file, 'r')
                     first_line = f.readline()
                     f.close()
                     m = _release_version.search(first_line)
