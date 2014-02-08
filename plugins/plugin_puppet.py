@@ -1,12 +1,11 @@
 # -*- coding:utf-8 -*-
 
-from __plugin_base import ECMBase
-
 from base64 import b64decode
 from tempfile import mkdtemp
 from shutil import rmtree
-
 import tarfile
+
+from plugin import ECMPlugin
 
 MODULES_PATH = '/etc/puppet/modules'
 MODULES_PATH_WINDOWS = 'c:\ECM\puppet\modules'
@@ -17,10 +16,10 @@ BOOTSTRAP_ALT = 'http://bootstrap-devel.ecmanaged.com/puppet/linux/'
 BOOTSTRAP_WINDOWS = 'http://bootstrap.ecmanaged.com/puppet/windows/'
 BOOTSTRAP_WINDOWS_ALT = 'http://bootstrap-devel.ecmanaged.com/puppet/windows/'
 
-class ECMPuppet(ECMBase):
+class ECMPuppet(ECMPlugin):
     def cmd_puppet_available(self, *argv, **kwargs):
         """ Checks if puppet commands are available
-         """
+        """
         return bool(self._is_available())
 
     def cmd_puppet_install(self, *argv, **kwargs):

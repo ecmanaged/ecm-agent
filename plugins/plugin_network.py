@@ -1,13 +1,13 @@
 # -*- coding:utf-8 -*-
 
-from __plugin_base import ECMBase
-
-import time, re
+import time
+import re
 import urllib
 import socket
 
+from plugin import ECMPlugin
 
-class ECMNetwork(ECMBase):
+class ECMNetwork(ECMPlugin):
     def cmd_web_regexp(self, *argv, **kwargs):
         """ Syntax: page_regexp <url> <regex> """
 

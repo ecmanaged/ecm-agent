@@ -4,68 +4,11 @@ import httplib2
 import urlparse
 import urllib
 
-
-class HTTPConnection:
-    def __init__(self, base_url, username=None, password=None):
-        self.base_url = base_url
-        self.username = username
-
-        self.url = urlparse.urlparse(base_url)
-        (scheme, netloc, path, query, fragment) = urlparse.urlsplit(base_url)
-
-        self.scheme = scheme
-        self.host = netloc
-        self.path = path
-
-        self.h = httplib2.Http(".cache")
-        self.h.follow_all_redirects = True
-        if username and password:
-            self.h.add_credentials(username, password)
-
-    def request_get(self, resource, args=None, headers={}):
-        return self.request(resource, "get", args, headers=headers)
-
-    def request_delete(self, resource, args=None, headers={}):
-        return self.request(resource, "delete", args, headers=headers)
-
-    def request_head(self, resource, args=None, headers={}):
-        return self.request(resource, "head", args, headers=headers)
-
-    def request_post(self, resource, args=None, body=None, headers={}):
-        return self.request(resource, "post", args, body=body, headers=headers)
-
-    def request_put(self, resource, args=None, body=None, headers={}):
-        return self.request(resource, "put", args, body=body, headers=headers)
-
-    def request(self, resource, method="get", args=None, body=None, headers={}):
-        path = resource
-        headers['User-Agent'] = 'Basic Agent'
-        headers['Content-Type'] = 'application/json'
-
-        if args: path += u"?" + urllib.urlencode(args)
-
-        request_path = []
-        if self.path != "/":
-            if self.path.endswith('/'):
-                request_path.append(self.path[:-1])
-            else:
-                request_path.append(self.path)
-            if path.startswith('/'):
-                request_path.append(path[1:])
-            else:
-                request_path.append(path)
-
-        resp, content = self.h.request(u"%s://%s%s" % (self.scheme, self.host, u'/'.join(request_path)), method.upper(),
-                                       body=body, headers=headers)
-        return {u'headers': resp, u'body': content.decode('UTF-8')}
-
-
-from __plugin_base import ECMBase
+from plugin import ECMPlugin
 import simplejson as json
 import inspect
 
-
-class ECMLoadb(ECMBase):
+class ECMLoadb(ECMPlugin):
     def __init__(self, *argv, **kwargs):
         url = kwargs.get('url', None)
         username = kwargs.get('username', 'admin')
@@ -179,7 +122,60 @@ class ECMLoadb(ECMBase):
             raise Exception("Unknown response error: %s" % retval)
 
 
-ECMLoadb().run()
+class HTTPConnection:
+    def __init__(self, base_url, username=None, password=None):
+        self.base_url = base_url
+        self.username = username
+
+        self.url = urlparse.urlparse(base_url)
+        (scheme, netloc, path, query, fragment) = urlparse.urlsplit(base_url)
+
+        self.scheme = scheme
+        self.host = netloc
+        self.path = path
+
+        self.h = httplib2.Http(".cache")
+        self.h.follow_all_redirects = True
+        if username and password:
+            self.h.add_credentials(username, password)
+
+    def request_get(self, resource, args=None, headers={}):
+        return self.request(resource, "get", args, headers=headers)
+
+    def request_delete(self, resource, args=None, headers={}):
+        return self.request(resource, "delete", args, headers=headers)
+
+    def request_head(self, resource, args=None, headers={}):
+        return self.request(resource, "head", args, headers=headers)
+
+    def request_post(self, resource, args=None, body=None, headers={}):
+        return self.request(resource, "post", args, body=body, headers=headers)
+
+    def request_put(self, resource, args=None, body=None, headers={}):
+        return self.request(resource, "put", args, body=body, headers=headers)
+
+    def request(self, resource, method="get", args=None, body=None, headers={}):
+        path = resource
+        headers['User-Agent'] = 'Basic Agent'
+        headers['Content-Type'] = 'application/json'
+
+        if args: path += u"?" + urllib.urlencode(args)
+
+        request_path = []
+        if self.path != "/":
+            if self.path.endswith('/'):
+                request_path.append(self.path[:-1])
+            else:
+                request_path.append(self.path)
+            if path.startswith('/'):
+                request_path.append(path[1:])
+            else:
+                request_path.append(path)
+
+        resp, content = self.h.request(u"%s://%s%s" % (self.scheme, self.host, u'/'.join(request_path)), method.upper(),
+                                       body=body, headers=headers)
+        return {u'headers': resp, u'body': content.decode('UTF-8')}
+
 
 ## Test
 #test = ECMloadb(url='http://localhost:5002',password='*EQ%0O%C2R5DT7)HRHZA#%3R^UXL*D(OKDKK)#GS5NU#T0NGWWO8THA(RW0X')
@@ -192,3 +188,4 @@ ECMLoadb().run()
 #if test_info_pre == test_info_post:
 #    print "OK: \n%s" % test_info_post
 
+ECMLoadb().run()

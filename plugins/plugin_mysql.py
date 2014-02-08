@@ -1,15 +1,14 @@
 # -*- coding:utf-8 -*-
 
-from __plugin_base import ECMBase
+from plugin import ECMPlugin
 
-class ECMMysql(ECMBase):
+class ECMMysql(ECMPlugin):
     def cmd_mysql_exec(self, *argv, **kwargs):
         """ Syntax mysql.exec[hostname],[user],[password],[database],[query] """
 
         try:
             _mysql = __import__("MySQLdb")
-
-        except:
+        except ImportError:
             # Try to install package and try again
             self._install_package('python-mysqldb')
 

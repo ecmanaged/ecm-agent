@@ -35,7 +35,9 @@ _E_UNVERIFIED_COMMAND = 251
 
 _FINAL_OUTPUT_STRING = '[__response__]'
 
-AGENT_VERSION = 1
+AGENT_VERSION_CORE = 2
+AGENT_VERSION_PROTOCOL = 1
+
 FLUSH_MIN_LENGTH = 5
 FLUSH_TIME = 5
 
@@ -93,7 +95,7 @@ class SMAgentXMPP(Client):
         Client.__init__(self,
                         self.config['XMPP'],
                         observers,
-                        resource='ecm_agent-%d' % AGENT_VERSION
+                        resource='ecm_agent-%d' % AGENT_VERSION_PROTOCOL
         )
 
     def __onIq(self, msg):
@@ -460,9 +462,9 @@ class IqMessage:
                 el_ecm_message = elem.firstChildElement()
                 self.version = el_ecm_message['version']
 
-                if (int(self.version) > AGENT_VERSION):
+                if (int(self.version) > AGENT_VERSION_PROTOCOL):
                     raise Exception(
-                        "Message format (%s) is greater than supported version (%s)" % (self.version, AGENT_VERSION))
+                        "Message format (%s) is greater than supported version (%s)" % (self.version, AGENT_VERSION_PROTOCOL))
 
                 self.type = elem['type']
                 self.id = elem['id']
@@ -504,7 +506,8 @@ class IqMessage:
 
         if self.type == 'result':
             ecm_message = msg.addElement('ecm_message')
-            ecm_message['version'] = str(AGENT_VERSION)
+            ecm_message['version'] = str(AGENT_VERSION_PROTOCOL)
+            ecm_message['core'] = str(AGENT_VERSION_CORE)
             ecm_message['command'] = self.command
             ecm_message['signature'] = self.signature
 

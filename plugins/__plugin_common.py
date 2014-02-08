@@ -32,7 +32,39 @@ _FLUSH_WORKER_SLEEP_TIME = 0.2
 _DEFAULT_GROUP_LINUX = 'root'
 _DEFAULT_GROUP_WINDOWS = 'Administrators'
 
-class ECMcommon():
+_PLUGIN_VERSION = 1.1
+
+class ECMCommon():
+    def cmd_plugin_version(self, *argv, **kwargs):
+        return _PLUGIN_VERSION
+
+    def cmd_plugin_update(self, *argv, **kwargs):
+        """
+        Updates a plugin file from server
+        cmd_plugin_update[file,content]
+        """
+        plugin = kwargs.get('plugin', None)
+        content = kwargs.get('content', None)
+
+        if not plugin or not content:
+             raise Exception(self.cmd_plugin_update.__doc__)
+
+        # Get plugin path using my path
+        plugin_file = os.path.join(
+            os.path.dirname(__file__),
+            os.path.basename(plugin)
+        )
+
+        try:
+            # Only update exiting plugins
+            if os.path.isfile(plugin_file):
+                self._file_write(plugin_file, b64decode(content))
+                return True
+        except:
+            pass
+
+        return False
+
     def _is_windows(self):
         """ Returns True if is a windows system
         """

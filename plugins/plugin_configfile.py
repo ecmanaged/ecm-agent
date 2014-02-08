@@ -5,9 +5,9 @@ import os
 from base64 import b64decode
 from shutil import move
 
-from __plugin_base import ECMBase
+from plugin import ECMPlugin
 
-class ECMConfigfile(ECMBase):
+class ECMConfigfile(ECMPlugin):
     def cmd_configfile_run(self, *argv, **kwargs):
         code_base64     = kwargs.get('configfile', None)
         file            = kwargs.get('path', None)

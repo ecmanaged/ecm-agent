@@ -30,9 +30,9 @@
 import socket
 from sys import stderr
 
-from __plugin_base import ECMBase
+from plugin import ECMPlugin
 
-class ECMCollectd(ECMBase):
+class ECMCollectd(ECMPlugin):
     def cmd_collectd_get(self, *argv, **kwargs):
         sock_file = kwargs.get('sock_file', None)
         if not sock_file: sock_file = '/var/run/collectd-unixsock'

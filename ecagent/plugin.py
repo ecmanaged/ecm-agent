@@ -2,24 +2,22 @@
 
 import sys
 import inspect
-from base64 import b64decode
-
 import simplejson as json
 
+from base64 import b64decode
+
 # Include common tools
-from __plugin_common import ECMcommon
+from __plugin_common import ECMCommon
 
 _E_RUNNING_COMMAND = 253
 _E_COMMAND_NOT_DEFINED = 252
-_FINAL_OUTPUT_STRING = '[__response__]'
 
-_PLUGIN_URL      = 'https://github.com/ecmanaged/ecm-agent-plugins'
-_PLUGIN_URL_ALT  = 'https://bitbuket.com/ecmanaged/ecm-agent-plugins'
+_FINAL_OUTPUT_STRING = '[__response__]'
 
 sys.stdout.flush()
 sys.stderr.flush()
 
-class ECMBase(ECMcommon):
+class ECMPlugin(ECMCommon):
     def _list_commands(self):
         for member in inspect.getmembers(self):
             #Retrieve method names starting with "cmd_" (commands)
@@ -31,6 +29,7 @@ class ECMBase(ECMcommon):
     def _run_command(self, command_name):
         try:
             command = getattr(self, 'cmd_' + command_name)
+
         except:
             sys.stderr.write("Command not defined (%s)" % command_name)
             sys.exit(_E_COMMAND_NOT_DEFINED)

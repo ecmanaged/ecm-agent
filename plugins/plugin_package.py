@@ -1,6 +1,67 @@
 # -*- coding:utf-8 -*-
 
 import re
+from base64 import b64decode
+
+from plugin import ECMPlugin
+
+class ECMPackage(ECMPlugin):
+    def cmd_packages_install(self, *argv, **kwargs):
+        """ Install packages received in csv or in debian packages "Depends" format
+        """
+        packages_b64 = kwargs.get('packages', None)
+
+        if not packages_b64: raise Exception("Invalid argument")
+        try:
+            str_packages = b64decode(packages_b64)
+        except:
+            raise Exception("Invalid b64 received")
+
+        packages = self._parse_package_string(str_packages)
+
+        # Invalid package list
+        if not packages: return False
+
+        # apt-get update or yum clean on first time
+        refresh_db = True
+        ret = {
+            'out': 0,
+            'stdout': '',
+            'stderr': '',
+        }
+
+        for i in range(0, 100):
+            there_are_pending = False
+            for pkg in packages:
+                if not pkg[0]['installed']:
+                    packages_pending = True
+                    try:
+                        package_name = pkg[i]['name']
+                    except KeyError:
+                        continue
+
+                    out, stdout, stderr = self._install_package(package_name, refresh_db)
+                    ret['stdout'] += stdout
+                    ret['stderr'] += stderr
+                    ret['out'] = out
+                    if not out:
+                        pkg[0]['installed'] = 1
+                        refresh_db = False
+
+            if not packages_pending: break
+
+        return ret
+
+    def _parse_package_string(self, packages):
+        """ Parse packages like:
+        'apache2-mpm-worker (= 2.2.16-6+squeeze7) | apache2-mpm-prefork (= 2.2.16-6+squeeze7) | apache2-mpm-ePvent (= 2.2.16-6+squeeze7) | apache2-mpm-itk (= 2.2.16-6+squeeze7), apache2.2-common (= 2.2.16-6+squeeze7)'
+        and return structure
+        """
+        parsed = PkgRelation.parse_relations(packages)
+        for pkg in parsed: pkg[0]['installed'] = 0
+
+        return parsed
+
 
 #####################################################
 # 3th party - From  python-debian package project
@@ -60,68 +121,6 @@ class PkgRelation(object):
         tl_deps = cls.__comma_sep_RE.split(raw.strip()) # top-level deps
         cnf = map(cls.__pipe_sep_RE.split, tl_deps)
         return [[parse_rel(or_dep) for or_dep in or_deps] for or_deps in cnf]
-
-
-from __plugin_base import ECMBase
-import base64
-
-
-class ECMPackage(ECMBase):
-    def cmd_packages_install(self, *argv, **kwargs):
-        """ Install packages received in csv or in debian packages "Depends" format
-        """
-        packages_b64 = kwargs.get('packages', None)
-
-        if not packages_b64: raise Exception("Invalid argument")
-        try:
-            str_packages = base64.b64decode(packages_b64)
-        except:
-            raise Exception("Invalid b64 received")
-
-        packages = self._parse_package_string(str_packages)
-
-        # Invalid package list
-        if not packages: return False
-
-        # apt-get update or yum clean on first time
-        refresh_db = True
-        ret = {
-            'out': 0,
-            'stdout': '',
-            'stderr': '',
-        }
-
-        for i in range(0, 100):
-            there_are_pending = False
-            for pkg in packages:
-                if not pkg[0]['installed']:
-                    packages_pending = True
-                    try:
-                        package_name = pkg[i]['name']
-                    except KeyError:
-                        continue
-
-                    out, stdout, stderr = self._install_package(package_name, refresh_db)
-                    ret['stdout'] += stdout
-                    ret['stderr'] += stderr
-                    ret['out'] = out
-                    if not out:
-                        pkg[0]['installed'] = 1
-                        refresh_db = False
-
-            if not packages_pending: break
-
-        return ret
-
-    def _parse_package_string(self, packages):
-        """ Parse packages like:
-        'apache2-mpm-worker (= 2.2.16-6+squeeze7) | apache2-mpm-prefork (= 2.2.16-6+squeeze7) | apache2-mpm-ePvent (= 2.2.16-6+squeeze7) | apache2-mpm-itk (= 2.2.16-6+squeeze7), apache2.2-common (= 2.2.16-6+squeeze7)'
-        and return structure
-        """
-        parsed = PkgRelation.parse_relations(packages)
-        for pkg in parsed: pkg[0]['installed'] = 0
-
-        return parsed
 
 
 ECMPackage().run()

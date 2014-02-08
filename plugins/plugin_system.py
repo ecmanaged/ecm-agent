@@ -1,12 +1,13 @@
 # -*- coding:utf-8 -*-
 
-from __plugin_base import ECMBase
-
-import os, platform, psutil
+import os
+import platform
 import socket
+import psutil
 
+from plugin import ECMPlugin
 
-class ECMBase(ECMBase):
+class ECMBase(ECMPlugin):
     def cmd_agent_ping(self, *argv, **kwargs):
         return True
 
@@ -208,4 +209,4 @@ class ECMBase(ECMBase):
         return (os_distrib, os_version)
 
 
-ECMBase().run()
+ECMPlugin().run()

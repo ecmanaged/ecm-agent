@@ -11,13 +11,13 @@ try:
     import tarfile
     import zipfile
 
-except:
+except ImportError:
     pass
 
-from __plugin_base import ECMBase
-from __plugin_common import ECMcommon
+from plugin import ECMPlugin
+from __plugin_common import ECMCommon
 
-class ECMSource(ECMBase):
+class ECMSource(ECMPlugin):
     def cmd_source_run(self, *argv, **kwargs):
         path            = kwargs.get('path', None)
         url             = kwargs.get('source', None)
@@ -79,7 +79,7 @@ class ECMSource(ECMBase):
         return output
 
 
-class GIT(ECMcommon):
+class GIT(ECMCommon):
     def __init__(self, working_dir, rotate):
 
         if not working_dir:
@@ -197,7 +197,7 @@ class GIT(ECMcommon):
         return bool(self._is_available())
 
 
-class SVN(ECMcommon):
+class SVN(ECMCommon):
     def __init__(self, working_dir, rotate):
 
         if not working_dir:
@@ -257,7 +257,7 @@ class SVN(ECMcommon):
         return self._is_available()
 
 
-class FILE(ECMcommon):
+class FILE(ECMCommon):
     def __init__(self, working_dir, rotate):
 
         if not working_dir:
@@ -382,7 +382,7 @@ class FILE(ECMcommon):
         return False
 
 
-class Deploy(ECMcommon):
+class Deploy(ECMCommon):
     def __init__(self, working_dir, rotate):
 
         self.working_dir = os.path.abspath(working_dir)

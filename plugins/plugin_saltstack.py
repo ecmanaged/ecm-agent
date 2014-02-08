@@ -1,10 +1,10 @@
 # -*- coding:utf-8 -*-
 
-from __plugin_base import ECMBase
-
 from tempfile import mkdtemp
 from shutil import rmtree
 from base64 import b64decode
+
+from plugin import ECMPlugin
 
 DEFAULT_SALT_PATH = '/srv/salt'
 DEFAULT_SALT_PATH_WINDOWS = 'C:\ECM\SALTSTACK\salt'
@@ -23,7 +23,7 @@ TOP_CONTENT = """base:
     - ecmanaged
 """
 
-class ECMSaltstack(ECMBase):
+class ECMSaltstack(ECMPlugin):
     def cmd_saltstack_available(self, *argv, **kwargs):
         """ Checks if saltstack commands are available
         """

@@ -1,9 +1,11 @@
 # -*- coding:utf-8 -*-
 
-from __plugin_base import ECMBase
-
 import time
-import sys, os, re
+import sys
+import os
+import re
+
+from plugin import ECMPlugin
 
 RCD = '/etc/rc'
 INITD = '/etc/init.d'
@@ -12,8 +14,7 @@ HEARTBEAT = '/etc/heartbeat/haresources'
 
 SVC_TIMEOUT = 120
 
-
-class ECMLinux(ECMBase):
+class ECMLinux(ECMPlugin):
     def cmd_service_control(self, *argv, **kwargs):
         """Syntax: service.control daemon action <force: 0/1>"""
 
@@ -103,7 +104,7 @@ class ECMLinux(ECMBase):
         return False
 
 
-class ECMWindows(ECMBase):
+class ECMWindows(ECMPlugin):
     def cmd_service_control(self, *argv, **kwargs):
         """Syntax: service.control daemon action"""
 
