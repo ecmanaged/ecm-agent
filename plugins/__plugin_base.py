@@ -2,21 +2,21 @@
 
 import sys
 import inspect
-import simplejson as json
 from base64 import b64decode
 
-# Local
-from ectools import ectools
+import simplejson as json
 
-E_RUNNING_COMMAND = 253
-E_COMMAND_NOT_DEFINED = 252
-STDOUT_FINAL_OUTPUT_STR = '[__ecagent::response__]'
+# Include common tools
+from __plugin_common import ECMcommon
+
+_E_RUNNING_COMMAND = 253
+_E_COMMAND_NOT_DEFINED = 252
+_STDOUT_FINAL_OUTPUT_STR = '[__ecagent::response__]'
 
 sys.stdout.flush()
 sys.stderr.flush()
 
-
-class ecplugin(ectools):
+class ECMBase(ECMcommon):
     def _listCommands(self):
         for member in inspect.getmembers(self):
             #Retrieve method names starting with "cmd_" (commands)
@@ -30,7 +30,7 @@ class ecplugin(ectools):
             command = getattr(self, 'cmd_' + command_name)
         except:
             sys.stderr.write("Command not defined (%s)" % command_name)
-            sys.exit(E_COMMAND_NOT_DEFINED)
+            sys.exit(_E_COMMAND_NOT_DEFINED)
 
         # Read command's arguments from stdin in json format (b64).
         lines = []
@@ -40,7 +40,7 @@ class ecplugin(ectools):
         try:
             # convert returned data to json
             data = command(**command_args)
-            sys.stdout.write("\n" + STDOUT_FINAL_OUTPUT_STR + "\n" + json.dumps(data))
+            sys.stdout.write("\n" + _STDOUT_FINAL_OUTPUT_STR + "\n" + json.dumps(data))
             return
 
         except Exception:
@@ -48,11 +48,11 @@ class ecplugin(ectools):
             data = {
                 'stdout': '',
                 'stderr': "ERROR: %s" % value,
-                'out': E_RUNNING_COMMAND,
+                'out': _E_RUNNING_COMMAND,
                 'exception': 1
             }
-            sys.stdout.write("\n" + STDOUT_FINAL_OUTPUT_STR + "\n" + json.dumps(data))
-            return E_RUNNING_COMMAND
+            sys.stdout.write("\n" + _STDOUT_FINAL_OUTPUT_STR + "\n" + json.dumps(data))
+            return _E_RUNNING_COMMAND
 
     def run(self):
         if len(sys.argv) == 1 or sys.argv[1] == '':

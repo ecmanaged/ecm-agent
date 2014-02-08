@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 
-from ecplugin import ecplugin
+from __plugin_base import ECMBase
 
 from base64 import b64decode
 from tempfile import mkdtemp
@@ -17,7 +17,7 @@ BOOTSTRAP_ALT = 'http://bootstrap-devel.ecmanaged.com/puppet/linux/'
 BOOTSTRAP_WINDOWS = 'http://bootstrap.ecmanaged.com/puppet/windows/'
 BOOTSTRAP_WINDOWS_ALT = 'http://bootstrap-devel.ecmanaged.com/puppet/windows/'
 
-class ECMPuppet(ecplugin):
+class ECMPuppet(ECMBase):
     def cmd_puppet_available(self, *argv, **kwargs):
         """ Checks if puppet commands are available
          """

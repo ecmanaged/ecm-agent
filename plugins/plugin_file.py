@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 
-from ecplugin import ecplugin
+from __plugin_base import ECMBase
 import os, re
 
 # :TODO: Move to config
@@ -9,7 +9,7 @@ PROTECTED_FILES = [
 ]
 
 
-class ECMFile(ecplugin):
+class ECMFile(ECMBase):
     def cmd_file_exist(self, *argv, **kwargs):
         """Syntax: file.exist <file>"""
 

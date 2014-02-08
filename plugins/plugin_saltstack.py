@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 
-from ecplugin import ecplugin
+from __plugin_base import ECMBase
 
 from tempfile import mkdtemp
 from shutil import rmtree
@@ -23,7 +23,7 @@ TOP_CONTENT = """base:
     - ecmanaged
 """
 
-class ECMSaltstack(ecplugin):
+class ECMSaltstack(ECMBase):
     def cmd_saltstack_available(self, *argv, **kwargs):
         """ Checks if saltstack commands are available
         """

@@ -1,8 +1,8 @@
 # -*- coding:utf-8 -*-
 
-from ecplugin import ecplugin
+from __plugin_base import ECMBase
 
-class ECMMysql(ecplugin):
+class ECMMysql(ECMBase):
     def cmd_mysql_exec(self, *argv, **kwargs):
         """ Syntax mysql.exec[hostname],[user],[password],[database],[query] """
 

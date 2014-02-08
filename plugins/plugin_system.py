@@ -1,12 +1,12 @@
 # -*- coding:utf-8 -*-
 
-from ecplugin import ecplugin
+from __plugin_base import ECMBase
 
 import os, platform, psutil
 import socket
 
 
-class ECMBase(ecplugin):
+class ECMBase(ECMBase):
     def cmd_agent_ping(self, *argv, **kwargs):
         return True
 

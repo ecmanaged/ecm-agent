@@ -62,11 +62,11 @@ class PkgRelation(object):
         return [[parse_rel(or_dep) for or_dep in or_deps] for or_deps in cnf]
 
 
-from ecplugin import ecplugin
+from __plugin_base import ECMBase
 import base64
 
 
-class ECMPackage(ecplugin):
+class ECMPackage(ECMBase):
     def cmd_packages_install(self, *argv, **kwargs):
         """ Install packages received in csv or in debian packages "Depends" format
         """

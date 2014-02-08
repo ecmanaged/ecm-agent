@@ -1,12 +1,12 @@
 # -*- coding:utf-8 -*-
 
-from ecplugin import ecplugin
+from __plugin_base import ECMBase
 
 from tempfile import mkdtemp
 from base64 import b64decode
 from shutil import rmtree
 
-class ECMScript(ecplugin):
+class ECMScript(ECMBase):
     def cmd_script_run(self, *argv, **kwargs):
         """script.run script(b64) extension envars runas executable"""
 

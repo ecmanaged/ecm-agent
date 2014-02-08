@@ -1,12 +1,12 @@
 # -*- coding:utf-8 -*-
 
-from ecplugin import ecplugin
+from __plugin_base import ECMBase
 
 import os, re
 import psutil
 
 
-class ECMProc(ecplugin):
+class ECMProc(ECMBase):
 
     def cmd_proc_mem_name(self, *argv, **kwargs):
         """Syntax: proc.mem_name ['name' = name]"""
