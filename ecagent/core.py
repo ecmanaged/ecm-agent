@@ -1,5 +1,6 @@
 # -*- coding:utf-8 -*-
 
+#Twisted
 from twisted.words.protocols.jabber import client, jid, xmlstream
 from twisted.words.xish.domish import Element
 from twisted.internet import reactor
@@ -7,8 +8,7 @@ from twisted.internet.task import LoopingCall
 from twisted.words.protocols.jabber.xmlstream import STREAM_END_EVENT
 from twisted.words.protocols.jabber.client import IQ
 
-import twlogging as l
-
+import twlogging as log
 from random import random
 
 # Add registerAccount to XMPPAuthenticator
@@ -91,7 +91,7 @@ class BasicClient:
 
     def _failed_auth(self, error):
         """ overwrite in derivated class """
-        l.info("Auth failed, trying to autoregister")
+        log.info("Auth failed, trying to autoregister")
         self._factory.authenticator.registerAccount(self._user.split('@')[0], self._password)
 
         # Initialize again in a few
@@ -99,10 +99,10 @@ class BasicClient:
 
     def _stream_end(self, error):
         """ overwrite in derivated class """
-        l.info("XMPPClient stream end: %s" % error)
+        log.info("XMPPClient stream end: %s" % error)
 
     def _connected(self, xml_stream):
-        l.info("XMPPClient connected")
+        log.info("XMPPClient connected")
         self._xs = xml_stream
 
     def _authd(self, xml_stream):
@@ -111,9 +111,10 @@ class BasicClient:
 
         This method gets called when login has been successful.
         """
-        l.info("XMPPClient authenticated")
+        log.info("XMPPClient authenticated")
 
-        #Keepalive: Send a newline every 60 seconds to avoid server disconnect
+        #Keepalive: Send a newline every 60 seconds
+        #to avoid server disconnect
         self._keep_alive_lc = LoopingCall(self._xs.send, '\n')
         self._keep_alive_lc.start(60)
         self._xs.addObserver(STREAM_END_EVENT,
@@ -129,9 +130,9 @@ class BasicClient:
         return str(int(random() * (10 ** 31)))
 
     def send(self, elem):
-        l.debug('BasicClient.send: %s' % elem.toXml())
+        log.debug('BasicClient.send: %s' % elem.toXml())
         if not elem.getAttribute('id'):
-            l.debug('No message ID in message, creating one')
+            log.debug('No message ID in message, creating one')
             elem['id'] = self._newid()
         d = self._xs.send(elem.toXml())
 
@@ -139,7 +140,6 @@ class BasicClient:
         if self._keep_alive_lc.running:
             self._keep_alive_lc.stop()
             self._keep_alive_lc.start(60)
-
         return d
 
     def debug(self, elem):
@@ -148,7 +148,7 @@ class BasicClient:
 
         @param elem: Message to print.
         """
-        l.debug("Message dump follows:")
-        l.debug("v" * 20)
-        l.debug(elem.toXml().encode('utf-8'))
-        l.debug("^" * 20)
+        log.debug("Message dump follows:")
+        log.debug("v" * 20)
+        log.debug(elem.toXml().encode('utf-8'))
+        log.debug("^" * 20)

@@ -117,7 +117,6 @@ class SMAgentXMPP(Client):
                     log.warn('IQ sender not in roster (%s), dropping message'
                            % message.from_)
                 else:
-                    log.debug('Processing command...')
                     self._processCommand(message)
             else:
                 log.warn('Unknown ecm_message received: "%s" Full XML:\n%s'
@@ -129,22 +128,20 @@ class SMAgentXMPP(Client):
     def _processCommand(self, message):
         log.debug('Process Command')
 
-        verified = False
         if self.public_key:
-            verified = self._verify_message(message)
-            if verified == False:
-                # Crypto rutines are working and message has bad signature
-                log.info('[RSA Invalid] Command from %s has bad signature (Ignored)' % message.from_)
+            if not self._verify_message(message):
+                log.critical('[RSA Verify: Failed] Command from %s has bad signature (Ignored)' % message.from_)
                 result = (_E_UNVERIFIED_COMMAND, '', 'Bad signature', 0)
                 self._onCallFinished(result, message)
                 return
         else:
-            log.warn('[RSA Verify] PyCrypto not available: Running unverified Command from %s' % message.from_)
+            # No public key, RSA functions are not available on this system
+            log.warn('[RSA Verify: No available] WARNING: Running unverified Command from %s' % message.from_)
 
         flush_callback = self._Flush
         message.command_replaced = message.command.replace('.', '_')
-        d = self.command_runner.runCommand(message.command_replaced, message.command_args, flush_callback, message,
-                                           verified)
+        d = self.command_runner.runCommand(message.command_replaced, message.command_args, flush_callback, message)
+
         if d:
             d.addCallbacks(self._onCallFinished, self._onCallFailed,
                            callbackKeywords={'message': message},
@@ -153,8 +150,8 @@ class SMAgentXMPP(Client):
             return d
 
         else:
-            log.debug('Command Ignored: Unknown command')
-            result = (_E_RUNNING_COMMAND, '', 'Unknown command', 0)
+            log.debug("Command Ignored: Unknown command: %s" % message.command)
+            result = (_E_RUNNING_COMMAND, '', "Unknown command: %s" % message.command, 0)
             self._onCallFinished(result, message)
 
         return
@@ -195,8 +192,6 @@ class SMAgentXMPP(Client):
         return public_key
 
     def _verify_message(self, message):
-        log.debug('Verify Message')
-
         args_encoded = ''
         for arg in sorted(message.command_args.keys()):
             args_encoded += arg + ':' + message.command_args[arg] + ':'
@@ -206,9 +201,9 @@ class SMAgentXMPP(Client):
                message.command + '::' + \
                args_encoded
 
-        return self._rsa_verify(text, message.signature)
+        return self._rsa_verify(text, message.signature, message.command, message.from_)
 
-    def _rsa_verify(self, text, signature):
+    def _rsa_verify(self, text, signature, command, sender):
         def _emsa_pkcs1_v1_5_encode(M, emLen):
             # for PKCS1_V1_5 signing:
             SHA1DER = '\x30\x21\x30\x09\x06\x05\x2b\x0e\x03\x02\x1a\x05\x00\x04\x14'
@@ -217,11 +212,11 @@ class SMAgentXMPP(Client):
             H = SHA.new(M).digest()
             T = SHA1DER + H
             if emLen < (SHA1DERLEN + 11):
-                log.error('[RSA Verify] intended encoded message length too short (%s)' % emLen)
+                log.error('[RSA Verify: Error] intended encoded message length too short (%s)' % emLen)
                 return
             ps = '\xff' * (emLen - SHA1DERLEN - 3)
             if len(ps) < 8:
-                log.error('[RSA Verify] ps length too short')
+                log.error('[RSA Verify: Error] ps length too short')
                 return
             return '\x00\x01' + ps + '\x00' + T
 
@@ -230,8 +225,11 @@ class SMAgentXMPP(Client):
 
         if em:
             signature = number.bytes_to_long(signature)
-            return self.public_key.verify(em, (signature,))
+            if self.public_key.verify(em, (signature,)):
+                log.info("[RSA Verify: OK] command: %s - from: %s" % (command, sender))
+                return True
 
+        log.error("[RSA Verify: Error] %s - from: %s" % (command, sender))
         return False
 
 
@@ -292,13 +290,13 @@ class CommandRunner():
             log.error('Error adding commands from %s: %s'
                     % (kwargs['filename'], data))
 
-    def runCommand(self, command, command_args, flush_callback=None, message=None, verified=None):
+    def runCommand(self, command, command_args, flush_callback=None, message=None):
         if (command in self._commands):
             log.debug("executing %s with args: %s" % (command, command_args))
-            return self._runProcess(self._commands[command], command, command_args, flush_callback, message, verified)
+            return self._runProcess(self._commands[command], command, command_args, flush_callback, message)
         return
 
-    def _runProcess(self, filename, command_name, command_args, flush_callback=None, message=None, verified=None):
+    def _runProcess(self, filename, command_name, command_args, flush_callback=None, message=None):
         ext = os.path.splitext(filename)[1]
         if ext in ('.py', '.pyw', '.pyc'):
             command = self._python_runner
@@ -316,11 +314,8 @@ class CommandRunner():
             cmd_timeout = int(command_args['timeout'])
 
         if command_name:
-            if verified:
-                log.info("[RSA Verified] Running %s from %s (timeout: %i)" % (command_name, filename, cmd_timeout))
+            log.info("Running %s from %s (timeout: %i)" % (command_name, filename, cmd_timeout))
 
-            else:
-                log.info("Running %s from %s (timeout: %i)" % (command_name, filename, cmd_timeout))
         else:
             log.info("[INIT] Loading commands from %s" % filename)
 
