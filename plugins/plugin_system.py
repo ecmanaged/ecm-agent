@@ -7,7 +7,7 @@ import psutil
 
 from plugin import ECMPlugin
 
-class ECMBase(ECMPlugin):
+class ECMSystem(ECMPlugin):
     def cmd_agent_ping(self, *argv, **kwargs):
         return True
 
@@ -209,4 +209,4 @@ class ECMBase(ECMPlugin):
         return (os_distrib, os_version)
 
 
-ECMPlugin().run()
+ECMSystem().run()

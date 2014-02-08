@@ -152,7 +152,7 @@ class SMAgentXMPP(Client):
             return d
 
         else:
-            log.debug("Command Ignored: Unknown command: %s" % message.command)
+            log.info("Command Ignored: Unknown command: %s" % message.command)
             result = (_E_RUNNING_COMMAND, '', "Unknown command: %s" % message.command, 0)
             self._onCallFinished(result, message)
 
