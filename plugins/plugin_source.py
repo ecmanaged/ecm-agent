@@ -1,14 +1,11 @@
 # -*- coding:utf-8 -*-
 
-from __plugin_base import ECMBase
-from __plugin_common import ectools
+import os
 
 from tempfile import mkdtemp, NamedTemporaryFile
 from urlparse import urlparse
 from shutil import move, rmtree
 from base64 import b64decode
-
-import os
 
 try:
     import tarfile
@@ -16,6 +13,9 @@ try:
 
 except:
     pass
+
+from __plugin_base import ECMBase
+from __plugin_common import ECMcommon
 
 class ECMSource(ECMBase):
     def cmd_source_run(self, *argv, **kwargs):
@@ -79,7 +79,7 @@ class ECMSource(ECMBase):
         return output
 
 
-class GIT(ectools):
+class GIT(ECMcommon):
     def __init__(self, working_dir, rotate):
 
         if not working_dir:
@@ -197,7 +197,7 @@ class GIT(ectools):
         return bool(self._is_available())
 
 
-class SVN(ectools):
+class SVN(ECMcommon):
     def __init__(self, working_dir, rotate):
 
         if not working_dir:
@@ -257,7 +257,7 @@ class SVN(ectools):
         return self._is_available()
 
 
-class FILE(ectools):
+class FILE(ECMcommon):
     def __init__(self, working_dir, rotate):
 
         if not working_dir:
@@ -382,7 +382,7 @@ class FILE(ectools):
         return False
 
 
-class Deploy(ectools):
+class Deploy(ECMcommon):
     def __init__(self, working_dir, rotate):
 
         self.working_dir = os.path.abspath(working_dir)
