@@ -1,548 +1,211 @@
 # -*- coding:utf-8 -*-
 
-import os, string, random, re
-import platform
-import urllib2
+from ecplugin import ecplugin
 
-from subprocess import Popen, PIPE
-from time import time
-from shlex import split
-from base64 import b64decode
-from threading import Thread
-from time import sleep
-
-import twisted.python.procutils as procutils
-
-import simplejson as json
-import sys
-
-if not sys.platform.startswith("win32"):
-    import fcntl
-
-DIR = '/etc/ecmanaged'
-ENV_FILE = DIR + '/ecm_env'
-INFO_FILE = DIR + '/node_info'
-
-FLUSH_WORKER_SLEEP_TIME = 0.2
-
-DEFAULT_GROUP_LINUX = 'root'
-DEFAULT_GROUP_WINDOWS = 'Administrators'
+import os, platform, psutil
+import socket
 
 
-class ectools():
-    def _is_windows(self):
-        """ Returns True if is a windows system
-        """
-        if sys.platform.startswith("win32"):
-            return True
-
-        return False
-
-    def _file_write(self, file, content=None):
-
-        try:
-            if content:
-                _path = os.path.dirname(file)
-                if not os.path.exists(_path):
-                    self._mkdir_p(_path)
-
-                f = open(file, 'w')
-                f.write(content)
-                f.close()
-
-        except:
-            raise Exception("Unable to write file: %s" % file)
-
-    def _file_read(self, file):
-        """ Reads a file and returns content
-        """
-        try:
-            if os.path.isfile(file):
-                f = open(file, 'r')
-                retval = f.read()
-                f.close()
-                return retval
-
-        except:
-            raise Exception("Unable to read file: %s" % file)
-
-    def _secret_gen(self, length=60):
-        """ Generates random chars
-        """
-        chars = string.ascii_uppercase + string.digits + '!@#$%^&*()'
-        return ''.join(random.choice(chars) for x in range(length))
-
-    def _clean_stdout(self, output):
-        """ Remove color chars from output
-        """
-        try:
-            r = re.compile("\033\[[0-9;]*m", re.MULTILINE)
-            return r.sub('', output)
-        except:
-            return output
-
-    def _download_file(self, url, file, user=None, passwd=None):
-        """ Downloads remote file
-        """
-
-        try:
-            if user and passwd:
-                password_manager = urllib2.HTTPPasswordMgrWithDefaultRealm()
-                password_manager.add_password(None, url, user, passwd)
-
-                auth_manager = urllib2.HTTPBasicAuthHandler(password_manager)
-                opener = urllib2.build_opener(auth_manager)
-
-                # ...and install it globally so it can be used with urlopen.
-                urllib2.install_opener(opener)
-
-            req = urllib2.urlopen(url.replace("'", ""))
-            CHUNK = 256 * 10240
-            with open(file, 'wb') as fp:
-                while True:
-                    chunk = req.read(CHUNK)
-                    if not chunk: break
-                    fp.write(chunk)
-        except:
-            return False
-
-        return file
-
-    def _chmod(self, file, mode):
-        """ chmod a file
-        """
-        try:
-            os.chmod(file, mode)
-            return True
-
-        except:
-            return False
-
-    def _which(self, command):
-        """ search executable on path
-        """
-        found = procutils.which(command)
-
-        try:
-            cmd = found[0]
-        except IndexError:
-            return False
-
-        return cmd
-
-    def _chown(self, path, user, group, recursive=False):
-        """ chown a file or path
-        """
-        try:
-            from pwd import getpwnam
-            from grp import getgrnam
-
-            uid = 0
-            gid = 0
-            try:
-                uid = getpwnam(user)[2]
-            except KeyError:
-                pass
-
-            try:
-                gid = getgrnam(group)[2]
-            except KeyError:
-                pass
-
-            if recursive:
-                # Recursive chown
-                if not os.path.isdir(path):
-                    return False
-
-                for root, dirs, files in os.walk(path):
-                    os.chown(os.path.join(path, root), uid, gid)
-                    for f in files:
-                        os.chown(os.path.join(path, root, f), uid, gid)
-            else:
-                # Just file or path
-                os.chown(path, uid, gid)
-
-        except:
-            return False
-
+class ECMBase(ecplugin):
+    def cmd_agent_ping(self, *argv, **kwargs):
         return True
 
-    def _install_package(self, packages, update=True):
-        """ Install packages
-        """
-        envars = {}
-        try:
-            distribution, _version = self._get_distribution()
+    def cmd_set_info(self, *argv, **kwargs):
+        """ Set ECManaged facts and environment variables """
+        envars = kwargs.get('envars', None)
+        facts = kwargs.get('facts', None)
+        if not envars:
+            raise Exception('Invalid arguments')
 
-            if distribution.lower() in ['debian','ubuntu']:
-                envars['DEBIAN_FRONTEND'] = 'noninteractive'
+        envars = self._envars_decode(envars)
+        facts = self._envars_decode(facts)
 
-                if update: self._execute_command(['apt-get', '-y', '-qq', 'update'])
-                command = ['apt-get', '-o', 'Dpkg::Options::=--force-confold',
-                           '--allow-unauthenticated', '--force-yes',
-                           '-y', '-qq', 'install', packages]
-
-            elif distribution.lower() in ['centos','redhat','fedora','amazon']:
-                if update: self._execute_command(['yum', '-y', 'clean', 'all'])
-                command = ['yum', '-y', '--nogpgcheck', 'install', packages]
-
-            elif distribution.lower() in ['arch']:
-                if update: self._execute_command(['pacman', '-Sy'])
-                if update: self._execute_command(['pacman', '-S', '--noconfirm', 'pacman'])
-                command = ['pacman', '-S', '--noconfirm', packages]
-
-            else:
-                return 1,'',"Distribution not supported: %s" %distribution
-
-            return self._execute_command(command, envars=envars)
-
-        except Exception as e:
-            return (1,'',"Error installing packages %s: %s" % packages, e)
-
-    def _execute_command(self, command, args=None, stdin=None, runas=None, workdir=None, envars=None):
-        """ Execute command and flush stdout/stderr using threads
-        """
-        self.thread_stdout = ''
-        self.thread_stderr = ''
-        self.thread_run = 1
-        
-        # Prepare environment variables
-        if not envars or not self._is_dict(envars):
-            envars = {}
-            
-        env = os.environ.copy()
-        env = dict(env.items() + envars.items())
-
-        # Create a full command line to split later
-        if self._is_list(command):
-            command = ' '.join(command)
-
-        if workdir:
-            workdir = os.path.abspath(workdir)
-
-        # create command array and add args
-        command = split(command)
-        if args and self._is_list(args):
-            for arg in args:
-                command.append(arg)
-        
-        if runas and not self._is_windows():
-            # dont use su - xxx or env variables will not be available
-            command = ['su', runas, '-c', ' '.join(map(str, command))]
-
-            # :TODO: Runas for windows :S
-
-        try:
-            p = Popen(
-                command,
-                env=env,
-                bufsize=0, stdin=PIPE, stdout=PIPE, stderr=PIPE,
-                cwd=workdir,
-                universal_newlines=True,
-                close_fds=(os.name == 'posix')
-            )
-
-            # Write stdin if set
-            if stdin:
-                p.stdin.write(stdin)
-                p.stdin.flush()
-                
-            p.stdin.close()
-
-            if self._is_windows():
-                stdout, stderr = p.communicate()
-                return p.wait(), stdout, stderr
-
-            else:
-                thread = Thread(target=self._thread_flush_worker, args=[p.stdout, p.stderr])
-                thread.daemon = True
-                thread.start()
-
-                # Wait for end
-                retval = p.wait()
-
-                # Ensure to get last output from Thread
-                sleep(FLUSH_WORKER_SLEEP_TIME * 2)
-
-                # Stop Thread
-                self.thread_run = 0
-                thread.join(timeout=1)
-
-                return retval, self.thread_stdout, self.thread_stderr
-
-        except OSError, e:
-            return e[0], '', "Execution failed: %s" % e[1]
-
-        except Exception as e:
-            return 255, '', 'Unknown error'
-
-    def _execute_file(self, file, args=None, stdin=None, runas=None, workdir=None, envars=None):
-        """ Execute a script file and flush stdout/stderr using threads
-        """
-        self.thread_stdout = ''
-        self.thread_stderr = ''
-        self.thread_run = 1
-        
-        # Prepare environment variables
-        if not envars or not self._is_dict(envars):
-            envars = {}
-            
-        env = os.environ.copy()
-        env = dict(env.items() + envars.items())
-
-        if workdir:
-            workdir = os.path.abspath(workdir)
-            
-        try:
-            # +x flag to file
-            os.chmod(file, 0700)
-            command = [file]
-
-            # Add command line args
-            if args and self._is_list(args):
-                for arg in args:
-                    command.append(arg)
-
-            if runas and not self._is_windows():
-                # Change file owner before execute (dont use su - xxx or env variables will not be available)
-                self._chown(path=workdir, user=runas, group=DEFAULT_GROUP_LINUX, recursive=True)
-                command = ['su', runas, '-c', ' '.join(map(str, command))]
-
-                # :TODO: Runas for windows :S
-                    
-            p = Popen(
-                command,
-                env=env,
-                bufsize=0, stdin=PIPE, stdout=PIPE, stderr=PIPE,
-                cwd=workdir,
-                universal_newlines=True,
-                close_fds=(os.name == 'posix')
-            )
-
-            # Write stdin if set
-            if stdin:
-                p.stdin.write(stdin)
-                p.stdin.flush()
-                
-            p.stdin.close() 
-
-            if self._is_windows():
-                stdout, stderr = p.communicate()
-                return p.wait(), stdout, stderr
-
-            else:
-                thread = Thread(target=self._thread_flush_worker, args=[p.stdout, p.stderr])
-                thread.daemon = True
-                thread.start()
-
-                # Wait for end
-                retval = p.wait()
-
-                # Ensure to get last output from Thread
-                sleep(FLUSH_WORKER_SLEEP_TIME * 2)
-
-                # Stop Thread
-                self.thread_run = 0
-                thread.join(timeout=1)
-
-                return retval, self.thread_stdout, self.thread_stderr
-
-        except OSError, e:
-            return e[0], '', "Execution failed: %s" % e[1]
-
-        except Exception as e:
-            return 255, '', 'Unknown error'
-
-    def _thread_flush_worker(self, stdout, stderr):
-        """ needs to be in a thread so we can read the stdout w/o blocking """
-        while self.thread_run:
-            # Avoid Exception in thread Thread-1 (most likely raised during interpreter shutdown):
-            try:
-                output = self._clean_stdout(self._non_block_read(stdout))
-                if output:
-                    self.thread_stdout += output
-                    sys.stdout.write(output)
-
-                output = self._clean_stdout(self._non_block_read(stderr))
-                if output:
-                    self.thread_stderr += output
-                    sys.stderr.write(output)
-
-                sleep(FLUSH_WORKER_SLEEP_TIME)
-
-            except:
-                pass
-
-    def _non_block_read(self, output):
-        """ even in a thread, a normal read with block until the buffer is full """
-        try:
-            fd = output.fileno()
-            fl = fcntl.fcntl(fd, fcntl.F_GETFL)
-            fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
-            return output.read()
-
-        except:
-            return ''
-
-    def _envars_decode(self, coded_envars=None):
-        """ Decode base64/json envars """
-        envars = None
-        try:
-            if coded_envars:
-                envars = b64decode(coded_envars)
-                envars = json.loads(envars)
-                for var in envars.keys():
-                    if not envars[var]: envars[var] = ''
-                    envars[var] = self._encode(envars[var])
-
-        except:
-            pass
-        return envars
-
-    def _write_envars_facts(self, envars=None, facts=None):
-        """ Writes env and facts file variables """
-        if envars and self._is_dict(envars):
-            try:
-                content_env = ''
-                for var in sorted(envars.keys()):
-                    content_env += "export " + str(var) + '="' + self._encode(envars[var]) + "\"\n"
-                self._file_write(ENV_FILE, content_env)
-
-            except:
-                return False
-
-        if facts and self._is_dict(envars):
-            try:
-                content_facts = ''
-                for var in sorted(facts.keys()):
-                    content_facts += str(var) + ':' + self._encode(facts[var]) + "\n"
-                self._file_write(INFO_FILE, content_facts)
-
-            except:
-                return False
-
-        return True
-
-    def _renice_me(self, nice):
-        """ Changes execution priority  """
-        if nice and self._is_number(nice):
-            try:
-                os.nice(int(nice))
-                return (0)
-
-            except:
-                return (1)
-        else:
-            return (1)
-
-    def _is_number(self, s):
-        """ Helper function """
-        try:
-            float(s)
-            return True
-        except ValueError:
-            return False
-
-    def _output(self, string):
-        """ Helper function """
-        return '[' + str(time()) + '] ' + str(string) + "\n"
-
-    def _format_output(self, out, stdout, stderr):
-        """ Helper function """
-        format_out = {}
-        format_out['out'] = out
-        format_out['stdout'] = stdout
-        format_out['stderr'] = stderr
-
-        return format_out
-
-    def _mkdir_p(self, path):
-        """ Recursive Mkdir """
-        try:
-            if not os.path.isdir(path):
-                os.makedirs(path)
-        except OSError:
-            pass
-
-    def _utime(self):
-        """ Helper function: microtime """
-        str_time = str(time()).replace('.', '_')
-        return str_time
-
-    def _is_dict(self, obj):
-        """Check if the object is a dictionary."""
-        return isinstance(obj, dict)
-
-    def _is_list(self, obj):
-        """Check if the object is a list"""
-        return isinstance(obj, list)
-
-    def _is_string(self, obj):
-        """Check if the object is a list"""
-        if isinstance(obj, str) or isinstance(obj, unicode):
+        if self._write_envars_facts(envars, facts):
             return True
 
-        return False
-        
-    def _encode(self, string):
+        raise Exception('Unable to write environment file')
+
+    def cmd_system_hostname(self, *argv, **kwargs):
+        return platform.node()
+
+    def cmd_system_load(self, *argv, **kwargs):
+        'Load average'
+        load_average = ' '.join([str(x) for x in os.getloadavg()])
+        return load_average
+
+    def cmd_system_uname(self, *argv, **kwargs):
+        #system,node,release,version,machine,processor
+        return platform.uname()
+
+    def cmd_system_info(self, *argv, **kwargs):
+        'Syntax: system_info'
+        retr = {}
+        retr['os'] = str(platform.system())
+        (retr['os_distrib'], retr['os_version']) = self._dist()
+        retr['machine'] = str(platform.machine())
+        retr['uptime'] = self._boottime()
+        retr['hostname'] = platform.node()
+        retr['public_ip'] = self._get_ip()
+
+        return retr
+
+    def cmd_system_cpu_usage(self, *argv, **kwargs):
+        'Syntax: load'
         try:
-            string = string.encode('utf-8')
-            return string
+            return psutil.cpu_percent(interval=0.5, percpu=True)
+
         except:
-            return str(string)
+            raise Exception("Unable to get info from psutil")
 
-    def _split_path(self,path):
-        components = []
-        while True:
-            (path,tail) = os.path.split(path)
-            if tail == "":
-                components.reverse()
-                return components
-            components.append(tail)
+    def cmd_system_network_usage(self, *argv, **kwargs):
+        'Syntax: system.network.usage[iface=eth0]'
 
-    def _get_distribution(self):
-        distribution, version = None, None
+        iface = kwargs.get('iface', 'eth0')
+        retr = {}
 
         try:
-            (distribution, version, _id) = platform.dist()
+            network = psutil.network_io_counters(pernic=True)
+            if network[iface]:
+                if hasattr(network[iface], 'bytes_sent'): retr['bytes_sent'] = network[iface].bytes_sent
+                if hasattr(network[iface], 'bytes_recv'): retr['bytes_recv'] = network[iface].bytes_recv
+
         except:
             pass
 
-        if not distribution:
-            _etc = '/etc'
-            _release_filename = re.compile(r'(\w+)[-_](release|version)')
-            _release_version = re.compile(r'(.*)\s+release\s+(.*)\s+\((.*)\)\s+(.*)')
-            _release_version2 = re.compile(r'(.*?)\s.*\s+release\s+(.*)')
+        return retr
 
-            try:
-                etc_files = os.listdir(_etc)
+    def cmd_system_disk_partitions(self, *argv, **kwargs):
+        try:
+            retr = []
+            for part in psutil.disk_partitions(all=False):
+                usage = psutil.disk_usage(part.mountpoint)
+                strpart = {}
+                if hasattr(part, 'mountpoint'): strpart['mountpoint'] = part.mountpoint
+                if hasattr(part, 'device'):     strpart['device'] = part.device
+                if hasattr(part, 'fstype'):     strpart['fstype'] = part.fstype
+                retr.append(strpart)
+            return retr
 
-            except os.error:
-                # Probably not a Unix system
-                return distribution,version
+        except:
+            raise Exception("Unable to get info from psutil")
 
-            for etc_file in etc_files:
-                m = _release_filename.match(etc_file)
-                if m is None or not os.path.isfile(_etc + '/' + etc_file):
-                    continue
-                    
+    def cmd_system_disk_usage(self, *argv, **kwargs):
+        try:
+            retr = []
+            for part in psutil.disk_partitions(all=False):
+                # Ignore error on specific devices (CD-ROM)
                 try:
-                    f = open(_etc + '/' + etc_file, 'r')
-                    first_line = f.readline()
-                    f.close()
-                    m = _release_version.search(first_line)
-
-                    if m is not None:
-                        distribution, version, _id, _tmp = m.groups()
-                        break
-
-                    else:
-                        m = _release_version2.search(first_line)
-                        if m is not None:
-                            distribution, version = m.groups()
-                            break
+                    usage = psutil.disk_usage(part.mountpoint)
+                    strpart = {}
+                    if hasattr(part, 'mountpoint'): strpart['mountpoint'] = part.mountpoint
+                    if hasattr(part, 'device'):     strpart['device'] = part.device
+                    if hasattr(usage, 'total'):      strpart['total'] = self.aux_convert_bytes(usage.total)
+                    if hasattr(usage, 'used'):       strpart['used'] = self.aux_convert_bytes(usage.used)
+                    if hasattr(usage, 'free'):       strpart['free'] = self.aux_convert_bytes(usage.free)
+                    if hasattr(usage, 'percent'):    strpart['percent'] = usage.percent
+                    retr.append(strpart)
 
                 except:
                     pass
 
-        return distribution,version
+            return retr
+
+        except:
+            raise Exception("Unable to get info from psutil")
+
+    def cmd_system_mem_usage(self, *argv, **kwargs):
+        try:
+            strmem = {}
+            psmem = psutil.phymem_usage()
+            strmem['total'] = psmem.total
+            strmem['used'] = psmem.used
+            strmem['free'] = psmem.free
+            strmem['percent'] = psmem.percent
+            return strmem
+
+        except:
+            raise Exception("Unable to get info from psutil")
+
+    def cmd_system_capacity(self, *argv, **kwargs):
+        try:
+            retr = {}
+            retr['system.mem.usage'] = self.cmd_system_mem_usage(*argv, **kwargs)
+            retr['system.disk.usage'] = self.cmd_system_disk_usage(*argv, **kwargs)
+            retr['system.cpu.usage'] = self.cmd_system_cpu_usage(*argv, **kwargs)
+            retr['system.net.usage'] = self.cmd_system_network_usage(*argv, **kwargs)
+            return retr
+
+        except:
+            raise Exception("Unable to get info from psutil")
+
+    def aux_convert_bytes(self, n):
+        if n == 0:
+            return "0B"
+        symbols = ('k', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y')
+        prefix = {}
+        for i, s in enumerate(symbols):
+            prefix[s] = 1 << (i + 1) * 10
+        for s in reversed(symbols):
+            if n >= prefix[s]:
+                value = float(n) / prefix[s]
+                return '%.1f%s' % (value, s)
+
+
+    def _boottime(self):
+        'Server boottime'
+        if self._is_windows():
+            return self._boottime_windows()
+
+        return self._boottime_linux()
+
+    def _boottime_linux(self):
+
+        # Old psutil versions
+        try: return psutil.BOOT_TIME
+        except: pass
+
+        # psutil v2 versions
+        try: return psutil.boot_time()
+        except: pass
+
+        # Get info from proc
+        try:
+            f = open('/proc/stat', 'r')
+            for line in f:
+                if line.startswith('btime'):
+                    f.close()
+                    return float(line.strip().split()[1])
+            f.close()
+            return 0
+        except:
+            pass
+
+        raise Exception("Cannot get uptime")
+
+    def _boottime_windows(self):
+        try:
+            from time import time
+            import uptime
+
+            return int(time() - uptime.uptime())
+        except:
+            return 0
+
+    def _get_ip(self):
+        'Create dummy socket to get address'
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('my.ecmanaged.com', 0))
+        return s.getsockname()[0]
+
+    def _dist(self):
+        'Server boottime'
+        if self._is_windows():
+            os_distrib = platform.release()
+            os_version = platform.version()
+        else:
+            (os_distrib, os_version, tmp) = platform.dist()
+
+        return (os_distrib, os_version)
+
+
+ECMBase().run()

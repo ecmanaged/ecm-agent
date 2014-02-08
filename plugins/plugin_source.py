@@ -139,7 +139,8 @@ class GIT(ectools):
         
     def _get_command(self,url,branch):
         param = ''
-        if branch: param= " -b " + str(branch)
+        if branch and branch != 'master':
+            param = " -b " + str(branch)
         
         command = self.git_cmd + " clone" + param + " --quiet --verbose '" + url + "' ."
         command_pull = self.git_cmd + " pull --quiet --verbose"
