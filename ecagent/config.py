@@ -13,8 +13,8 @@ import ecagent.twlogging as l
 #Python
 from time import sleep
 from platform import node
-import random, re, socket
-
+import random
+import socket
 
 #External
 from configobj import ConfigObj
@@ -25,6 +25,8 @@ try:
 except:
     pass
 
+_ECMANAGED_AUTH_URL = 'https://my.ecmanaged.com/agent/meta-data/uuid'
+_ECMANAGED_AUTH_URL_ALT = 'https://my.ecmanaged.com/agent/meta-data/uuid'
 
 class SMConfigObj(ConfigObj):
     """
@@ -46,13 +48,16 @@ class SMConfigObj(ConfigObj):
         if mac:
             if str(mac) == str(self._getStoredMAC()):
                 l.debug("MAC has not changed. Skip UUID check")
+
             else:
                 # Try to get uuid
                 uuid = None
                 for i in range(30):
                     try:
                         uuid = yield self._getUUID()
-                        if uuid: break
+                        if uuid:
+                            break
+
                     except:
                         pass
                     sleep(20)
@@ -90,25 +95,13 @@ class SMConfigObj(ConfigObj):
             # Try to get from preconfigured
             l.info("try to get UUID via preconfiguration")
             uuid = self._getUUIDPreConfig()
-            if uuid: return uuid
 
-            # Try to configure via URL (ECM meta-data)
-            l.info("try to get UUID via URL (ecagent meta-data)")
-            uuid = self._getUUIDViaWeb()
-            if uuid: return uuid
+            if not uuid:
+                # Try to configure via URL (ECM meta-data)
+                l.info("try to get UUID via URL (ecagent meta-data)")
+                uuid = self._getUUIDViaWeb()
 
-            l.info("try to get UUID using dmidecode")
-            try:
-                for v in dmidecode.QuerySection('system').values():
-                    if type(v) == dict and v['dmi_type'] == 1:
-                        if (v['data']['UUID']):
-                            return str((v['data']['UUID'])).lower()
-
-            except:
-                pass
-
-            l.info("Try to get UUID  by dmidecode command")
-            return self._getUUIDViaCommand()
+            return uuid
 
     @inlineCallbacks
     def _getUUIDViaWeb(self):
@@ -120,12 +113,18 @@ class SMConfigObj(ConfigObj):
         except:
             pass
 
-        retr = yield getPage(
-            "https://my.ecmanaged.com/agent/meta-data/uuid/?ipaddress=%s&hostname=%s" % (address, hostname))
+        auth_url = _ECMANAGED_AUTH_URL + "/?ipaddress=%s&hostname=%s" % (address, hostname)
+        auth_url_alt = _ECMANAGED_AUTH_URL + "/?ipaddress=%s&hostname=%s" % (address, hostname)
 
-        for line in retr.splitlines():
+        auth_content = yield getPage(auth_url)
+
+        if not auth_content:
+            auth_content = yield getPage(auth_url_alt)
+
+        for line in auth_content.splitlines():
             if line and line.startswith('uuid:'):
                 returnValue(line.split(':')[1])
+
         returnValue('')
 
     def _getUUIDPreConfig(self):
@@ -142,15 +141,6 @@ class SMConfigObj(ConfigObj):
             remove(uuid_file)
 
         return None
-
-    def _getUUIDViaCommand(self):
-        # using direct binary access
-        exit_code, stdout, stderr = yield self._run("dmidecode", "-s system-uuid")
-        match = re.match('^([\d|\w|\-]{30,50})$', stdout)
-        if match and match.group(1):
-            returnValue(str(match.group(1)).lower())
-
-        returnValue('')
 
     def _run(self, command, args):
         spp = SimpleProcessProtocol()
@@ -188,15 +178,16 @@ class SMConfigObj(ConfigObj):
 
             urlopen = urllib.urlopen("http://169.254.169.254/latest/meta-data/instance-id")
             for line in urlopen.readlines():
-                if ("i-" in line): uuid = hex(line)
+                if ("i-" in line):
+                    uuid = hex(line)
             urlopen.close()
+
         except:
             pass
 
         # Use network mac for non aws
         if not uuid:
             from uuid import getnode
-
             uuid = getnode()
 
         return uuid
@@ -222,10 +213,13 @@ class SimpleProcessProtocol(ProcessProtocol):
     def processEnded(self, status):
         l.debug("process ended")
         t = type(status.value)
+
         if t is ProcessDone:
             exit_code = 0
+
         elif t is ProcessTerminated:
             exit_code = status.value.exitCode
+
         else:
             raise status
 

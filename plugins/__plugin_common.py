@@ -33,9 +33,6 @@ _DEFAULT_GROUP_LINUX = 'root'
 _DEFAULT_GROUP_WINDOWS = 'Administrators'
 
 class ECMcommon():
-    def __init__(self):
-        pass
-
     def _is_windows(self):
         """ Returns True if is a windows system
         """
@@ -176,29 +173,42 @@ class ECMcommon():
     def _install_package(self, packages, update=True):
         """ Install packages
         """
-        envars = {}
         try:
-            distribution, _version = self._get_distribution()
+            envars = {}
+            distrib, _version = self._get_distribution()
 
-            if distribution.lower() in ['debian', 'ubuntu']:
+            if distrib.lower() in ['debian', 'ubuntu']:
                 envars['DEBIAN_FRONTEND'] = 'noninteractive'
 
                 if update: self._execute_command(['apt-get', '-y', '-qq', 'update'])
-                command = ['apt-get', '-o', 'Dpkg::Options::=--force-confold',
-                           '--allow-unauthenticated', '--force-yes',
-                           '-y', '-qq', 'install', packages]
+                command = ['apt-get',
+                           '-o',
+                           'Dpkg::Options::=--force-confold',
+                           '--allow-unauthenticated',
+                           '--force-yes',
+                           '-y',
+                           '-qq',
+                           'install',
+                           packages]
 
-            elif distribution.lower() in ['centos', 'redhat', 'fedora', 'amazon']:
+            elif distrib.lower() in ['centos', 'redhat', 'fedora', 'amazon']:
                 if update: self._execute_command(['yum', '-y', 'clean', 'all'])
-                command = ['yum', '-y', '--nogpgcheck', 'install', packages]
+                command = ['yum',
+                           '-y',
+                           '--nogpgcheck',
+                           'install',
+                           packages]
 
-            elif distribution.lower() in ['arch']:
+            elif distrib.lower() in ['arch']:
                 if update: self._execute_command(['pacman', '-Sy'])
                 if update: self._execute_command(['pacman', '-S', '--noconfirm', 'pacman'])
-                command = ['pacman', '-S', '--noconfirm', packages]
+                command = ['pacman',
+                           '-S',
+                           '--noconfirm',
+                           packages]
 
             else:
-                return 1, '', "Distribution not supported: %s" % distribution
+                return 1, '', "Distribution not supported: %s" % distrib
 
             return self._execute_command(command, envars=envars)
 

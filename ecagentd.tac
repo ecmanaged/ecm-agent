@@ -45,6 +45,7 @@ except:
 
 #Parse config file or end execution
 config_filename = join(dirname(__file__), './config/ecagent.cfg')
+
 try:
     config = SMConfigObj(config_filename)
 

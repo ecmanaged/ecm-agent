@@ -1,6 +1,5 @@
 # -*- coding:utf-8 -*-
 
-#Twisted
 from twisted.words.protocols.jabber import client, jid, xmlstream
 from twisted.words.xish.domish import Element
 from twisted.internet import reactor
@@ -10,7 +9,6 @@ from twisted.words.protocols.jabber.client import IQ
 
 import twlogging as l
 
-#Python
 from random import random
 
 # Add registerAccount to XMPPAuthenticator
@@ -115,8 +113,7 @@ class BasicClient:
         """
         l.info("XMPPClient authenticated")
 
-        #Keepalive: Send a newline every 60 seconds
-        #to avoid server disconnect
+        #Keepalive: Send a newline every 60 seconds to avoid server disconnect
         self._keep_alive_lc = LoopingCall(self._xs.send, '\n')
         self._keep_alive_lc.start(60)
         self._xs.addObserver(STREAM_END_EVENT,
@@ -142,6 +139,7 @@ class BasicClient:
         if self._keep_alive_lc.running:
             self._keep_alive_lc.stop()
             self._keep_alive_lc.start(60)
+
         return d
 
     def debug(self, elem):

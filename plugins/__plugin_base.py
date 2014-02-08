@@ -11,13 +11,16 @@ from __plugin_common import ECMcommon
 
 _E_RUNNING_COMMAND = 253
 _E_COMMAND_NOT_DEFINED = 252
-_STDOUT_FINAL_OUTPUT_STR = '[__ecagent::response__]'
+_FINAL_OUTPUT_STRING = '[__response__]'
+
+_PLUGIN_URL      = 'https://github.com/ecmanaged/ecm-agent-plugins'
+_PLUGIN_URL_ALT  = 'https://bitbuket.com/ecmanaged/ecm-agent-plugins'
 
 sys.stdout.flush()
 sys.stderr.flush()
 
 class ECMBase(ECMcommon):
-    def _listCommands(self):
+    def _list_commands(self):
         for member in inspect.getmembers(self):
             #Retrieve method names starting with "cmd_" (commands)
             if member[0].startswith('cmd_') and inspect.ismethod(member[1]):
@@ -25,7 +28,7 @@ class ECMBase(ECMcommon):
                 command_args = inspect.getargspec(member[1])[0][1:]
                 print command_name, command_args
 
-    def _runCommand(self, command_name):
+    def _run_command(self, command_name):
         try:
             command = getattr(self, 'cmd_' + command_name)
         except:
@@ -40,7 +43,7 @@ class ECMBase(ECMcommon):
         try:
             # convert returned data to json
             data = command(**command_args)
-            sys.stdout.write("\n" + _STDOUT_FINAL_OUTPUT_STR + "\n" + json.dumps(data))
+            sys.stdout.write("\n" + _FINAL_OUTPUT_STRING + "\n" + json.dumps(data))
             return
 
         except Exception:
@@ -51,14 +54,17 @@ class ECMBase(ECMcommon):
                 'out': _E_RUNNING_COMMAND,
                 'exception': 1
             }
-            sys.stdout.write("\n" + _STDOUT_FINAL_OUTPUT_STR + "\n" + json.dumps(data))
+            sys.stdout.write("\n" + _FINAL_OUTPUT_STRING + "\n" + json.dumps(data))
             return _E_RUNNING_COMMAND
+
+    def _update_plugins(self):
+        pass
 
     def run(self):
         if len(sys.argv) == 1 or sys.argv[1] == '':
             #Show a list of available commands if no command selected
-            return self._listCommands()
+            return self._list_commands()
 
         else:
             command_name = sys.argv[1]
-            sys.exit(self._runCommand(command_name))
+            sys.exit(self._run_command(command_name))

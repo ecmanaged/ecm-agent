@@ -9,7 +9,7 @@ from twisted.words.xish.domish import Element
 
 ##Local
 from ecagent.client import Client
-import ecagent.twlogging as l
+import ecagent.twlogging as log
 
 #Python
 import os
@@ -27,23 +27,17 @@ try:
 except:
     pass
 
-E_RUNNING_COMMAND = 253
-E_COMMAND_NOT_DEFINED = 252
-E_UNVERIFIED_COMMAND = 251
+_CERTIFICATE_FILE = '../config/xmpp_cert.pub'
 
-STDOUT_FINAL_OUTPUT_STR = '[__ecagent::response__]'
+_E_RUNNING_COMMAND = 253
+_E_COMMAND_NOT_DEFINED = 252
+_E_UNVERIFIED_COMMAND = 251
 
-PUB_KEY = """-----BEGIN PUBLIC KEY-----
-MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDYOveXRwvarfanocPyjMEdyP9v
-WqPpBn/xmowk+Hwrp1rN5UCYESYbVQx8zUEXxK6euOl7ayW2x1X/GJkFsiRvW0Ev
-+OvTm//m44JbLKz6ehPuuUzvlP8ujMLgo9ncTlsXO5/WL/Cy/EvE6dfDdRR4977M
-IqlNJia2BUKKDa1EuQIDAQAB
------END PUBLIC KEY-----"""
+_FINAL_OUTPUT_STRING = '[__response__]'
 
 AGENT_VERSION = 1
 FLUSH_MIN_LENGTH = 5
 FLUSH_TIME = 5
-
 
 class SMAgent:
     def __init__(self, config):
@@ -56,14 +50,14 @@ class SMAgent:
         d.addErrback(self._onConfigCheckFailed)
 
     def _onConfigChecked(self, success):
-        #Ok, now everything should be correctly configured,
-        #let's start the party.
+        # Ok, now everything should be correctly configured,
+        # let's start the party.
         if success:
             SMAgentXMPP(self.config)
 
     def _onConfigCheckFailed(self, failure):
-        l.critical("Configuration check failed with: %s, exiting." % failure)
-        l.critical("Please try configuring the XMPP subsystem manually.")
+        log.critical("Configuration check failed with: %s, exiting." % failure)
+        log.critical("Please try configuring the XMPP subsystem manually.")
         reactor.stop()
 
 
@@ -72,25 +66,27 @@ class SMAgentXMPP(Client):
         """
         XMPP agent class.
         """
-        l.info("Starting agent...")
+        log.info("Starting agent...")
         self.config = config
 
-        l.info("Setting up certificate")
-        self.publickey = None
+        log.info("Setting up certificate")
+        self.public_key = None
         try:
             if Crypto.version_info[:2] >= (2, 2):
-                key = PublicKey.RSA.importKey(PUB_KEY)
-                self.publickey = key.publickey()
+                _public_key = self._read_pub_key()
+                if _public_key:
+                    key = PublicKey.RSA.importKey(_public_key)
+                    self.public_key = key.publickey()
         except:
             pass
 
-        if not self.publickey:
-            l.warn('PyCrypto not available or version is < 2.2: Please upgrade: http://www.pycrypto.org/')
+        if not self.public_key:
+            log.warn('PyCrypto not available or version is < 2.2: Please upgrade: http://www.pycrypto.org/')
 
-        l.info("Loading commands...")
+        log.info("Loading commands...")
         self.command_runner = CommandRunner(config['Plugins'])
 
-        l.debug("Loading XMPP...")
+        log.debug("Loading XMPP...")
         observers = [
             ('/iq', self.__onIq),
         ]
@@ -104,48 +100,46 @@ class SMAgentXMPP(Client):
         """
         A new IQ message has been received and we should process it.
         """
-        l.debug('__onIq')
+        log.debug('__onIq')
         message_type = msg['type']
 
-        l.debug("q Message received: \n%s" % msg.toXml())
-        l.debug("Message type: %s" % message_type)
+        log.debug("q Message received: \n%s" % msg.toXml())
+        log.debug("Message type: %s" % message_type)
 
         if message_type == 'set':
             #Parse and check message format
             message = IqMessage(msg)
 
             if hasattr(message, 'command') and hasattr(message, 'from_'):
-
-                l.debug('online contacts: %s' % self._online_contacts)
-                #l.debug("command: \n%s" % message.command)
+                log.debug('online contacts: %s' % self._online_contacts)
 
                 if message.from_ not in self._online_contacts:
-                    l.warn('IQ sender not in roster (%s), dropping message'
+                    log.warn('IQ sender not in roster (%s), dropping message'
                            % message.from_)
                 else:
-                    l.debug('Processing command...')
+                    log.debug('Processing command...')
                     self._processCommand(message)
             else:
-                l.warn('Unknown ecm_message received: "%s" Full XML:\n%s'
+                log.warn('Unknown ecm_message received: "%s" Full XML:\n%s'
                        % (message_type, msg.toXml()))
         else:
-            l.warn('Unknown IQ type received: "%s" Full XML:\n%s'
+            log.warn('Unknown IQ type received: "%s" Full XML:\n%s'
                    % (message_type, msg.toXml()))
 
     def _processCommand(self, message):
-        l.debug('Process Command')
+        log.debug('Process Command')
 
         verified = False
-        if self.publickey:
+        if self.public_key:
             verified = self._verify_message(message)
             if verified == False:
                 # Crypto rutines are working and message has bad signature
-                l.info('[RSA Invalid] Command from %s has bad signature (Ignored)' % message.from_)
-                result = (E_UNVERIFIED_COMMAND, '', 'Bad signature', 0)
+                log.info('[RSA Invalid] Command from %s has bad signature (Ignored)' % message.from_)
+                result = (_E_UNVERIFIED_COMMAND, '', 'Bad signature', 0)
                 self._onCallFinished(result, message)
                 return
         else:
-            l.warn('[RSA Verify] PyCrypto not available: Running unverified Command from %s' % message.from_)
+            log.warn('[RSA Verify] PyCrypto not available: Running unverified Command from %s' % message.from_)
 
         flush_callback = self._Flush
         message.command_replaced = message.command.replace('.', '_')
@@ -159,35 +153,49 @@ class SMAgentXMPP(Client):
             return d
 
         else:
-            l.debug('Command Ignored: Unknown command')
-            result = (E_RUNNING_COMMAND, '', 'Unknown command', 0)
+            log.debug('Command Ignored: Unknown command')
+            result = (_E_RUNNING_COMMAND, '', 'Unknown command', 0)
             self._onCallFinished(result, message)
 
         return
 
     def _onCallFinished(self, result, message):
-        l.debug('Call Finished')
+        log.debug('Call Finished')
         self._send(result, message)
 
     def _Flush(self, result, message):
-        l.debug('Flush Message')
+        log.debug('Flush Message')
         self._send(result, message)
 
     def _onCallFailed(self, failure, *argv, **kwargs):
-        l.error("onCallFailed")
-        l.debug(failure)
+        log.error("onCallFailed")
+        log.debug(failure)
         if 'message' in kwargs:
             message = kwargs['message']
             result = (2, '', failure, 0)
             self._onCallFinished(result, message)
 
     def _send(self, result, message):
-        l.debug('Send Response')
+        log.debug('Send Response')
         message.toResult(*result)
         self.send(message.toEtree())
 
+    def _read_pub_key(self):
+        log.debug('Reading public certificate')
+        public_key = None
+        try:
+            cert_file = os.path.join(os.path.dirname(__file__), _CERTIFICATE_FILE)
+            if os.path.isfile(cert_file):
+                f = open(cert_file, 'r')
+                public_key = f.read()
+                f.close()
+        except:
+            log.critical("Unable to read certificate file")
+
+        return public_key
+
     def _verify_message(self, message):
-        l.debug('Verify Message')
+        log.debug('Verify Message')
 
         args_encoded = ''
         for arg in sorted(message.command_args.keys()):
@@ -209,11 +217,11 @@ class SMAgentXMPP(Client):
             H = SHA.new(M).digest()
             T = SHA1DER + H
             if emLen < (SHA1DERLEN + 11):
-                l.error('[RSA Verify] intended encoded message length too short (%s)' % emLen)
+                log.error('[RSA Verify] intended encoded message length too short (%s)' % emLen)
                 return
             ps = '\xff' * (emLen - SHA1DERLEN - 3)
             if len(ps) < 8:
-                l.error('[RSA Verify] ps length too short')
+                log.error('[RSA Verify] ps length too short')
                 return
             return '\x00\x01' + ps + '\x00' + T
 
@@ -222,7 +230,7 @@ class SMAgentXMPP(Client):
 
         if em:
             signature = number.bytes_to_long(signature)
-            return self.publickey.verify(em, (signature,))
+            return self.public_key.verify(em, (signature,))
 
         return False
 
@@ -251,19 +259,21 @@ class CommandRunner():
         if tools_path:
             self.env["PATH"] += os.pathsep + tools_path
 
-        l.debug("ENV: %s" % self.env)
+        log.debug("ENV: %s" % self.env)
         #reactor.callLater(0, self._loadCommands)
         reactor.callWhenRunning(self._loadCommands)
 
     def _loadCommands(self):
         self._commands = {}
         for path in self.command_paths:
-            l.debug("Processing dir: %s" % path)
+            log.debug("Processing dir: %s" % path)
             try:
                 if os.path.isdir(path):
                     for filename in os.listdir(path):
-                        if not filename.startswith('plugin_'): continue
-                        l.debug("  Queuing plugin %s for process." % filename)
+                        if not filename.startswith('plugin_'):
+                            continue
+
+                        log.debug("  Queuing plugin %s for process." % filename)
                         full_filename = os.path.join(path, filename)
                         d = self._runProcess(full_filename, '', [])
                         d.addCallback(self._addCommand, filename=full_filename)
@@ -276,14 +286,15 @@ class CommandRunner():
         if exit_code == 0:
             for line in stdout.splitlines():
                 self._commands[line.split()[0]] = kwargs['filename']
-                l.debug("Command %s added" % line.split()[0])
+                log.debug("Command %s added" % line.split()[0])
+
         else:
-            l.error('Error adding commands from %s: %s'
+            log.error('Error adding commands from %s: %s'
                     % (kwargs['filename'], data))
 
     def runCommand(self, command, command_args, flush_callback=None, message=None, verified=None):
         if (command in self._commands):
-            l.debug("executing %s with args: %s" % (command, command_args))
+            log.debug("executing %s with args: %s" % (command, command_args))
             return self._runProcess(self._commands[command], command, command_args, flush_callback, message, verified)
         return
 
@@ -291,8 +302,10 @@ class CommandRunner():
         ext = os.path.splitext(filename)[1]
         if ext in ('.py', '.pyw', '.pyc'):
             command = self._python_runner
+
             # -u: sets unbuffered output
             args = [command, '-u', '-W ignore::DeprecationWarning', filename, command_name]
+
         else:
             command = filename
             args = [command, command_name]
@@ -304,15 +317,17 @@ class CommandRunner():
 
         if command_name:
             if verified:
-                l.info("[RSA Verified] Running %s from %s (timeout: %i)" % (command_name, filename, cmd_timeout))
+                log.info("[RSA Verified] Running %s from %s (timeout: %i)" % (command_name, filename, cmd_timeout))
+
             else:
-                l.info("Running %s from %s (timeout: %i)" % (command_name, filename, cmd_timeout))
+                log.info("Running %s from %s (timeout: %i)" % (command_name, filename, cmd_timeout))
         else:
-            l.info("[INIT] Loading commands from %s" % filename)
+            log.info("[INIT] Loading commands from %s" % filename)
 
         crp = CommandRunnerProcess(cmd_timeout, command_args, flush_callback, message)
         d = crp.getDeferredResult()
         reactor.spawnProcess(crp, command, args, env=self.env)
+
         return d
 
 
@@ -331,9 +346,9 @@ class CommandRunnerProcess(ProcessProtocol):
         self.message = message
 
     def connectionMade(self):
-        l.debug("Process started.")
-        self.timeout_dc = reactor.callLater(self.timeout,
-                                            self.transport.signalProcess, 'KILL')
+        log.debug("Process started.")
+        self.timeout_dc = reactor.callLater(self.timeout, self.transport.signalProcess, 'KILL')
+
         # Pass the call arguments via stdin in json format
         self.transport.write(base64.b64encode(json.dumps(self.command_args)))
 
@@ -341,14 +356,13 @@ class CommandRunnerProcess(ProcessProtocol):
         self.transport.closeStdin()
 
     def outReceived(self, data):
-        l.debug("Out made: %s" % data)
+        log.debug("Out made: %s" % data)
 
-        if STDOUT_FINAL_OUTPUT_STR in data:
+        if _FINAL_OUTPUT_STRING in data:
             for line in data.split("\n"):
-                if STDOUT_FINAL_OUTPUT_STR in line:
+                if _FINAL_OUTPUT_STRING in line:
                     # Skip this line and stop flush callback
-                    self.stdout = ''
-                    self.stderr = ''
+                    self.stdout = self.stderr = ''
                     self.flush_callback = None
 
                 else:
@@ -359,20 +373,21 @@ class CommandRunnerProcess(ProcessProtocol):
         self._flush()
 
     def errReceived(self, data):
-        l.debug("Err made: %s" % data)
+        log.debug("Err made: %s" % data)
         self.stderr += data
         self._flush()
 
     def _flush(self):
         if not self.flush_callback: return
         total_out = len(self.stdout) + len(self.stderr)
+
         if total_out - self.last_send_data_size > FLUSH_MIN_LENGTH:
             curr_time = time()
             if self.last_send_data_time + FLUSH_TIME < curr_time:
                 self.last_send_data_size = total_out
                 self.last_send_data_time = curr_time
 
-                l.debug("Scheduling a flush response: %s" % self.stdout)
+                log.debug("Scheduling a flush response: %s" % self.stdout)
                 self._cancel_flush(self.flush_later_forced)
                 self.flush_later = reactor.callLater(1, self.flush_callback,
                                                      (None, self.stdout, self.stderr, 0, total_out), self.message)
@@ -386,11 +401,12 @@ class CommandRunnerProcess(ProcessProtocol):
         if flush_reactor:
             try:
                 flush_reactor.cancel()
+
             except:
                 pass
 
     def processEnded(self, status):
-        l.debug("Process ended")
+        log.debug("Process ended")
         self.flush_callback = None
 
         # Cancel flush callbacks
@@ -402,8 +418,10 @@ class CommandRunnerProcess(ProcessProtocol):
         t = type(status.value)
         if t is ProcessDone:
             exit_code = 0
+
         elif t is ProcessTerminated:
             exit_code = status.value.exitCode
+
         else:
             raise status
 
@@ -459,6 +477,7 @@ class IqMessage:
 
                 if len(self.resource) > 1:
                     self.resource = self.resource[-1]
+
                 else:
                     self.resource = None
 
@@ -471,7 +490,7 @@ class IqMessage:
                 self.signature = el_command['signature']
 
             except Exception as e:
-                l.error("Error parsing IQ message: %s" % elem.toXml())
+                log.error("Error parsing IQ message: %s" % elem.toXml())
                 pass
 
         else:
