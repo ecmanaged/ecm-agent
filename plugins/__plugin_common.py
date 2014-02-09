@@ -33,9 +33,14 @@ _DEFAULT_GROUP_LINUX = 'root'
 _DEFAULT_GROUP_WINDOWS = 'Administrators'
 
 _PLUGIN_VERSION = 1.1
+_ALLOW_PLUGIN_UPDATES = 1
 
 class ECMCommon():
     def cmd_plugin_version(self, *argv, **kwargs):
+        """
+        Just return plugin version information
+        cmd_plugin_version[]
+        """
         return _PLUGIN_VERSION
 
     def cmd_plugin_update(self, *argv, **kwargs):
@@ -46,8 +51,11 @@ class ECMCommon():
         plugin = kwargs.get('plugin', None)
         content = kwargs.get('content', None)
 
+        if not _ALLOW_PLUGIN_UPDATES:
+            raise Exception("Plugin updates not allowed")
+
         if not plugin or not content:
-             raise Exception(self.cmd_plugin_update.__doc__)
+            raise Exception(self.cmd_plugin_update.__doc__)
 
         # Get plugin path using my path
         plugin_file = os.path.join(
@@ -73,28 +81,28 @@ class ECMCommon():
 
         return False
 
-    def _file_write(self, file, content=None):
+    def _file_write(self, file_path, content=None):
         """ Writes a file
         """
         try:
             if content:
-                _path = os.path.dirname(file)
+                _path = os.path.dirname(file_path)
                 if not os.path.exists(_path):
                     self._mkdir_p(_path)
 
-                f = open(file, 'w')
+                f = open(file_path, 'w')
                 f.write(content)
                 f.close()
 
         except:
             raise Exception("Unable to write file: %s" % file)
 
-    def _file_read(self, file):
+    def _file_read(self, file_path):
         """ Reads a file and returns content
         """
         try:
-            if os.path.isfile(file):
-                f = open(file, 'r')
+            if os.path.isfile(file_path):
+                f = open(file_path, 'r')
                 retval = f.read()
                 f.close()
                 return retval
@@ -102,7 +110,7 @@ class ECMCommon():
         except:
             raise Exception("Unable to read file: %s" % file)
 
-    def _secret_gen(self, length=60):
+    def _random_charts(self, length=60):
         """ Generates random chars
         """
         chars = string.ascii_uppercase + string.digits + '!@#$%^&*()'
@@ -118,7 +126,8 @@ class ECMCommon():
             return output
 
     def _download_file(self, url, file, user=None, passwd=None):
-        """ Downloads remote file
+        """
+        Downloads a remote content
         """
         try:
             if user and passwd:
@@ -144,7 +153,8 @@ class ECMCommon():
         return file
 
     def _chmod(self, file, mode):
-        """ chmod a file
+        """
+        chmod a file
         """
         try:
             os.chmod(file, mode)
@@ -154,7 +164,8 @@ class ECMCommon():
             return False
 
     def _which(self, command):
-        """ search executable on path
+        """
+        search executable on path
         """
         found = procutils.which(command)
 
@@ -166,7 +177,8 @@ class ECMCommon():
         return cmd
 
     def _chown(self, path, user, group, recursive=False):
-        """ chown a file or path
+        """
+        chown a file or path
         """
         try:
             from pwd import getpwnam
@@ -203,7 +215,8 @@ class ECMCommon():
         return True
 
     def _install_package(self, packages, update=True):
-        """ Install packages
+        """
+        Install packages
         """
         try:
             envars = {}
@@ -231,6 +244,13 @@ class ECMCommon():
                            'install',
                            packages]
 
+            elif distrib.lower() in ['suse']:
+                command = ['zypper',
+                           '--non-interactive',
+                           '--auto-agree-with-licenses',
+                           'install',
+                           packages]
+
             elif distrib.lower() in ['arch']:
                 if update: self._execute_command(['pacman', '-Sy'])
                 if update: self._execute_command(['pacman', '-S', '--noconfirm', 'pacman'])
@@ -248,7 +268,8 @@ class ECMCommon():
             return 1, '', "Error installing packages %s" % e
 
     def _execute_command(self, command, args=None, stdin=None, runas=None, workdir=None, envars=None):
-        """ Execute command and flush stdout/stderr using threads
+        """
+        Execute command and flush stdout/stderr using threads
         """
         self.thread_stdout = ''
         self.thread_stderr = ''
@@ -325,7 +346,8 @@ class ECMCommon():
             return 255, '', 'Unknown error'
 
     def _execute_file(self, file, args=None, stdin=None, runas=None, workdir=None, envars=None):
-        """ Execute a script file and flush stdout/stderr using threads
+        """
+        Execute a script file and flush stdout/stderr using threads
         """
         self.thread_stdout = ''
         self.thread_stderr = ''
@@ -402,7 +424,9 @@ class ECMCommon():
             return 255, '', 'Unknown error'
 
     def _thread_flush_worker(self, stdout, stderr):
-        """ needs to be in a thread so we can read the stdout w/o blocking """
+        """
+        needs to be in a thread so we can read the stdout w/o blocking
+        """
         while self.thread_run:
             # Avoid Exception in thread Thread-1 (most likely raised during interpreter shutdown):
             try:
@@ -422,7 +446,9 @@ class ECMCommon():
                 pass
 
     def _non_block_read(self, output):
-        """ even in a thread, a normal read with block until the buffer is full """
+        """
+        even in a thread, a normal read with block until the buffer is full
+        """
         try:
             fd = output.fileno()
             fl = fcntl.fcntl(fd, fcntl.F_GETFL)
@@ -448,7 +474,9 @@ class ECMCommon():
         return envars
 
     def _write_envars_facts(self, envars=None, facts=None):
-        """ Writes env and facts file variables """
+        """
+        Writes env and facts file variables
+        """
         if envars and self._is_dict(envars):
             try:
                 content_env = ''
@@ -472,7 +500,9 @@ class ECMCommon():
         return True
 
     def _renice_me(self, nice):
-        """ Changes execution priority  """
+        """
+        Changes execution priority
+        """
         if nice and self._is_number(nice):
             try:
                 os.nice(int(nice))
@@ -551,8 +581,10 @@ class ECMCommon():
     def _get_distribution(self):
         distribution, version = None, None
 
-        try: (distribution, version, _id) = platform.dist()
-        except: pass
+        try:
+            (distribution, version, _id) = platform.dist()
+        except:
+            pass
 
         if not distribution:
             _release_filename = re.compile(r'(\w+)[-_](release|version)')
@@ -563,7 +595,7 @@ class ECMCommon():
 
             except os.error:
                 # Probably not a Unix system
-                return distribution,version
+                return distribution, version
 
             for etc_file in etc_files:
                 m = _release_filename.match(etc_file)
