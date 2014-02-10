@@ -159,10 +159,10 @@ class SMConfigObj(ConfigObj):
 
     def _onErrorRunning(self, failure):
         log.warn('Command failed to execute: %s' % failure)
-        return (255, '', '')
+        return 255, '', ''
 
     def _get_ip(self):
-        'Create dummy socket to get address'
+        """Create dummy socket to get address"""
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(('my.ecmanaged.com', 0))
         return s.getsockname()[0]
@@ -186,7 +186,7 @@ class SMConfigObj(ConfigObj):
 
             urlopen = urllib.urlopen("http://169.254.169.254/latest/meta-data/instance-id")
             for line in urlopen.readlines():
-                if ("i-" in line):
+                if "i-" in line:
                     uuid = hex(line)
             urlopen.close()
 

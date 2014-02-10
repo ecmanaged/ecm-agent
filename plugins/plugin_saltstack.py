@@ -18,8 +18,8 @@ from tempfile import mkdtemp
 from shutil import rmtree
 from base64 import b64decode
 
-from __ecm_plugin import ECMPlugin
-import __ecm_helper as ecm
+from __plugin import ECMPlugin
+import __helper as ecm
 
 DEFAULT_SALT_PATH = '/srv/salt'
 DEFAULT_SALT_PATH_WINDOWS = 'C:\ECM\SALTSTACK\salt'
@@ -68,7 +68,9 @@ class ECMSaltstack(ECMPlugin):
         return True
 
     def cmd_saltstack_apply(self, *argv, **kwargs):
-        """ Apply a saltstack manifest
+        """
+        Apply a saltstack manifest
+        Syntax: saltstack.apply[recipe_code,pillar_code,envars,facts]
         """
         recipe_base64   = kwargs.get('recipe_code', None)
         pillar_base64   = kwargs.get('pillar_code', None)
@@ -76,7 +78,7 @@ class ECMSaltstack(ECMPlugin):
         recipe_facts    = kwargs.get('facts', None)
 
         if not recipe_base64:
-            raise Exception("Invalid arguments")
+            raise ecm.InvalidParameters(self.cmd_saltstack_apply.__doc__)
 
         saltstack_cmd = self._is_available()
         if not saltstack_cmd:
@@ -84,11 +86,13 @@ class ECMSaltstack(ECMPlugin):
 
         # Get default paths
         default_path = DEFAULT_SALT_PATH
-        if ecm.is_windows(): default_path = DEFAULT_SALT_PATH_WINDOWS
+        if ecm.is_windows():
+            default_path = DEFAULT_SALT_PATH_WINDOWS
         module_path = kwargs.get('module_path', default_path)
 
         default_pillar_path = DEFAULT_PILLAR_PATH
-        if ecm.is_windows(): default_pillar_path = DEFAULT_PILLAR_PATH_WINDOWS
+        if ecm.is_windows():
+            default_pillar_path = DEFAULT_PILLAR_PATH_WINDOWS
         pillar_path = kwargs.get('pillar_path', default_pillar_path)
 
         # Set environment variables before execution
@@ -117,7 +121,7 @@ class ECMSaltstack(ECMPlugin):
             # salt-call state.highstate
             command = [saltstack_cmd, 'state.highstate', '--local', '--no-color', '-l debug']
 
-            out, stdout, stderr = ecm.execute_command(command, envars=envars, workdir=module_path)
+            out, stdout, stderr = ecm.run_command(command, envars=envars, workdir=module_path)
             return ecm.format_output(out, stdout, stderr)
 
         except Exception as e:
@@ -164,7 +168,7 @@ class ECMSaltstack(ECMPlugin):
 
         if ecm.file_read(bootstrap_file):
             envars = {'DEBIAN_FRONTEND': 'noninteractive'}
-            ecm.execute_file(bootstrap_file, args=['-n', '-P', '-X'], envars=envars)
+            ecm.run_file(bootstrap_file, args=['-n', '-P', '-X'], envars=envars)
 
         rmtree(tmp_dir)
         return bool(self._is_available())

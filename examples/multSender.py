@@ -56,7 +56,8 @@ class JabberClient:
         #And send it.
         self._xs.send(msg.toXml())
 
-    def debug(self, elem):
+    @staticmethod
+    def debug(elem):
         print "=" * 20
         print elem.toXml().encode('utf-8')
         print "=" * 20

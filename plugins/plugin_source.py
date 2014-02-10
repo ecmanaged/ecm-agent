@@ -28,12 +28,15 @@ try:
 except ImportError:
     pass
 
-from __ecm_plugin import ECMPlugin
-import __ecm_helper as ecm
+from __plugin import ECMPlugin
+import __helper as ecm
 
 
 class ECMSource(ECMPlugin):
     def cmd_source_run(self, *argv, **kwargs):
+        """
+        Syntax: source.run[path,source,branch,envars,facts,username,password,private_key,chown_user,chown_group,rotate,type]
+        """
         path            = kwargs.get('path', None)
         url             = kwargs.get('source', None)
         branch          = kwargs.get('branch', None)
@@ -48,13 +51,13 @@ class ECMSource(ECMPlugin):
         type            = kwargs.get('type', None)
 
         if not path or not url or not type:
-            raise Exception("Invalid parameters")
+            raise ecm.InvalidParameters(self.cmd_source_run.__doc__)
             
         if private_key:
             try:
                 private_key = b64decode(private_key)
             except:
-                raise Exception("Invalid private key format")
+                raise ecm.InvalidParameters("Invalid private key format")
 
         if type.upper() in ('URI', 'FILE'):
             source = FILE(path, rotate)
@@ -66,7 +69,7 @@ class ECMSource(ECMPlugin):
             source = SVN(path, rotate)
 
         else:
-            raise Exception("Unknown source")
+            raise ecm.InvalidParameters("Unknown source")
 
         # Set environment variables before execution
         envars = ecm.envars_decode(source_envars)
@@ -94,11 +97,10 @@ class ECMSource(ECMPlugin):
         return output
 
 
-class GIT():
+class GIT:
     def __init__(self, working_dir, rotate):
-
         if not working_dir:
-            raise Exception("Invalid path")
+            raise ecm.InvalidParameters("Invalid path")
 
         self.working_dir = working_dir
         self.rotate = rotate
@@ -118,7 +120,6 @@ class GIT():
     def clone(self, url, branch, envars, username, password, private_key):
         """ runs git clone URL
         """
-            
         command = self._get_command(url,branch)
 
         # Create git command with user and password
@@ -134,7 +135,7 @@ class GIT():
             helper, indetity = self._certificate_helper(private_key)
             envars['GIT_SSH'] = helper
 
-        out, stdout, stderr = ecm.execute_command(command=command, workdir=self.working_dir, envars=envars)
+        out, stdout, stderr = ecm.run_command(command=command, workdir=self.working_dir, envars=envars)
         result_exec = ecm.format_output(out, stdout, stderr)
 
         if not result_exec['out']:
@@ -167,10 +168,10 @@ class GIT():
         return command
 
     def _certificate_helper(self,private_key=None):
-        '''
+        """
         Returns the path to a helper script which can be used in the GIT_SSH env
         var to use a custom private key file.
-        '''
+        """
         opts = {
             'StrictHostKeyChecking': 'no',
             'PasswordAuthentication': 'no',
@@ -212,11 +213,10 @@ class GIT():
         return bool(self._is_available())
 
 
-class SVN():
+class SVN:
     def __init__(self, working_dir, rotate):
-
         if not working_dir:
-            raise Exception("Invalid path")
+            raise ecm.InvalidParameters("Invalid path")
 
         self.working_dir = working_dir
         self.rotate = rotate
@@ -236,14 +236,13 @@ class SVN():
     def clone(self, url, branch, envars, username, password, private_key):
         """ svn co URL
         """
-
         # Add username and password to url
         if username and password:
             url = url.replace('://', '://' + username + ':' + password + '@')
 
         command = self.svn_cmd + " co '" + url + "' ."
 
-        out, stdout, stderr = ecm.execute_command(command=command, workdir=self.working_dir, envars=envars)
+        out, stdout, stderr = ecm.run_command(command=command, workdir=self.working_dir, envars=envars)
         result_exec = ecm.format_output(out, stdout, stderr)
 
         if not result_exec['out']:
@@ -272,10 +271,10 @@ class SVN():
         return self._is_available()
 
 
-class FILE():
+class FILE:
     def __init__(self, working_dir, rotate):
         if not working_dir:
-            raise Exception("Invalid path")
+            raise ecm.InvalidParameters("Invalid path")
 
         self.working_dir = working_dir
         self.rotate = rotate
@@ -292,7 +291,7 @@ class FILE():
 
         file_downloaded = ecm.download_file(
             url=url,
-            file=tmp_dir + '/' + file_name,
+            filename=tmp_dir + '/' + file_name,
             user=username,
             passwd=password
         )
@@ -320,11 +319,11 @@ class FILE():
         }
         return ret
 
-    def _extract(self, file):
+    def _extract(self, filename):
         """ extractor helper
         """
         try:
-            file_type = self._get_file_type(file)
+            file_type = self._get_file_type(filename)
             if file_type == 'zip':
                 opener, mode = zipfile.ZipFILE, 'r'
 
@@ -337,7 +336,7 @@ class FILE():
             else:
                 raise Exception("Unsupported file compression")
 
-            cfile = opener(file, mode)
+            cfile = opener(filename, mode)
 
             # if first member is dir, skip 1st container path
             is_packed = None
@@ -375,10 +374,9 @@ class FILE():
         ret = {'out': 0, 'stderr': '', 'stdout': stdout}
         return ret
 
-    def _get_file_type(self, file):
+    def _get_file_type(self, filename):
         """ get compressed file type based on marks
         """
-
         magic_dict = {
             "\x1f\x8b\x08": "gz",
             "\x42\x5a\x68": "bz2",
@@ -386,7 +384,7 @@ class FILE():
         }
 
         max_len = max(len(x) for x in magic_dict)
-        with open(file) as f:
+        with open(filename) as f:
             file_start = f.read(max_len)
             for magic, filetype in magic_dict.items():
                 if file_start.startswith(magic):
@@ -394,7 +392,7 @@ class FILE():
         return False
 
 
-class Deploy():
+class Deploy:
     def __init__(self, working_dir, rotate):
         self.working_dir = os.path.abspath(working_dir)
         self.rotate = rotate
@@ -402,7 +400,6 @@ class Deploy():
     def prepare(self):
         """ Common function to create and rotate
         """
-
         to_dir = None
         if self.rotate and os.path.isdir(self.working_dir):
             drive, path = os.path.splitdrive(self.working_dir)
@@ -425,7 +422,6 @@ class Deploy():
         return to_dir
 
     def rollback(self, path):
-
         return
 
 

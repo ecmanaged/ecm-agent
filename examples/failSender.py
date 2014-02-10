@@ -17,8 +17,8 @@ target = "sm_agent@ejabberd/sm_agent-1"
 class JabberClient:
     def __init__(self):
         #Connect to jabber server
-        myJid = jid.JID('tester@ejabberd/test_send')
-        factory = client.basicClientFactory(myJid, 'tester')
+        myjid = jid.JID('tester@ejabberd/test_send')
+        factory = client.basicClientFactory(myjid, 'tester')
         factory.addBootstrap('//event/stream/authd', self.authd)
         reactor.connectTCP('ejabberd', 5222, factory)
         #Set up the looping call that will be sending messages.
@@ -55,7 +55,8 @@ class JabberClient:
         #And send it.
         self._xs.send(msg.toXml())
 
-    def debug(self, elem):
+    @staticmethod
+    def debug(elem):
         print "=" * 20
         print elem.toXml().encode('utf-8')
         print "=" * 20

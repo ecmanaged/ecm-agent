@@ -14,11 +14,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from __ecm_plugin import ECMPlugin
-import __ecm_helper as ecm
+from __plugin import ECMPlugin
+import __helper as ecm
 
 class ECMMysql(ECMPlugin):
-    def cmd_mysql_exec(self, *argv, **kwargs):
+    @staticmethod
+    def cmd_mysql_exec(*argv, **kwargs):
         """ Syntax mysql.exec[hostname],[user],[password],[database],[query] """
 
         try:
@@ -58,7 +59,7 @@ class ECMMysql(ECMPlugin):
             cursor.close()
             conn.close()
 
-            return (retval)
+            return retval
 
         except _mysql.Error, e:
             print "Error %d: %s" % (e.args[0], e.args[1])

@@ -14,33 +14,39 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import os
-from base64 import b64decode
-
-# My functions
-import __ecm_helper as ecm
 
 _PLUGIN_VERSION = 1.1
 _ALLOW_PLUGIN_UPDATES = 1
-
-import sys
-import inspect
-import simplejson as json
-
-from base64 import b64decode
 
 _E_RUNNING_COMMAND = 253
 _E_COMMAND_NOT_DEFINED = 252
 
 _FINAL_OUTPUT_STRING = '[__response__]'
 
+PROTECTED_FILES = [
+    '/etc/shadow',
+]
+
+import os
+import sys
+import inspect
+from base64 import b64decode
+
+import simplejson as json
+
+import __helper as ecm
+
+
 sys.stdout.flush()
 sys.stderr.flush()
 
+
 class ECMPlugin:
+    def __init__(self, *argv, **kwargs):
+        pass
+
     def run(self):
         if len(sys.argv) == 1 or sys.argv[1] == '':
-            #Show a list of available commands if no command selected
             return self._list_commands()
 
         else:
@@ -63,10 +69,10 @@ class ECMPlugin:
         content = kwargs.get('content', None)
 
         if not _ALLOW_PLUGIN_UPDATES:
-            raise Exception("Plugin updates not allowed")
+            raise ecm.NotAllowed("Plugin update is disabled")
 
         if not plugin or not content:
-            raise Exception(self.cmd_plugin_update.__doc__)
+            raise ecm.InvalidParameters(self.cmd_plugin_update.__doc__)
 
         # Get plugin path using my path
         plugin_file = os.path.join(
@@ -124,3 +130,4 @@ class ECMPlugin:
 
     def _update_plugins(self):
         pass
+

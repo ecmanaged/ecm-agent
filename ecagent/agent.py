@@ -307,7 +307,7 @@ class CommandRunner():
                     % (kwargs['filename'], data))
 
     def runCommand(self, command, command_args, flush_callback=None, message=None):
-        if (command in self._commands):
+        if command in self._commands:
             log.debug("executing %s with args: %s" % (command, command_args))
             return self._runProcess(self._commands[command], command, command_args, flush_callback, message)
         return
@@ -476,7 +476,7 @@ class IqMessage:
                 el_ecm_message = elem.firstChildElement()
                 self.version = el_ecm_message['version']
 
-                if (int(self.version) > AGENT_VERSION_PROTOCOL):
+                if int(self.version) > AGENT_VERSION_PROTOCOL:
                     raise Exception(
                         "Message format (%s) is greater than supported version (%s)" % (self.version, AGENT_VERSION_PROTOCOL))
 

@@ -19,7 +19,8 @@ import re
 import urllib
 import socket
 
-from __ecm_plugin import ECMPlugin
+from __plugin import ECMPlugin
+import __helper as ecm
 
 class ECMNetwork(ECMPlugin):
     def cmd_web_regexp(self, *argv, **kwargs):
@@ -29,15 +30,14 @@ class ECMNetwork(ECMPlugin):
         regex = kwargs.get('regex', None)
 
         if not (url and regex):
-            raise Exception(self.cmd_web_regexp.__doc__)
+            raise ecm.InvalidParameters(self.cmd_web_regexp.__doc__)
 
-        try:
-            urlopen = urllib.urlopen(url)
+        try: urlopen = urllib.urlopen(url)
+        except: raise Exception("Unable to retrieve URL %s" % url)
 
-        except:
-            raise Exception("Unable to retrieve URL %s" % url)
+        try: _regex = re.compile(regex)
+        except: raise Exception("Invalid regex %s" % regex)
 
-        _regex = re.compile(regex)
         retval = ''
         for line in urlopen.readlines():
             if _regex.match(line):
@@ -52,11 +52,11 @@ class ECMNetwork(ECMPlugin):
         url = kwargs.get('url', None)
 
         if not url:
-            raise Exception(self.cmd_web_download.__doc__)
+            raise ecm.InvalidParameters(self.cmd_web_download.__doc__)
 
         try:
             retval = urllib.urlretrieve(url)
-            return (retval[0])
+            return retval[0]
 
         except:
             raise Exception("Unable to retrieve URL %s" % url)
@@ -67,13 +67,13 @@ class ECMNetwork(ECMPlugin):
         url = kwargs.get('url', None)
 
         if not url:
-            raise Exception(self.cmd_web_get.__doc__)
+            raise ecm.InvalidParameters(self.cmd_web_get.__doc__)
 
         try:
             urlopen = urllib.urlopen(url)
             retval = ''.join(urlopen.readlines())
             urlopen.close()
-            return (retval)
+            return retval
 
         except:
             raise Exception("Unable to retrieve URL %s" % url)
@@ -84,13 +84,13 @@ class ECMNetwork(ECMPlugin):
         url = kwargs.get('url', None)
 
         if not url:
-            raise Exception(self.cmd_web_perf.__doc__)
+            raise ecm.InvalidParameters(self.cmd_web_perf.__doc__)
         try:
             starttime = time.time()
             urlopen = urllib.urlopen(url)
             retval = time.time() - starttime
             urlopen.close()
-            return (retval)
+            return retval
 
         except:
             raise Exception("Unable to retrieve URL %s" % url)
@@ -99,12 +99,12 @@ class ECMNetwork(ECMPlugin):
     def cmd_net_tcp(self, *argv, **kwargs):
         """Syntax net.tcp <hostname> <port>"""
 
-        host    = kwargs.get('host', None)
-        port    = kwargs.get('port', None)
+        host = kwargs.get('host', None)
+        port = kwargs.get('port', None)
         timeout = kwargs.get('timeout', 30)
 
         if not (host and port):
-            raise Exception(self.cmd_net_tcp.__doc__)
+            raise ecm.InvalidParameters(self.cmd_net_tcp.__doc__)
 
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -114,7 +114,7 @@ class ECMNetwork(ECMPlugin):
             s.connect((host, int(port)))
             s.shutdown(2)
 
-            return ("Connected: %s" % str(data))
+            return "Connected: %s" % str(data)
 
         except socket.error, e:
             raise Exception("Unable to connect: %s" % e[1])

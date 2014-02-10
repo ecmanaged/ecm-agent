@@ -19,8 +19,8 @@ import sys
 import os
 import re
 
-from __ecm_plugin import ECMPlugin
-import __ecm_helper as ecm
+from __plugin import ECMPlugin
+import __helper as ecm
 
 RCD = '/etc/rc'
 INITD = '/etc/init.d'
@@ -29,6 +29,7 @@ HEARTBEAT = '/etc/heartbeat/haresources'
 
 SVC_TIMEOUT = 120
 
+# noinspection PyUnusedLocal,PyUnusedLocal,PyUnusedLocal
 class ECMLinux(ECMPlugin):
     def cmd_service_control(self, *argv, **kwargs):
         """Syntax: service.control daemon action <force: 0/1>"""
@@ -38,17 +39,18 @@ class ECMLinux(ECMPlugin):
         force = kwargs.get('force', 0)
 
         if not (daemon and action):
-            raise Exception(self.cmd_service_control.__doc__)
+            raise ecm.InvalidParameters(self.cmd_service_control.__doc__)
 
         if not force:
             # try to get init.d daemon
             initd = self._get_rcd(daemon)
-            if not initd: raise Exception("Unable to find daemon: %s" % daemon)
+            if not initd:
+                raise Exception("Unable to find daemon: %s" % daemon)
             daemon = initd
 
         daemon = os.path.basename(daemon)
         ecm.renice_me(-19)
-        out, stdout, stderr = ecm.execute_command(INITD + '/' + daemon + ' ' + action)
+        out, stdout, stderr = ecm.run_command(INITD + '/' + daemon + ' ' + action)
         ecm.renice_me(5)
 
         return ecm.format_output(out, stdout, stderr)
@@ -62,10 +64,10 @@ class ECMLinux(ECMPlugin):
         name = kwargs.get('name', None)
 
         if not name:
-            raise Exception(self.cmd_service_state.__doc__)
+            raise ecm.InvalidParameters(self.cmd_service_state.__doc__)
 
         daemon = os.path.basename(name)
-        out, stdout, stderr = ecm.execute_command(INITD + '/' + name + ' status')
+        out, stdout, stderr = ecm.run_command(INITD + '/' + daemon + ' status')
 
         return not bool(out)
 
@@ -76,8 +78,8 @@ class ECMLinux(ECMPlugin):
         return bool(self._get_rcd(daemon))
 
     def _get_runlevel(self):
-        (exit, stdout, stderr) = ecm.execute_command(RUNLEVEL)
-        if not exit:
+        (out, stdout, stderr) = ecm.run_command(RUNLEVEL)
+        if not out:
             return str(stdout).split(' ')[1].rstrip()
 
         return 0
@@ -90,7 +92,7 @@ class ECMLinux(ECMPlugin):
 
         if os.path.exists(path):
             target = os.listdir(path)
-            for path in (target):
+            for path in target:
                 try:
                     m = re.match(r"^S\d+(.*)$", path)
                     init = m.group(1)
@@ -101,7 +103,7 @@ class ECMLinux(ECMPlugin):
 
             # Not exists as default start on runlevel
             # its a heartbeat daemon?
-            if (os.path.exists(HEARTBEAT)):
+            if os.path.exists(HEARTBEAT):
                 for line in open(HEARTBEAT):
                     if daemon in line:
                         return self._get_init(daemon)
@@ -112,8 +114,8 @@ class ECMLinux(ECMPlugin):
         return False
 
     def _get_init(self, daemon):
-        file = INITD + '/' + daemon
-        if os.path.exists(INITD) and os.path.exists(file):
+        filename = INITD + '/' + daemon
+        if os.path.exists(INITD) and os.path.exists(filename):
             return daemon
 
         return False
@@ -128,7 +130,7 @@ class ECMWindows(ECMPlugin):
         force = kwargs.get('force', 0)
 
         if not (daemon and action):
-            raise Exception(self.cmd_service_control.__doc__)
+            raise ecm.InvalidParameters(self.cmd_service_control.__doc__)
 
         maxtime = time.time() + SVC_TIMEOUT
 
@@ -140,28 +142,28 @@ class ECMWindows(ECMPlugin):
         if action == 'start':
             ws.StartService(handle, None)
 
-            while (time.time() < maxtime):
+            while time.time() < maxtime:
                 stat = ws.QueryServiceStatus(handle)
                 time.sleep(.5)
                 if stat[1] == ws.SERVICE_RUNNING:
-                    return (0, "Service %s is running " % lserv)
+                    return 0, "Service %s is running " % lserv
             raise Exception("Timeout starting service %s " % lserv)
 
         elif action == 'stop':
             ws.ControlService(handle, ws.SERVICE_CONTROL_STOP)
 
-            while (time.time() < maxtime):
+            while time.time() < maxtime:
                 stat = ws.QueryServiceStatus(handle)
                 time.sleep(.5)
                 if stat[1] == ws.SERVICE_STOPPED:
-                    return (0, "Service %s is stopped " % lserv)
+                    return 0, "Service %s is stopped " % lserv
             raise Exception("Timeout stopping service %s " % lserv)
 
         elif action == 'restart':
             # stop
             ws.ControlService(handle, ws.SERVICE_CONTROL_STOP)
 
-            while (time.time() < maxtime):
+            while time.time() < maxtime:
                 stat = ws.QueryServiceStatus(handle)
                 time.sleep(.5)
                 if stat[1] == ws.SERVICE_STOPPED:
@@ -170,11 +172,11 @@ class ECMWindows(ECMPlugin):
             # start
             ws.StartService(handle, None)
 
-            while (time.time() < maxtime):
+            while time.time() < maxtime:
                 stat = ws.QueryServiceStatus(handle)
                 time.sleep(.5)
                 if stat[1] == ws.SERVICE_RUNNING:
-                    return (0, "Service %s is running " % lserv)
+                    return 0, "Service %s is running " % lserv
             raise Exception("Timeout restarting service %s " % lserv)
 
     def cmd_service_runlevel(self, *argv, **kwargs):
@@ -186,7 +188,7 @@ class ECMWindows(ECMPlugin):
         name = kwargs.get('name', None)
 
         if not name:
-            raise Exception(self.cmd_service_state.__doc__)
+            raise ecm.InvalidParameters(self.cmd_service_state.__doc__)
 
         scmhandle = ws.OpenSCManager(None, None, ws.SC_MANAGER_ALL_ACCESS)
         sserv, lserv = self._svc_getname(scmhandle, name)
@@ -214,24 +216,19 @@ class ECMWindows(ECMPlugin):
             raise Exception("error with wmi connection")
 
     def _collectd(self, sf):
-        collector_map = {}
-        collector_map['cpu_util'] = sf.get_cpu_util()
-        collector_map['cpu_util_maxcore'] = sf.get_cpu_util_maxcore()
-        collector_map['cpu_queue_length'] = sf.get_cpu_queue_length()
-        collector_map['cpu_context_switches'] = sf.get_cpu_context_switches()
-        collector_map['net_bits_total'] = sf.get_net_bits_total()
-        collector_map['net_bits_in'] = sf.get_net_bits_in()
-        collector_map['net_bits_out'] = sf.get_net_bits_out()
-        collector_map['mem_available_bytes'] = sf.get_mem_available_bytes()
-        collector_map['mem_cache_bytes'] = sf.get_mem_cache_bytes()
-        collector_map['mem_committed_bytes'] = sf.get_mem_committed_bytes()
-        collector_map['mem_pages'] = sf.get_mem_pages()
-        collector_map['mem_page_faults'] = sf.get_mem_page_faults()
-        collector_map['disk_queue_length_avg'] = sf.get_disk_queue_length_avg()
-        collector_map['disk_queue_length_current'] = sf.get_disk_queue_length_current()
-        collector_map['disk_bytes_transferred'] = sf.get_disk_bytes_transferred()
-
-        return collector_map
+        return {
+            'cpu_util': sf.get_cpu_util(), 'cpu_util_maxcore': sf.get_cpu_util_maxcore(),
+            'cpu_queue_length': sf.get_cpu_queue_length(),
+            'cpu_context_switches': sf.get_cpu_context_switches(),
+            'net_bits_total': sf.get_net_bits_total(), 'net_bits_in': sf.get_net_bits_in(),
+            'net_bits_out': sf.get_net_bits_out(), 'mem_available_bytes': sf.get_mem_available_bytes(),
+            'mem_cache_bytes': sf.get_mem_cache_bytes(),
+            'mem_committed_bytes': sf.get_mem_committed_bytes(), 'mem_pages': sf.get_mem_pages(),
+            'mem_page_faults': sf.get_mem_page_faults(),
+            'disk_queue_length_avg': sf.get_disk_queue_length_avg(),
+            'disk_queue_length_current': sf.get_disk_queue_length_current(),
+            'disk_bytes_transferred': sf.get_disk_bytes_transferred()
+        }
 
     def _svc_getname(self, scmhandle, service):
         snames = ws.EnumServicesStatus(scmhandle)

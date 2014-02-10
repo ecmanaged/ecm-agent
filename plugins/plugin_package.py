@@ -17,16 +17,20 @@
 import re
 from base64 import b64decode
 
-from __ecm_plugin import ECMPlugin
-import __ecm_helper as ecm
+from __plugin import ECMPlugin
+import __helper as ecm
 
 class ECMPackage(ECMPlugin):
     def cmd_packages_install(self, *argv, **kwargs):
-        """ Install packages received in csv or in debian packages "Depends" format
+        """
+        Install packages received in csv or in debian packages "Depends" format
+        Syntax: packages.install[packages]
         """
         packages_b64 = kwargs.get('packages', None)
 
-        if not packages_b64: raise Exception("Invalid argument")
+        if not packages_b64:
+            raise ecm.InvalidParameters(self.cmd_packages_install.__doc__)
+
         try:
             str_packages = b64decode(packages_b64)
         except:
@@ -35,18 +39,15 @@ class ECMPackage(ECMPlugin):
         packages = self._parse_package_string(str_packages)
 
         # Invalid package list
-        if not packages: return False
+        if not packages:
+            return False
 
         # apt-get update or yum clean on first time
         refresh_db = True
-        ret = {
-            'out': 0,
-            'stdout': '',
-            'stderr': '',
-        }
+        ret = { 'out': 0, 'stdout': '', 'stderr': ''}
 
         for i in range(0, 100):
-            there_are_pending = False
+            packages_pending = False
             for pkg in packages:
                 if not pkg[0]['installed']:
                     packages_pending = True
@@ -63,11 +64,13 @@ class ECMPackage(ECMPlugin):
                         pkg[0]['installed'] = 1
                         refresh_db = False
 
-            if not packages_pending: break
+            if not packages_pending:
+                break
 
         return ret
 
-    def _parse_package_string(self, packages):
+    @staticmethod
+    def _parse_package_string(packages):
         """ Parse packages like:
         'apache2-mpm-worker (= 2.2.16-6+squeeze7) | apache2-mpm-prefork (= 2.2.16-6+squeeze7) | apache2-mpm-ePvent (= 2.2.16-6+squeeze7) | apache2-mpm-itk (= 2.2.16-6+squeeze7), apache2.2-common (= 2.2.16-6+squeeze7)'
         and return structure

@@ -17,10 +17,11 @@
 import httplib2
 import urlparse
 import urllib
-import simplejson as json
 import inspect
 
-from __ecm_plugin import ECMPlugin
+import simplejson as json
+
+from __plugin import ECMPlugin
 
 
 class ECMLoadb(ECMPlugin):
@@ -28,8 +29,6 @@ class ECMLoadb(ECMPlugin):
         url = kwargs.get('url', None)
         username = kwargs.get('username', 'admin')
         password = kwargs.get('password', None)
-
-        # Make connection (but not for run())
         if not 'run()' in str(inspect.stack()[1][4]):
             self.conn = self._connect(url, username, password)
 
@@ -105,7 +104,7 @@ class ECMLoadb(ECMPlugin):
         try:
             # connect and test get info
             conn = HTTPConnection(url, user, password)
-            conn.cmd_loadb_info()
+            self.cmd_loadb_info()
             return conn
         except:
             raise Exception("Unable to connect to %s" % url)
@@ -203,4 +202,5 @@ class HTTPConnection:
 #if test_info_pre == test_info_post:
 #    print "OK: \n%s" % test_info_post
 
-ECMLoadb().run()
+# Is disabled
+# ECMLoadb().run()

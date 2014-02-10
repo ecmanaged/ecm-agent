@@ -18,13 +18,15 @@ from tempfile import mkdtemp
 from base64 import b64decode
 from shutil import rmtree
 
-from __ecm_plugin import ECMPlugin
-import __ecm_helper as ecm
+from __plugin import ECMPlugin
+import __helper as ecm
 
 class ECMScript(ECMPlugin):
     def cmd_script_run(self, *argv, **kwargs):
-        """script.run script(b64) extension envars runas executable"""
-
+        """
+        run script(b64) extension envars runas executable
+        Syntax: script.run[script,extenion,envars,facts,runas,executable]
+        """
         script_base64 = kwargs.get('script', None)
         script_extension = kwargs.get('extension', None)
         script_envars = kwargs.get('envars', None)
@@ -36,7 +38,7 @@ class ECMScript(ECMPlugin):
             script_extension = '.cmd'
 
         if not script_base64:
-            raise Exception('Invalid argument')
+            raise ecm.InvalidParameters(self.cmd_script_run.__doc__)
 
         try:
             # Write down
@@ -45,7 +47,7 @@ class ECMScript(ECMPlugin):
             ecm.file_write(tmp_file, b64decode(script_base64))
 
         except:
-            raise Exception("Unable to decode script")
+            raise ecm.InvalidParameters("Unable to decode script")
 
         # Set environment variables before execution
         envars = ecm.envars_decode(script_envars)
@@ -56,9 +58,9 @@ class ECMScript(ECMPlugin):
 
         if script_executable:
             cmd = script_executable + ' ' + tmp_file
-            out, stdout, stderr = ecm.execute_command(cmd, runas=script_runas, workdir=tmp_dir, envars=envars)
+            out, stdout, stderr = ecm.run_command(cmd, runas=script_runas, workdir=tmp_dir, envars=envars)
         else:
-            out, stdout, stderr = ecm.execute_file(tmp_file, runas=script_runas, workdir=tmp_dir, envars=envars)
+            out, stdout, stderr = ecm.run_file(tmp_file, runas=script_runas, workdir=tmp_dir, envars=envars)
 
         rmtree(tmp_dir, ignore_errors=True)
         return ecm.format_output(out, stdout, stderr)

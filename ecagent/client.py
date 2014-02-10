@@ -42,10 +42,10 @@ class Client(BasicClient):
         self._online_contacts = set()
 
         if 'max_concurrent_messages' in config:
-            max = config.as_int('max_concurrent_messages')
+            max_concurrent = config.as_int('max_concurrent_messages')
         else:
-            max = 10
-        self._concurrency_semaphore = DeferredSemaphore(max)
+            max_concurrent = 10
+        self._concurrency_semaphore = DeferredSemaphore(max_concurrent)
 
         if 'max_delay' in config:
             max_delay = self.cfg.as_int('max_delay')

@@ -16,11 +16,10 @@
 
 import os
 import re
-
 import psutil
 
-from __ecm_plugin import ECMPlugin
-import __ecm_helper as ecm
+from __plugin import ECMPlugin
+import __helper as ecm
 
 class ECMProc(ECMPlugin):
     def cmd_proc_mem_name(self, *argv, **kwargs):
@@ -31,7 +30,7 @@ class ECMProc(ECMPlugin):
         total_vms = 0
 
         if not name:
-            raise Exception(self.cmd_proc_mem_name.__doc__)
+            raise ecm.InvalidParameters(self.cmd_proc_mem_name.__doc__)
 
         try:
             for process in psutil.process_iter():
@@ -53,7 +52,7 @@ class ECMProc(ECMPlugin):
         regex = kwargs.get('regex', None)
 
         if not regex:
-            raise Exception(self.cmd_proc_mem_regex.__doc__)
+            raise ecm.InvalidParameters(self.cmd_proc_mem_regex.__doc__)
 
         # clean starting and ending slash
         regex = re.sub(r'(^\/)', r'', regex)
@@ -90,7 +89,7 @@ class ECMProc(ECMPlugin):
         regex = kwargs.get('regex', None)
 
         if not regex:
-            raise Exception(self.cmd_proc_num_regex.__doc__)
+            raise ecm.InvalidParameters(self.cmd_proc_num_regex.__doc__)
 
         # clean starting and ending slash
         regex = re.sub(r'(^\/)', r'', regex)
@@ -109,7 +108,7 @@ class ECMProc(ECMPlugin):
         regex = kwargs.get('regex', None)
 
         if not regex:
-            raise Exception(self.cmd_proc_list_regex.__doc__)
+            raise ecm.InvalidParameters(self.cmd_proc_list_regex.__doc__)
 
         # clean starting and ending slash
         regex = re.sub(r'(^\/)', r'', regex)
@@ -131,7 +130,7 @@ class ECMProc(ECMPlugin):
         proc_list = kwargs.get('name', None)
 
         if not proc_list:
-            raise Exception(self.cmd_proc_kill_name.__doc__)
+            raise ecm.InvalidParameters(self.cmd_proc_kill_name.__doc__)
 
         killed = []
         proc_name_array = proc_list.split(',')
@@ -142,9 +141,9 @@ class ECMProc(ECMPlugin):
                 killed.append(proc.pid)
 
         if not killed:
-            return ('%s: no process found' % str(proc_list))
+            return '%s: no process found' % str(proc_list)
         else:
-            return ('%s: Killed' % str(killed))
+            return '%s: Killed' % str(killed)
 
     def cmd_proc_kill_pid(self, *argv, **kwargs):
         """ Syntax: proc.kill.pid[pid],[pid],..."""
@@ -152,7 +151,7 @@ class ECMProc(ECMPlugin):
         proc_list = kwargs.get('pid', None)
 
         if not proc_list:
-            raise Exception(self.cmd_proc_kill_pid.__doc__)
+            raise ecm.InvalidParameters(self.cmd_proc_kill_pid.__doc__)
 
         killed = []
         proc_pid_array = proc_list.split(',')
@@ -162,9 +161,9 @@ class ECMProc(ECMPlugin):
                 killed.append(proc.pid)
 
         if not killed:
-            return ('%s: no process found' % str(proc_list))
+            return '%s: no process found' % str(proc_list)
         else:
-            return ('%s: Killed' % str(killed))
+            return '%s: Killed' % str(killed)
 
     def cmd_proc_kill_regex(self, *argv, **kwargs):
         """Syntax: proc.kill.regex[regex]"""
@@ -172,22 +171,22 @@ class ECMProc(ECMPlugin):
         regex = kwargs.get('regex', None)
 
         if not regex:
-            raise Exception(self.cmd_proc_kill_regex.__doc__)
+            raise ecm.InvalidParameters(self.cmd_proc_kill_regex.__doc__)
 
         # clean starting and ending slash
         regex = re.sub(r'(^\/)', r'', regex)
         regex = re.sub(r'(\/$)', r'', regex)
 
         killed = []
-        for proc in psutil.process_iter():
-            if re.search(regex, proc.name) and proc.pid != os.getpid():
-                proc.kill()
-                killed.append(proc.name)
+        for process in psutil.process_iter():
+            if re.search(regex, process.name) and process.pid != os.getpid():
+                process.kill()
+                killed.append(process.name)
 
         if not killed:
-            return ('%s: no process found' % str(regex))
+            return '%s: no process found' % str(regex)
         else:
-            return ('%s: Killed' % str(killed))
+            return '%s: Killed' % str(killed)
 
     def cmd_command_exists(self, *argv, **kwargs):
         """Syntax: command.exists[command]"""
@@ -195,12 +194,9 @@ class ECMProc(ECMPlugin):
         command = kwargs.get('command', None)
 
         if not command:
-            raise Exception(self.cmd_command_exists.__doc__)
+            raise ecm.InvalidParameters(self.cmd_command_exists.__doc__)
 
-        cmd = 'type ' + command
-        out, stdout, stderr = ecm.execute_command(cmd)
-
-        return (out == 0)
+        return bool(ecm.which(command))
 
     def cmd_proc_sem_clean(self, *argv, **kwargs):
         """Syntax: proc.sem.clean[user]"""

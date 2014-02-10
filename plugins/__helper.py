@@ -15,27 +15,13 @@
 #    under the License.
 
 import os
-import string
-import random
 import re
-import platform
-import urllib2
 
-from subprocess import Popen, PIPE
-from shlex import split
-from threading import Thread
-from time import sleep
+from sys import platform, stdout, stderr
+from time import sleep, time
 
-from time import time
-from base64 import b64decode
-
-import twisted.python.procutils as procutils
-
-import simplejson as json
-import sys
-
-if not sys.platform.startswith("win32"):
-    import fcntl
+if not platform.startswith("win32"):
+        import fcntl
 
 _ETC = '/etc'
 _DIR = '/etc/ecmanaged'
@@ -47,13 +33,11 @@ _DEFAULT_GROUP_WINDOWS = 'Administrators'
 
 _FLUSH_WORKER_SLEEP_TIME = 0.2
 
-__all__ = []
-
 
 def is_windows():
         """ Returns True if is a windows system
         """
-        if sys.platform.startswith("win32"):
+        if platform.startswith("win32"):
             return True
 
         return False
@@ -93,24 +77,28 @@ def file_read(file_path):
 def random_charts(length=60):
     """ Generates random chars
     """
+    import string
+    import random
     chars = string.ascii_uppercase + string.digits + '!@#$%^&*()'
     return ''.join(random.choice(chars) for x in range(length))
 
 
-def clean_stdout(output):
+def clean_stdout(std_output):
     """ Remove color chars from output
     """
     try:
         r = re.compile("\033\[[0-9;]*m", re.MULTILINE)
-        return r.sub('', output)
+        return r.sub('', std_output)
     except:
-        return output
+        return std_output
 
 
-def download_file(url, file, user=None, passwd=None):
+def download_file(url, filename, user=None, passwd=None):
     """
     Downloads a remote content
     """
+    import urllib2
+
     try:
         if user and passwd:
             password_manager = urllib2.HTTPPasswordMgrWithDefaultRealm()
@@ -124,7 +112,7 @@ def download_file(url, file, user=None, passwd=None):
 
         req = urllib2.urlopen(url.replace("'", ""))
         CHUNK = 256 * 10240
-        with open(file, 'wb') as fp:
+        with open(filename, 'wb') as fp:
             while True:
                 chunk = req.read(CHUNK)
                 if not chunk: break
@@ -132,7 +120,7 @@ def download_file(url, file, user=None, passwd=None):
     except:
         return False
 
-    return file
+    return filename
 
 
 def chmod(filename, mode):
@@ -151,14 +139,27 @@ def which(command):
     """
     search executable on path
     """
-    found = procutils.which(command)
 
+    # From procutils
+    result = []
+    exts = filter(None, os.environ.get('PATHEXT', '').split(os.pathsep))
+    path = os.environ.get('PATH', None)
+    if path is None:
+        return []
+    for p in os.environ.get('PATH', '').split(os.pathsep):
+        p = os.path.join(p, command)
+        if os.access(p, os.X_OK):
+            result.append(p)
+        for e in exts:
+            pext = p + e
+            if os.access(pext, os.X_OK):
+                result.append(pext)
     try:
-        cmd = found[0]
+        found = result[0]
     except IndexError:
-        return False
+        found = False
 
-    return cmd
+    return found
 
 
 def chown(path, user, group, recursive=False):
@@ -210,7 +211,7 @@ def install_package(packages, update=True):
         if distribution.lower() in ['debian', 'ubuntu']:
             envars['DEBIAN_FRONTEND'] = 'noninteractive'
 
-            if update: execute_command(['apt-get', '-y', '-qq', 'update'])
+            if update: run_command(['apt-get', '-y', '-qq', 'update'])
             command = ['apt-get',
                        '-o',
                        'Dpkg::Options::=--force-confold',
@@ -222,7 +223,7 @@ def install_package(packages, update=True):
                        packages]
 
         elif distribution.lower() in ['centos', 'redhat', 'fedora', 'amazon']:
-            if update: execute_command(['yum', '-y', 'clean', 'all'])
+            if update: run_command(['yum', '-y', 'clean', 'all'])
             command = ['yum',
                        '-y',
                        '--nogpgcheck',
@@ -237,8 +238,8 @@ def install_package(packages, update=True):
                        packages]
 
         elif distribution.lower() in ['arch']:
-            if update: execute_command(['pacman', '-Sy'])
-            if update: execute_command(['pacman', '-S', '--noconfirm', 'pacman'])
+            if update: run_command(['pacman', '-Sy'])
+            if update: run_command(['pacman', '-S', '--noconfirm', 'pacman'])
             command = ['pacman',
                        '-S',
                        '--noconfirm',
@@ -247,25 +248,25 @@ def install_package(packages, update=True):
         else:
             return 1, '', "Distribution not supported: %s" % distribution
 
-        return execute_command(command, envars=envars)
+        return run_command(command, envars=envars)
 
     except Exception as e:
         return 1, '', "Error installing packages %s" % e
 
 
-def execute_file(file, args=None, stdin=None, runas=None, workdir=None, envars=None):
+def run_file(filename, args=None, stdin=None, runas=None, workdir=None, envars=None):
     """
     Execute a script file
     """
-    if os.path.isfile(file):
-        os.chmod(file, 0700)
+    if os.path.isfile(filename):
+        os.chmod(filename, 0700)
         e = ECMExec()
-        return e.command([file], args, stdin, runas, workdir, envars)
+        return e.command([filename], args, stdin, runas, workdir, envars)
 
     return 255, '', 'Script file not found'
 
 
-def execute_command(command, args=None, stdin=None, runas=None, workdir=None, envars=None):
+def run_command(command, args=None, stdin=None, runas=None, workdir=None, envars=None):
     """
     Execute command and flush stdout/stderr using threads
     """
@@ -275,6 +276,9 @@ def execute_command(command, args=None, stdin=None, runas=None, workdir=None, en
 
 def envars_decode(coded_envars=None):
     """ Decode base64/json envars """
+    import simplejson as json
+    from base64 import b64decode
+
     envars = None
     try:
         if coded_envars:
@@ -323,12 +327,12 @@ def renice_me(nice):
     if nice and is_number(nice):
         try:
             os.nice(int(nice))
-            return (0)
+            return 0
 
         except:
-            return (1)
+            return 1
     else:
-        return (1)
+        return 1
 
 
 def is_number(s):
@@ -344,12 +348,9 @@ def output(string):
     """ Helper function """
     return '[' + str(time()) + '] ' + str(string) + "\n"
 
-def format_output(out, stdout, stderr):
+def format_output(out, std_output, std_error):
     """ Helper function """
-    format_out = {}
-    format_out['out'] = out
-    format_out['stdout'] = stdout
-    format_out['stderr'] = stderr
+    format_out = {'out': out, 'stdout': std_output, 'stderr': std_error}
 
     return format_out
 
@@ -406,10 +407,15 @@ def split_path(path):
 
 
 def get_distribution():
+    import platform
     distribution, version = None, None
 
     try:
-        (distribution, version, _id) = platform.dist()
+        if is_windows():
+            distribution = platform.release()
+            version = platform.version()
+        else:
+            (distribution, version, _id) = platform.dist()
     except:
         pass
 
@@ -451,10 +457,13 @@ class ECMExec:
         self.thread_stderr = ''
         self.thread_run = 1
 
-    def command(self, command, args=None, stdin=None, runas=None, workdir=None, envars=None):
+    def command(self, command, args=None, std_input=None, run_as=None, working_dir=None, envars=None):
         """
         Execute command and flush stdout/stderr using threads
         """
+        from subprocess import Popen, PIPE
+        from shlex import split
+        from threading import Thread
 
         # Prepare environment variables
         if not envars or not is_dict(envars):
@@ -467,8 +476,8 @@ class ECMExec:
         if is_list(command):
             command = ' '.join(command)
 
-        if workdir:
-            workdir = os.path.abspath(workdir)
+        if working_dir:
+            working_dir = os.path.abspath(working_dir)
 
         # create command array and add args
         command = split(command)
@@ -476,32 +485,32 @@ class ECMExec:
             for arg in args:
                 command.append(arg)
 
-        if runas and not is_windows():
-            # dont use su - xxx or env variables will not be available
-            command = ['su', runas, '-c', ' '.join(map(str, command))]
+        if run_as and not is_windows():
+            # don't use su - xxx or env variables will not be available
+            command = ['su', run_as, '-c', ' '.join(map(str, command))]
 
-            # :TODO: Runas for windows :S
+            # :TODO: Run_as for windows :S
 
         try:
             p = Popen(
                 command,
                 env=env,
                 bufsize=0, stdin=PIPE, stdout=PIPE, stderr=PIPE,
-                cwd=workdir,
+                cwd=working_dir,
                 universal_newlines=True,
                 close_fds=(os.name == 'posix')
             )
 
-            # Write stdin if set
-            if stdin:
-                p.stdin.write(stdin)
+            # Write standard input and close it
+            if std_input:
+                p.stdin.write(std_input)
                 p.stdin.flush()
-
             p.stdin.close()
 
             if is_windows():
-                stdout, stderr = p.communicate()
-                return p.wait(), stdout, stderr
+                std_output, std_error = p.communicate()
+                
+                return p.wait(), std_output, std_error
 
             else:
                 thread = Thread(target=self._thread_flush_worker, args=[p.stdout, p.stderr])
@@ -514,7 +523,7 @@ class ECMExec:
                 # Ensure to get last output from Thread
                 sleep(_FLUSH_WORKER_SLEEP_TIME * 2)
 
-                # Stop Thread
+                # Stop Thread and return
                 self.thread_run = 0
                 thread.join(timeout=1)
 
@@ -524,40 +533,59 @@ class ECMExec:
             return e[0], '', "Execution failed: %s" % e[1]
 
         except Exception as e:
-            return 255, '', 'Unknown error'
+            return 255, '', 'Unknown error: %s' % e
 
-    def _thread_flush_worker(self, str_stdout, str_stderr):
+    def _thread_flush_worker(self, std_output, std_error):
         """
         needs to be in a thread so we can read the stdout w/o blocking
         """
         while self.thread_run:
             # Avoid Exception in thread Thread-1 (most likely raised during interpreter shutdown):
             try:
-                output = clean_stdout(self._non_block_read(str_stdout))
+                out = clean_stdout(self._non_block_read(std_output))
                 if output:
-                    self.thread_stdout += output
-                    sys.stdout.write(output)
+                    self.thread_stdout += out
+                    stdout.write(output)
 
-                output = clean_stdout(self._non_block_read(str_stderr))
+                out = clean_stdout(self._non_block_read(std_error))
                 if output:
-                    self.thread_stderr += output
-                    sys.stderr.write(output)
+                    self.thread_stderr += out
+                    stderr.write(output)
 
                 sleep(_FLUSH_WORKER_SLEEP_TIME)
 
             except:
                 pass
 
-    def _non_block_read(self, output):
+    @staticmethod
+    def _non_block_read(out):
         """
         even in a thread, a normal read with block until the buffer is full
         """
         try:
-            fd = output.fileno()
+            fd = out.fileno()
             fl = fcntl.fcntl(fd, fcntl.F_GETFL)
             fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
-            return output.read()
+            return out.read()
 
         except:
             return ''
+
+
+# Exceptions
+
+class InvalidParameters(Exception):
+    def __init__(self, reason):
+        self._reason = reason
+
+    def __str__(self):
+        return "Invalid parameters: %s" % self._reason
+
+
+class NotAllowed(Exception):
+    def __init__(self, reason):
+        self._reason = reason
+
+    def __str__(self):
+        return "Not allowed: %s" % self._reason
 

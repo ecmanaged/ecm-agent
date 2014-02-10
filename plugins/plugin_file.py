@@ -17,114 +17,110 @@
 import os
 import re
 
-from __ecm_plugin import ECMPlugin
-
-# :TODO: Move to config
-PROTECTED_FILES = [
-    '/etc/shadow',
-]
-
+from __plugin import ECMPlugin, PROTECTED_FILES
+import __helper as ecm
 
 class ECMFile(ECMPlugin):
     def cmd_file_exist(self, *argv, **kwargs):
-        """Syntax: file.exist <file>"""
+        """Syntax: file.exist[file]"""
 
-        file = kwargs.get('file', None)
+        filename = kwargs.get('file', None)
 
-        if not file:
-            raise Exception(self.cmd_file_exist.__doc__)
+        if not filename:
+            raise ecm.InvalidParameters(self.cmd_file_exist.__doc__)
 
-        if os.path.exists(file):
+        if os.path.exists(filename):
             return True
 
         return False
 
     def cmd_file_time(self, *argv, **kwargs):
-        """Syntax: file.time <file> <type=(modify|create|access)>"""
+        """Syntax: file.time[file,type=(modify|create|access)]"""
 
-        file = kwargs.get('file', None)
-        type = kwargs.get('time', None)
+        filename = kwargs.get('file', None)
+        time_type = kwargs.get('time', None)
+        retval = None
 
-        if not (file and type):
-            raise Exception(self.cmd_file_time.__doc__)
+        if not filename or not time_type:
+            raise ecm.InvalidParameters(self.cmd_file_time.__doc__)
 
-        if not type in ['modify', 'create', 'access']:
-            raise Exception(self.cmd_file_regexp.__doc__)
+        if not time_type in ['modify', 'create', 'access']:
+            raise ecm.InvalidParameters(self.cmd_file_regexp.__doc__)
 
-        if not os.path.exists(file):
-            raise Exception("%s doesn't exists" % file)
+        if not os.path.exists(filename):
+            raise ecm.InvalidParameters("%s doesn't exists" % filename)
 
-        if type == 'modify':
-            retval = os.path.getmtime(file)
+        if time_type == 'modify':
+            retval = os.path.getmtime(filename)
 
-        elif type == 'create':
-            retval = os.path.getctime(file)
+        elif time_type == 'create':
+            retval = os.path.getctime(filename)
 
-        elif type == 'access':
-            retval = os.path.getatime(file)
+        elif time_type == 'access':
+            retval = os.path.getatime(filename)
 
         return retval
 
     def cmd_file_size(self, *argv, **kwargs):
-        """Syntax: file.size <file>"""
+        """Syntax: file.size[file]"""
 
-        file = kwargs.get('file', None)
+        filename = kwargs.get('file', None)
 
-        if not file:
-            raise Exception(self.cmd_file_size.__doc__)
+        if not filename:
+            raise ecm.InvalidParameters(self.cmd_file_size.__doc__)
 
-        if not os.path.exists(file):
-            raise Exception("%s doesn't exists" % file)
+        if not os.path.exists(filename):
+            raise ecm.InvalidParameters("%s doesn't exists" % filename)
 
-        return str(os.path.getsize(file))
+        return str(os.path.getsize(filename))
 
     def cmd_file_regexp(self, *argv, **kwargs):
-        """Syntax: file.regexp <file> <regex>"""
+        """Syntax: file.regexp[file,regex]"""
 
-        file = kwargs.get('file', None)
+        filename = kwargs.get('file', None)
         regex = kwargs.get('regex', None)
 
-        if not (file and regex):
-            raise Exception(self.cmd_file_regexp.__doc__)
+        if not filename or not regex:
+            raise ecm.InvalidParameters(self.cmd_file_regexp.__doc__)
 
-        if not os.path.exists(file):
-            raise Exception("%s doesn't exists" % file)
+        if not os.path.exists(filename):
+            raise ecm.InvalidParameters("%s doesn't exists" % filename)
 
         # don't cat protected files
-        if file in PROTECTED_FILES:
-            raise Exception('Not allowed')
+        if filename in PROTECTED_FILES:
+            raise ecm.NotAllowed('File is protected')
 
         _regex = re.compile(regex)
 
         retval = ''
-        for line in open(file):
+        for line in open(filename):
             if _regex.match(line):
-                retval = retval + line
+                retval += line
 
         return retval
 
     def cmd_file_cat(self, *argv, **kwargs):
-        """Syntax: file.cat <file>"""
+        """Syntax: file.cat[file]"""
 
-        file = kwargs.get('file', None)
-        if not file:
+        filename = kwargs.get('file', None)
+        if not filename:
             raise Exception(self.cmd_file_cat.__doc__)
 
-        file = os.path.abspath(file)
+        filename = os.path.abspath(filename)
 
-        if not os.path.exists(file):
-            raise Exception("%s doesn't exists" % file)
+        if not os.path.exists(filename):
+            raise ecm.InvalidParameters("%s doesn't exists" % filename)
 
         # don't cat protected files
-        if file in PROTECTED_FILES:
-            raise Exception('Not allowed')
+        if filename in PROTECTED_FILES:
+            raise ecm.NotAllowed('File is protected')
 
         try:
-            file = open(file, "r")
-            retval = file.read()
-            file.close()
+            _file = open(filename, "r")
+            retval = _file.read()
+            _file.close()
 
-            return (retval)
+            return retval
 
         except:
             raise Exception('Unable to read file')

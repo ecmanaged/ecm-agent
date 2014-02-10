@@ -42,32 +42,40 @@
 #    misrepresented as being the original software.
 # 3. This notice may not be removed or altered from any source distribution.
 
+DEFAULT_COLLECTD_SOCK = '/var/run/collectd-unixsock'
+
+import os
 import socket
 from sys import stderr
 
-from __ecm_plugin import ECMPlugin
+from __plugin import ECMPlugin
 
 class ECMCollectd(ECMPlugin):
     def cmd_collectd_get(self, *argv, **kwargs):
         sock_file = kwargs.get('sock_file', None)
-        if not sock_file: sock_file = '/var/run/collectd-unixsock'
+        
+        if not sock_file: 
+            sock_file = DEFAULT_COLLECTD_SOCK
+
+        if not os.path.exists(sock_file):
+            raise Exception('Collectd socket not found')
 
         c = Collectd(sock_file, noisy=False)
-        list = c.listval()
+        list = c.list_val()
         ret = {}
 
         for val in list:
             stamp, identifier = val.split()
             ret[identifier] = {}
             ret[identifier]['timestamp'] = stamp
-            values = c.getval(identifier)
+            values = c.get_val(identifier)
             ret[identifier]['values'] = values
 
         return ret
 
 
 class Collectd():
-    def __init__(self, path='/var/run/collectd-unixsock', noisy=False):
+    def __init__(self, path, noisy=False):
         self.noisy = noisy
         self.path = path
         self._sock = self._connect()
@@ -93,21 +101,7 @@ class Collectd():
             args.extend(identifier_args)
         return self._cmd('FLUSH %s' % ' '.join(args))
 
-    def getthreshold(self, identifier):
-        """Send a GETTHRESHOLD command.
-
-        Full documentation:
-            http://collectd.org/wiki/index.php/Plain_text_protocol#GETTHRESHOLD
-
-        """
-        numvalues = self._cmd('GETTHRESHOLD "%s"' % identifier)
-        lines = []
-        if not numvalues or numvalues < 0:
-            raise KeyError("Identifier '%s' not found" % identifier)
-        lines = self._readlines(numvalues)
-        return lines
-
-    def getval(self, identifier, flush_after=True):
+    def get_val(self, identifier, flush_after=True):
         """Send a GETVAL command.
 
         Also flushes the identifier if flush_after is True.
@@ -116,16 +110,16 @@ class Collectd():
             http://collectd.org/wiki/index.php/Plain_text_protocol#GETVAL
 
         """
-        numvalues = self._cmd('GETVAL "%s"' % identifier)
-        lines = []
-        if not numvalues or numvalues < 0:
+        num_values = self._cmd('GETVAL "%s"' % identifier)
+        if not num_values or num_values < 0:
             raise KeyError("Identifier '%s' not found" % identifier)
-        lines = self._readlines(numvalues)
+        lines = self._read_lines(num_values)
         if flush_after:
             self.flush(identifiers=[identifier])
+
         return lines
 
-    def listval(self):
+    def list_val(self):
         """Send a LISTVAL command.
 
         Full documentation:
@@ -135,67 +129,33 @@ class Collectd():
         numvalues = self._cmd('LISTVAL')
         lines = []
         if numvalues:
-            lines = self._readlines(numvalues)
+            lines = self._read_lines(numvalues)
+
         return lines
-
-    def putnotif(self, message, options={}):
-        """Send a PUTNOTIF command.
-
-        Options must be passed as a Python dictionary. Example:
-          options={'severity': 'failure', 'host': 'example.com'}
-
-        Full documentation:
-            http://collectd.org/wiki/index.php/Plain_text_protocol#PUTNOTIF
-
-        """
-        args = []
-        if options:
-            options_args = map(lambda x: "%s=%s" % (x, options[x]), options)
-            args.extend(options_args)
-        args.append('message="%s"' % message)
-        return self._cmd('PUTNOTIF %s' % ' '.join(args))
-
-    def putval(self, identifier, values, options={}):
-        """Send a PUTVAL command.
-
-        Options must be passed as a Python dictionary. Example:
-          options={'interval': 10}
-
-        Full documentation:
-            http://collectd.org/wiki/index.php/Plain_text_protocol#PUTVAL
-
-        """
-        args = []
-        args.append('"%s"' % identifier)
-        if options:
-            options_args = map(lambda x: "%s=%s" % (x, options[x]), options)
-            args.extend(options_args)
-        values = map(str, values)
-        args.append(':'.join(values))
-        return self._cmd('PUTVAL %s' % ' '.join(args))
 
     def _cmd(self, c):
         try:
-            return self._cmdattempt(c)
+            return self._cmd_attempt(c)
         except socket.error, (errno, errstr):
             stderr.write("[error] Sending to socket failed: [%d] %s\n"
                          % (errno, errstr))
             self._sock = self._connect()
-            return self._cmdattempt(c)
+            return self._cmd_attempt(c)
 
-    def _cmdattempt(self, c):
+    def _cmd_attempt(self, c):
         if self.noisy:
             print "[send] %s" % c
         if not self._sock:
             stderr.write("[error] Socket unavailable. Can not send.")
             return False
         self._sock.send(c + "\n")
-        status_message = self._readline()
+        status_message = self._read_line()
         if self.noisy:
             print "[recive] %s" % status_message
         if not status_message:
             return None
         code, message = status_message.split(' ', 1)
+
         if int(code):
             return int(code)
         return False
@@ -212,7 +172,7 @@ class Collectd():
                          % (errno, errstr))
             return None
 
-    def _readline(self):
+    def _read_line(self):
         """Read single line from socket"""
         if not self._sock:
             stderr.write("[error] Socket unavailable. Can not read.")
@@ -234,18 +194,18 @@ class Collectd():
             self._sock = self._connect()
             return None
 
-    def _readlines(self, sizehint=0):
+    def _read_lines(self, sizehint=0):
         """Read multiple lines from socket"""
-        total = 0
         list = []
         while True:
-            line = self._readline()
+            line = self._read_line()
             if not line:
                 break
             list.append(line)
             total = len(list)
             if sizehint and total >= sizehint:
                 break
+
         return list
 
     def __del__(self):

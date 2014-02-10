@@ -51,7 +51,7 @@ class JabberClient:
         sm = msg.addElement('sm_message')
         sm['version'] = '1'
         
-        arg_cmd = argv[1];
+        arg_cmd = argv[1]
         if not arg_cmd:
             print "Pasa comando por argumento pallo"
             sys.exit(1)
