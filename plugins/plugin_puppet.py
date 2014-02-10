@@ -1,11 +1,26 @@
 # -*- coding:utf-8 -*-
 
+# Copyright (C) 2012 Juan Carlos Moreno <juancarlos.moreno at ecmanaged.com>
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+
 from base64 import b64decode
 from tempfile import mkdtemp
 from shutil import rmtree
 import tarfile
 
-from plugin import ECMPlugin
+from __ecm_plugin import ECMPlugin
+import __ecm_helper as ecm
 
 MODULES_PATH = '/etc/puppet/modules'
 MODULES_PATH_WINDOWS = 'c:\ECM\puppet\modules'
@@ -29,14 +44,14 @@ class ECMPuppet(ECMPlugin):
 
         bootstrap = BOOTSTRAP
         bootstrap_file = 'bootstrap.sh'
-        if self._is_windows():
+        if ecm.is_windows():
             bootstrap = BOOTSTRAP_WINDOWS
             bootstrap_file = 'bootstrap.ps1'
 
         if not self._install(bootstrap,bootstrap_file):
             # Try alternative bootstrap
             bootstrap = BOOTSTRAP_ALT
-            if self._is_windows():
+            if ecm.is_windows():
                 bootstrap = BOOTSTRAP_WINDOWS_ALT
 
             if not self._install(bootstrap,bootstrap_file):
@@ -54,15 +69,15 @@ class ECMPuppet(ECMPlugin):
             raise Exception("Invalid argument")
 
         module_path = MODULES_PATH
-        if self._is_windows(): module_path = MODULES_PATH_WINDOWS
+        if ecm.is_windows(): module_path = MODULES_PATH_WINDOWS
         module_path = kwargs.get('module_path', module_path)
 
         # Set environment variables before execution
-        envars = self._envars_decode(recipe_envars)
-        facts = self._envars_decode(recipe_facts)
+        envars = ecm.envars_decode(recipe_envars)
+        facts = ecm.envars_decode(recipe_facts)
 
         # Update envars and facts file
-        self._write_envars_facts(envars, facts)
+        ecm.write_envars_facts(envars, facts)
 
         try:
             catalog = b64decode(recipe_base64)
@@ -70,11 +85,15 @@ class ECMPuppet(ECMPlugin):
             raise Exception("Unable to decode recipe")
 
         try:
-            command = ['puppet', 'apply', '--modulepath', module_path,
-                       '--detailed-exitcodes', '--debug']
+            command = ['puppet',
+                       'apply',
+                       '--modulepath',
+                       module_path,
+                       '--detailed-exitcodes',
+                       '--debug']
 
-            out, stdout, stderr = self._execute_command(command, stdin=catalog, envars=envars)
-            ret = self._format_output(out, stdout, stderr)
+            out, stdout, stderr = ecm.execute_command(command, stdin=catalog, envars=envars)
+            ret = ecm.format_output(out, stdout, stderr)
 
             # exit code of '2' means there were changes
             if ret['out'] == 2: ret['out'] = 0
@@ -97,22 +116,22 @@ class ECMPuppet(ECMPlugin):
         recipe_file = None
         recipe_path = None
         module_path = MODULES_PATH
-        if self._is_windows(): module_path = MODULES_PATH_WINDOWS
+        if ecm.is_windows(): module_path = MODULES_PATH_WINDOWS
         module_path = kwargs.get('module_path', module_path)
 
         # Set environment variables before execution
-        envars = self._envars_decode(recipe_envars)
-        facts = self._envars_decode(recipe_facts)
+        envars = ecm.envars_decode(recipe_envars)
+        facts = ecm.envars_decode(recipe_facts)
 
         # Update envars and facts file
-        self._write_envars_facts(envars, facts)
+        ecm.write_envars_facts(envars, facts)
 
         try:
             # Download recipe url
             recipe_path = mkdtemp()
             tmp_file = recipe_path + '/recipe.tar.gz'
 
-            if self._download_file(url=recipe_url, file=tmp_file):
+            if ecm.download_file(url=recipe_url, file=tmp_file):
                 if tarfile.is_tarfile(tmp_file):
                     tar = tarfile.open(tmp_file)
                     tar.extractall(path=recipe_path)
@@ -137,8 +156,8 @@ class ECMPuppet(ECMPlugin):
 
     def _is_available(self):
 
-        if self._is_windows(): return self._which('puppet.exe')
-        return self._which('puppet')
+        if ecm.is_windows(): return ecm.which('puppet.exe')
+        return ecm.which('puppet')
 
     def _run_catalog(self, recipe_file, recipe_path, module_path, envars=None):
 
@@ -159,8 +178,8 @@ class ECMPuppet(ECMPlugin):
         command = [puppet_cmd, 'apply', '--detailed-exitcodes', '--modulepath', module_path, '--debug',
                    '--' + catalog_cmd, recipe_file]
 
-        out, stdout, stderr = self._execute_command(command, workdir=recipe_path, envars=envars)
-        ret = self._format_output(out, stdout, stderr)
+        out, stdout, stderr = ecm.execute_command(command, workdir=recipe_path, envars=envars)
+        ret = ecm.format_output(out, stdout, stderr)
 
         # --detailed-exitcodes
         # Provide transaction information via exit codes. If this is enabled,
@@ -182,13 +201,13 @@ class ECMPuppet(ECMPlugin):
 
         tmp_dir = mkdtemp()
         bootstrap_file = tmp_dir + '/' + bootstrap_file
-        self._download_file(bootstrap_url, bootstrap_file)
+        ecm.download_file(bootstrap_url, bootstrap_file)
 
         # wget -O - http://bootstrap.ecmanaged.com/puppet/linux/ | sudo sh
 
-        if self._file_read(bootstrap_file):
+        if ecm.file_read(bootstrap_file):
             envars = {'DEBIAN_FRONTEND': 'noninteractive'}
-            self._execute_file(bootstrap_file, envars=envars)
+            ecm.execute_file(bootstrap_file, envars=envars)
 
         rmtree(tmp_dir)
         return bool(self._is_available())

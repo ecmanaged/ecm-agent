@@ -1,10 +1,25 @@
 # -*- coding:utf-8 -*-
 
+# Copyright (C) 2012 Juan Carlos Moreno <juancarlos.moreno at ecmanaged.com>
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+
 from tempfile import mkdtemp
 from shutil import rmtree
 from base64 import b64decode
 
-from plugin import ECMPlugin
+from __ecm_plugin import ECMPlugin
+import __ecm_helper as ecm
 
 DEFAULT_SALT_PATH = '/srv/salt'
 DEFAULT_SALT_PATH_WINDOWS = 'C:\ECM\SALTSTACK\salt'
@@ -37,14 +52,14 @@ class ECMSaltstack(ECMPlugin):
         bootstrap = BOOTSTRAP
         bootstrap_file = 'bootstrap.sh'
 
-        if self._is_windows():
+        if ecm.is_windows():
             bootstrap = BOOTSTRAP_WINDOWS
             bootstrap_file = 'bootstrap.ps1'
 
         if not self._install(bootstrap,bootstrap_file):
             # Try alternative bootstrap
             bootstrap = BOOTSTRAP_ALT
-            if self._is_windows():
+            if ecm.is_windows():
                 bootstrap = BOOTSTRAP_WINDOWS_ALT
 
             if not self._install(bootstrap,bootstrap_file):
@@ -69,31 +84,31 @@ class ECMSaltstack(ECMPlugin):
 
         # Get default paths
         default_path = DEFAULT_SALT_PATH
-        if self._is_windows(): default_path = DEFAULT_SALT_PATH_WINDOWS
+        if ecm.is_windows(): default_path = DEFAULT_SALT_PATH_WINDOWS
         module_path = kwargs.get('module_path', default_path)
 
         default_pillar_path = DEFAULT_PILLAR_PATH
-        if self._is_windows(): default_pillar_path = DEFAULT_PILLAR_PATH_WINDOWS
+        if ecm.is_windows(): default_pillar_path = DEFAULT_PILLAR_PATH_WINDOWS
         pillar_path = kwargs.get('pillar_path', default_pillar_path)
 
         # Set environment variables before execution
-        envars = self._envars_decode(recipe_envars)
-        facts = self._envars_decode(recipe_facts)
+        envars = ecm.envars_decode(recipe_envars)
+        facts = ecm.envars_decode(recipe_facts)
 
         # Update envars and facts file
-        self._write_envars_facts(envars, facts)
+        ecm.write_envars_facts(envars, facts)
 
         try:
             # Create top file
             self._create_top_file(module_path)
 
             recipe_file = module_path + '/ecmanaged.sls'
-            self._file_write(recipe_file, b64decode(recipe_base64))
+            ecm.file_write(recipe_file, b64decode(recipe_base64))
 
             if pillar_base64:
                 self._create_top_file(pillar_path)
                 pillar_file = pillar_path + '/ecmanaged.sls'
-                self._file_write(pillar_file, b64decode(pillar_base64))
+                ecm.file_write(pillar_file, b64decode(pillar_base64))
 
         except:
             raise Exception("Unable to write recipe")
@@ -102,22 +117,22 @@ class ECMSaltstack(ECMPlugin):
             # salt-call state.highstate
             command = [saltstack_cmd, 'state.highstate', '--local', '--no-color', '-l debug']
 
-            out, stdout, stderr = self._execute_command(command, envars=envars, workdir=module_path)
-            return self._format_output(out, stdout, stderr)
+            out, stdout, stderr = ecm.execute_command(command, envars=envars, workdir=module_path)
+            return ecm.format_output(out, stdout, stderr)
 
         except Exception as e:
             raise Exception("Error running saltstack state.highstate: %s" % e)
 
     def _create_top_file(self, path):
         top_file = path + '/top.sls'
-        self._file_write(top_file, TOP_CONTENT)
+        ecm.file_write(top_file, TOP_CONTENT)
 
     def _is_available(self):
         """ it's salt-call on path?
         """
-        if self._is_windows():
-            return self._which('salt-call.exe')
-        return self._which('salt-call')
+        if ecm.is_windows():
+            return ecm.which('salt-call.exe')
+        return ecm.which('salt-call')
 
     def _install(self, bootstrap_url, bootstrap_file = 'bootstrap.sh'):
         """ Installs saltstack using bootstrap url
@@ -125,7 +140,7 @@ class ECMSaltstack(ECMPlugin):
 
         tmp_dir = mkdtemp()
         bootstrap_file = tmp_dir + '/' + bootstrap_file
-        self._download_file(bootstrap_url, bootstrap_file)
+        ecm.download_file(bootstrap_url, bootstrap_file)
 
         # wget -O - http://bootstrap.saltstack.org | sudo sh
 
@@ -147,9 +162,9 @@ class ECMSaltstack(ECMPlugin):
         #-U  If set, fully upgrade the system prior to bootstrapping salt
         #-K  If set, keep the temporary files in the temporary directories specified with -c and -k.
 
-        if self._file_read(bootstrap_file):
+        if ecm.file_read(bootstrap_file):
             envars = {'DEBIAN_FRONTEND': 'noninteractive'}
-            self._execute_file(bootstrap_file, args=['-n', '-P', '-X'], envars=envars)
+            ecm.execute_file(bootstrap_file, args=['-n', '-P', '-X'], envars=envars)
 
         rmtree(tmp_dir)
         return bool(self._is_available())

@@ -1,11 +1,26 @@
 # -*- coding:utf-8 -*-
 
+# Copyright (C) 2012 Juan Carlos Moreno <juancarlos.moreno at ecmanaged.com>
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+
 import time
 import sys
 import os
 import re
 
-from plugin import ECMPlugin
+from __ecm_plugin import ECMPlugin
+import __ecm_helper as ecm
 
 RCD = '/etc/rc'
 INITD = '/etc/init.d'
@@ -32,11 +47,11 @@ class ECMLinux(ECMPlugin):
             daemon = initd
 
         daemon = os.path.basename(daemon)
-        self._renice_me(-19)
-        out, stdout, stderr = self._execute_command(INITD + '/' + daemon + ' ' + action)
-        self._renice_me(5)
+        ecm.renice_me(-19)
+        out, stdout, stderr = ecm.execute_command(INITD + '/' + daemon + ' ' + action)
+        ecm.renice_me(5)
 
-        return self._format_output(out, stdout, stderr)
+        return ecm.format_output(out, stdout, stderr)
 
     def cmd_service_runlevel(self, *argv, **kwargs):
         return self._get_runlevel()
@@ -50,7 +65,7 @@ class ECMLinux(ECMPlugin):
             raise Exception(self.cmd_service_state.__doc__)
 
         daemon = os.path.basename(name)
-        out, stdout, stderr = self._execute_command(INITD + '/' + name + ' status')
+        out, stdout, stderr = ecm.execute_command(INITD + '/' + name + ' status')
 
         return not bool(out)
 
@@ -61,7 +76,7 @@ class ECMLinux(ECMPlugin):
         return bool(self._get_rcd(daemon))
 
     def _get_runlevel(self):
-        (exit, stdout, stderr) = self._execute_command(RUNLEVEL)
+        (exit, stdout, stderr) = ecm.execute_command(RUNLEVEL)
         if not exit:
             return str(stdout).split(' ')[1].rstrip()
 

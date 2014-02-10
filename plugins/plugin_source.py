@@ -1,5 +1,19 @@
 # -*- coding:utf-8 -*-
 
+# Copyright (C) 2012 Juan Carlos Moreno <juancarlos.moreno at ecmanaged.com>
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+
 import os
 
 from tempfile import mkdtemp, NamedTemporaryFile
@@ -14,8 +28,9 @@ try:
 except ImportError:
     pass
 
-from plugin import ECMPlugin
-from __plugin_common import ECMCommon
+from __ecm_plugin import ECMPlugin
+import __ecm_helper as ecm
+
 
 class ECMSource(ECMPlugin):
     def cmd_source_run(self, *argv, **kwargs):
@@ -54,19 +69,19 @@ class ECMSource(ECMPlugin):
             raise Exception("Unknown source")
 
         # Set environment variables before execution
-        envars = self._envars_decode(source_envars)
-        facts = self._envars_decode(source_facts)
+        envars = ecm.envars_decode(source_envars)
+        facts = ecm.envars_decode(source_facts)
 
         # Update envars and facts file
-        self._write_envars_facts(envars, facts)
+        ecm.write_envars_facts(envars, facts)
 
         retval = source.clone(url=url, branch=branch, envars=envars, username=user, password=passwd,
                               private_key=private_key)
 
         # Chown to specified user/group
         if chown_user and chown_group and os.path.isdir(path):
-            self._chown(path, chown_user, chown_group, recursive=True)
-            retval['stdout'] += self._output("Owner changed to '%s':'%s'" % (chown_user, chown_group))
+            ecm.chown(path, chown_user, chown_group, recursive=True)
+            retval['stdout'] += ecm.output("Owner changed to '%s':'%s'" % (chown_user, chown_group))
 
         return self._return(retval)
 
@@ -119,13 +134,13 @@ class GIT(ECMCommon):
             helper, indetity = self._certificate_helper(private_key)
             envars['GIT_SSH'] = helper
 
-        out, stdout, stderr = self._execute_command(command=command, workdir=self.working_dir, envars=envars)
-        result_exec = self._format_output(out, stdout, stderr)
+        out, stdout, stderr = ecm.execute_command(command=command, workdir=self.working_dir, envars=envars)
+        result_exec = ecm.format_output(out, stdout, stderr)
 
         if not result_exec['out']:
-            extra_msg = self._output("Source deployed successfully to '%s'" % self.working_dir)
+            extra_msg = ecm.output("Source deployed successfully to '%s'" % self.working_dir)
             if self.old_dir:
-                extra_msg += self._output("Old source files moved to '%s'" % self.old_dir)
+                extra_msg += ecm.output("Old source files moved to '%s'" % self.old_dir)
             result_exec['stdout'] += extra_msg
 
         if private_key:
@@ -165,7 +180,7 @@ class GIT(ECMCommon):
 
         # Create identity file
         identity = NamedTemporaryFile(delete=False)
-        self._chmod(identity.name, 0600)
+        ecm.chmod(identity.name, 0600)
         identity.writelines([private_key])
         identity.close()
 
@@ -180,20 +195,20 @@ class GIT(ECMCommon):
         ])
 
         helper.close()
-        self._chmod(helper.name, 0750)
+        ecm.chmod(helper.name, 0750)
 
         return helper.name, identity.name
 
     def _is_available(self):
         """ checks if git is on path
         """
-        if self._is_windows(): return self._which('git.exe')
-        return self._which('git')
+        if ecm.is_windows(): return ecm.which('git.exe')
+        return ecm.which('git')
 
     def _install(self):
         """ Try to install git
         """
-        self._install_package('git')
+        ecm.install_package('git')
         return bool(self._is_available())
 
 
@@ -228,13 +243,13 @@ class SVN(ECMCommon):
 
         command = self.svn_cmd + " co '" + url + "' ."
 
-        out, stdout, stderr = self._execute_command(command=command, workdir=self.working_dir, envars=envars)
-        result_exec = self._format_output(out, stdout, stderr)
+        out, stdout, stderr = ecm.execute_command(command=command, workdir=self.working_dir, envars=envars)
+        result_exec = ecm.format_output(out, stdout, stderr)
 
         if not result_exec['out']:
-            extra_msg = self._output("Source deployed successfully to '%s'" % self.working_dir)
+            extra_msg = ecm.output("Source deployed successfully to '%s'" % self.working_dir)
             if self.old_dir:
-                extra_msg += self._output("Old source files moved to '%s'" % self.old_dir)
+                extra_msg += ecm.output("Old source files moved to '%s'" % self.old_dir)
 
             if result_exec['stdout']:
                 result_exec['stdout'] = extra_msg + result_exec['stdout']
@@ -247,13 +262,13 @@ class SVN(ECMCommon):
     def _is_available(self):
         """ is svn on path
         """
-        if self._is_windows(): return self._which('svn.cmd')
-        return self._which('svn')
+        if ecm.is_windows(): return ecm.which('svn.cmd')
+        return ecm.which('svn')
 
     def _install(self):
         """ try to install subversion
         """
-        self._install_package('subversion')
+        ecm.install_package('subversion')
         return self._is_available()
 
 
@@ -277,7 +292,7 @@ class FILE(ECMCommon):
         file_name = 'downloaded.file'
         tmp_dir = mkdtemp()
 
-        file_downloaded = self._download_file(
+        file_downloaded = ecm.download_file(
             url=url,
             file=tmp_dir + '/' + file_name,
             user=username,
@@ -289,10 +304,10 @@ class FILE(ECMCommon):
             if extract:
                 extract['head'] = ''
                 if extract.get('stdout', None):
-                    extract['head'] = self._output("Source deployed successfully to '%s'" % self.working_dir)
+                    extract['head'] = ecm.output("Source deployed successfully to '%s'" % self.working_dir)
 
                 if extract.get('stdout', None) and self.old_dir:
-                    extract['head'] += self._output("Old source files moved to '%s'" % self.old_dir)
+                    extract['head'] += ecm.output("Old source files moved to '%s'" % self.old_dir)
 
         else:
             rmtree(tmp_dir, ignore_errors=True)
@@ -395,7 +410,7 @@ class Deploy(ECMCommon):
         to_dir = None
         if self.rotate and os.path.isdir(self.working_dir):
             drive, path = os.path.splitdrive(self.working_dir)
-            split_path = self._split_path(path)
+            split_path = ecm.split_path(path)
 
             try:
                 a = split_path[1]
@@ -404,12 +419,12 @@ class Deploy(ECMCommon):
                 self.rotate = False
 
             if self.rotate:
-                to_dir = self.working_dir + '_rotated_' + self._utime()
+                to_dir = self.working_dir + '_rotated_' + ecm.utime()
                 move(self.working_dir, to_dir)
 
         # create working dir
         if not os.path.isdir(self.working_dir):
-            self._mkdir_p(self.working_dir)
+            ecm.mkdir_p(self.working_dir)
 
         return to_dir
 

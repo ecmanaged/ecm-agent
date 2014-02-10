@@ -1,9 +1,24 @@
 # -*- coding:utf-8 -*-
 
+# Copyright (C) 2012 Juan Carlos Moreno <juancarlos.moreno at ecmanaged.com>
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+
 import re
 from base64 import b64decode
 
-from plugin import ECMPlugin
+from __ecm_plugin import ECMPlugin
+import __ecm_helper as ecm
 
 class ECMPackage(ECMPlugin):
     def cmd_packages_install(self, *argv, **kwargs):
@@ -40,7 +55,7 @@ class ECMPackage(ECMPlugin):
                     except KeyError:
                         continue
 
-                    out, stdout, stderr = self._install_package(package_name, refresh_db)
+                    out, stdout, stderr = ecm.install_package(package_name, refresh_db)
                     ret['stdout'] += stdout
                     ret['stderr'] += stderr
                     ret['out'] = out

@@ -1,5 +1,19 @@
 # -*- coding:utf-8 -*-
 
+# Copyright (C) 2012 Juan Carlos Moreno <juancarlos.moreno at ecmanaged.com>
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+
 #Twisted
 from twisted.internet.defer import (inlineCallbacks, returnValue, Deferred)
 from twisted.web.client import getPage
@@ -18,12 +32,6 @@ import socket
 
 #External
 from configobj import ConfigObj
-
-try:
-    import dmidecode
-
-except:
-    pass
 
 _ECMANAGED_AUTH_URL = 'https://my.ecmanaged.com/agent/meta-data/uuid'
 _ECMANAGED_AUTH_URL_ALT = 'https://my.ecmanaged.com/agent/meta-data/uuid'
@@ -170,7 +178,7 @@ class SMConfigObj(ConfigObj):
 
     def _get_mac(self):
         """
-            Try to get a unique identified, Amazon may change mac on stop/start
+            Try to get a unique identified, Some providers may change mac on stop/start
         """
         uuid = None
         try:
@@ -185,7 +193,7 @@ class SMConfigObj(ConfigObj):
         except:
             pass
 
-        # Use network mac for non aws
+        # Use network mac
         if not uuid:
             from uuid import getnode
             uuid = getnode()

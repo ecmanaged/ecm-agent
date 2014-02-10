@@ -1,10 +1,25 @@
 # -*- coding:utf-8 -*-
 
+# Copyright (C) 2012 Juan Carlos Moreno <juancarlos.moreno at ecmanaged.com>
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+
 from tempfile import mkdtemp
 from base64 import b64decode
 from shutil import rmtree
 
-from plugin import ECMPlugin
+from __ecm_plugin import ECMPlugin
+import __ecm_helper as ecm
 
 class ECMScript(ECMPlugin):
     def cmd_script_run(self, *argv, **kwargs):
@@ -27,26 +42,26 @@ class ECMScript(ECMPlugin):
             # Write down
             tmp_dir = mkdtemp()
             tmp_file = tmp_dir + '/script' + script_extension
-            self._file_write(tmp_file, b64decode(script_base64))
+            ecm.file_write(tmp_file, b64decode(script_base64))
 
         except:
             raise Exception("Unable to decode script")
 
         # Set environment variables before execution
-        envars = self._envars_decode(script_envars)
-        facts = self._envars_decode(script_facts)
+        envars = ecm.envars_decode(script_envars)
+        facts = ecm.envars_decode(script_facts)
 
         # Update envars and facts file
-        self._write_envars_facts(envars, facts)
+        ecm.write_envars_facts(envars, facts)
 
         if script_executable:
             cmd = script_executable + ' ' + tmp_file
-            out, stdout, stderr = self._execute_command(cmd, runas=script_runas, workdir=tmp_dir, envars=envars)
+            out, stdout, stderr = ecm.execute_command(cmd, runas=script_runas, workdir=tmp_dir, envars=envars)
         else:
-            out, stdout, stderr = self._execute_file(tmp_file, runas=script_runas, workdir=tmp_dir, envars=envars)
+            out, stdout, stderr = ecm.execute_file(tmp_file, runas=script_runas, workdir=tmp_dir, envars=envars)
 
         rmtree(tmp_dir, ignore_errors=True)
-        return self._format_output(out, stdout, stderr)
+        return ecm.format_output(out, stdout, stderr)
 
 
 ECMScript().run()

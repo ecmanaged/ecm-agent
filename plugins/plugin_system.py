@@ -1,11 +1,27 @@
 # -*- coding:utf-8 -*-
 
+# Copyright (C) 2012 Juan Carlos Moreno <juancarlos.moreno at ecmanaged.com>
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+
 import os
 import platform
 import socket
 import psutil
 
-from plugin import ECMPlugin
+# My functions
+from __ecm_plugin import ECMPlugin
+import __ecm_helper as ecm
 
 class ECMSystem(ECMPlugin):
     def cmd_agent_ping(self, *argv, **kwargs):
@@ -18,10 +34,10 @@ class ECMSystem(ECMPlugin):
         if not envars:
             raise Exception('Invalid arguments')
 
-        envars = self._envars_decode(envars)
-        facts = self._envars_decode(facts)
+        envars = ecm.envars_decode(envars)
+        facts = ecm.envars_decode(facts)
 
-        if self._write_envars_facts(envars, facts):
+        if ecm.write_envars_facts(envars, facts):
             return True
 
         raise Exception('Unable to write environment file')
@@ -154,7 +170,7 @@ class ECMSystem(ECMPlugin):
 
     def _boottime(self):
         'Server boottime'
-        if self._is_windows():
+        if ecm.is_windows():
             return self._boottime_windows()
 
         return self._boottime_linux()
@@ -200,7 +216,7 @@ class ECMSystem(ECMPlugin):
 
     def _dist(self):
         'Server boottime'
-        if self._is_windows():
+        if ecm.is_windows():
             os_distrib = platform.release()
             os_version = platform.version()
         else:
