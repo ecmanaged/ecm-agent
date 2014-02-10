@@ -1,0 +1,13 @@
+Source: ecmanaged-ecagent
+Section: admin
+Priority: optional
+Maintainer: Juan Carlos Moreno <juancarlos.moreno@ecmanaged.com>
+Build-Depends: cdbs, debhelper (>= 7.0.50)
+Standards-Version: 3.9.2
+Homepage: http://www.ecmanaged.com
+
+Package: ecmanaged-ecagent
+Architecture: all
+Depends: ${misc:Depends}, ${python:Depends}, lsb-base (>= 3.2-13), python, python-crypto, debconf, python-twisted-core, python-protocols, python-twisted-web, python-configobj, python-twisted-words, python-psutil, python-libxml2, python-simplejson, python-apt, python-httplib2
+Description: ecmanaged-ecagent
+ ECM Agent - ECMANAGED Monitor and deploy agent

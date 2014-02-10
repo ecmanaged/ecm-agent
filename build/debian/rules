@@ -1,0 +1,16 @@
+#!/usr/bin/make -f
+
+# Exclude git directory
+export DH_ALWAYS_EXCLUDE=GIT:ecagent/.git
+
+%:
+	dh $@
+
+override_dh_installinit:
+	dh_installinit --init-script=ecagentd -- "start 90 2 3 4 5 . stop 10 0 1 6 ."
+
+override_dh_fixperms:
+	dh_fixperms
+	chmod 0400 debian/ecmanaged-ecagent/opt/ecmanaged/ecagent/config/ecagent.cfg
+	chmod 0700 debian/ecmanaged-ecagent/opt/ecmanaged/ecagent
+
