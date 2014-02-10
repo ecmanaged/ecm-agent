@@ -146,13 +146,13 @@ class SMAgentXMPP(Client):
 
         if self.public_key:
             if not self._verify_message(message):
-                log.critical('[RSA Verify: Failed] Command from %s has bad signature (Ignored)' % message.from_)
+                log.critical('[RSA CHECK: Failed] Command from %s has bad signature (Ignored)' % message.from_)
                 result = (_E_UNVERIFIED_COMMAND, '', 'Bad signature', 0)
                 self._onCallFinished(result, message)
                 return
         else:
             # No public key, RSA functions are not available on this system
-            log.warn('[RSA Verify: No available] WARNING: Running unverified Command from %s' % message.from_)
+            log.warn('[RSA CHECK: No available] WARNING: Running unverified Command from %s' % message.from_)
 
         flush_callback = self._Flush
         message.command_replaced = message.command.replace('.', '_')
@@ -228,11 +228,11 @@ class SMAgentXMPP(Client):
             H = SHA.new(M).digest()
             T = SHA1DER + H
             if emLen < (SHA1DERLEN + 11):
-                log.error('[RSA Verify: Error] intended encoded message length too short (%s)' % emLen)
+                log.error('[RSA CHECK: Error] intended encoded message length too short (%s)' % emLen)
                 return
             ps = '\xff' * (emLen - SHA1DERLEN - 3)
             if len(ps) < 8:
-                log.error('[RSA Verify: Error] ps length too short')
+                log.error('[RSA CHECK: Error] ps length too short')
                 return
             return '\x00\x01' + ps + '\x00' + T
 
@@ -242,10 +242,10 @@ class SMAgentXMPP(Client):
         if em:
             signature = number.bytes_to_long(signature)
             if self.public_key.verify(em, (signature,)):
-                log.info("[RSA Verify: OK] command: %s - from: %s" % (command, sender))
+                log.info("[RSA CHECK: OK] command: %s - from: %s" % (command, sender))
                 return True
 
-        log.error("[RSA Verify: Error] %s - from: %s" % (command, sender))
+        log.error("[RSA CHECK: Error] %s - from: %s" % (command, sender))
         return False
 
 
