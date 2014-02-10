@@ -5,7 +5,7 @@ from twisted.internet.defer import DeferredSemaphore
 from twisted.words.xish.domish import Element
 
 #Python
-import logging as l
+import logging as log
 
 #Local
 from core import BasicClient
@@ -54,31 +54,31 @@ class Client(BasicClient):
             sender = elem['from']
             for el in elem.elements():
                 if el.name == 'error' and el['code'] == '404':
-                    l.warn('Received a 404 code from the server, setting the target user as offline')
+                    log.warn('Received a 404 code from the server, setting the target user as offline')
                     if sender in self._online_contacts:
                         self._online_contacts.remove(sender)
                     else:
-                        l.debug('Received a 404 from %s which not (anymore?) in the online contacts list.')
+                        log.debug('Received a 404 from %s which not (anymore?) in the online contacts list.')
 
     def _onPresence(self, elem):
         """
         A new presence message has been received,
         let's see who has (dis)connected.
         """
-        l.debug('_onPresence')
+        log.debug('_onPresence')
         presence = XMPPPresence(elem)
         if presence.available:
-            l.debug("%s is now available" % presence.sender)
+            log.debug("%s is now available" % presence.sender)
             #Store full jid.
             self._online_contacts.add(presence.sender)
         else:
-            l.debug("%s is not available anymore" % presence.sender)
+            log.debug("%s is not available anymore" % presence.sender)
             if presence.jid in self._online_contacts:
                 self._online_contacts.remove(presence.sender)
 
     def isOnline(self, jid):
-        l.debug('isOnline "%s"' % jid)
-        l.debug('current JIDS: %s' % self._online_contacts)
+        log.debug('isOnline "%s"' % jid)
+        log.debug('current JIDS: %s' % self._online_contacts)
         if jid in self._online_contacts:
             return True
         return False
@@ -110,7 +110,7 @@ class XMPPPresence:
             self.priority = 4
 
     def toEtree(self):
-        l.debug('XMPPPresence.toEtree')
+        log.debug('XMPPPresence.toEtree')
         msg = Element(('jabber:client', 'presence'))
         msg.addElement('status', content=self.status)
         msg.addElement('priority', content=str(self.priority))

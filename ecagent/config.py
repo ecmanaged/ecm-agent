@@ -8,7 +8,7 @@ from twisted.internet.protocol import ProcessProtocol
 from twisted.internet.error import ProcessTerminated, ProcessDone
 
 #Local
-import ecagent.twlogging as l
+import ecagent.twlogging as log
 
 #Python
 from time import sleep
@@ -47,7 +47,7 @@ class SMConfigObj(ConfigObj):
 
         if mac:
             if str(mac) == str(self._getStoredMAC()):
-                l.debug("MAC has not changed. Skip UUID check")
+                log.debug("MAC has not changed. Skip UUID check")
 
             else:
                 # Try to get uuid
@@ -63,18 +63,18 @@ class SMConfigObj(ConfigObj):
                     sleep(20)
 
                 if not uuid:
-                    l.error("ERROR: Could not obtain UUID. please set up XMPP manually in %s" % self.filename)
+                    log.error("ERROR: Could not obtain UUID. please set up XMPP manually in %s" % self.filename)
                     returnValue(False)
 
                 if str(uuid) == str(self._getStoredUUID()):
-                    l.debug("UUID has not changed.")
+                    log.debug("UUID has not changed.")
 
                     # Update mac
                     self['XMPP']['mac'] = mac
                     self.write()
 
                 else:
-                    l.info("UUID has changed, reconfiguring XMPP user/pass")
+                    log.info("UUID has changed, reconfiguring XMPP user/pass")
                     self['XMPP']['user'] = '@'.join((uuid, self['XMPP']['host']))
 
                     self['XMPP']['mac'] = mac
@@ -83,22 +83,22 @@ class SMConfigObj(ConfigObj):
             returnValue(True)
 
         else:
-            l.error("ERROR: Could not obtain MAC. please set up XMPP manually in %s" % self.filename)
+            log.error("ERROR: Could not obtain MAC. please set up XMPP manually in %s" % self.filename)
             returnValue(False)
 
     def _getUUID(self):
         if self['XMPP'].as_bool('manual'):
-            l.info("Skipping UUID auto configuration as manual flag is set.")
+            log.info("Skipping UUID auto configuration as manual flag is set.")
             return self['XMPP']['user'].split('@')[0]
 
         else:
             # Try to get from preconfigured
-            l.info("try to get UUID via preconfiguration")
+            log.info("try to get UUID via preconfiguration")
             uuid = self._getUUIDPreConfig()
 
             if not uuid:
                 # Try to configure via URL (ECM meta-data)
-                l.info("try to get UUID via URL (ecagent meta-data)")
+                log.info("try to get UUID via URL (ecagent meta-data)")
                 uuid = self._getUUIDViaWeb()
 
             return uuid
@@ -150,7 +150,7 @@ class SMConfigObj(ConfigObj):
         return d
 
     def _onErrorRunning(self, failure):
-        l.warn('Command failed to execute: %s' % failure)
+        log.warn('Command failed to execute: %s' % failure)
         return (255, '', '')
 
     def _get_ip(self):
@@ -200,18 +200,18 @@ class SimpleProcessProtocol(ProcessProtocol):
         self.deferreds = []
 
     def connectionMade(self):
-        l.debug("Process started.")
+        log.debug("Process started.")
 
     def outReceived(self, data):
-        l.debug("Out made")
+        log.debug("Out made")
         self.stdout += data
 
     def errReceived(self, data):
-        l.debug("Err made: %s" % data)
+        log.debug("Err made: %s" % data)
         self.stderr += data
 
     def processEnded(self, status):
-        l.debug("process ended")
+        log.debug("process ended")
         t = type(status.value)
 
         if t is ProcessDone:

@@ -29,7 +29,6 @@ except:
     print 'Agent will now quit'
     sys.exit(2)
 
-
 config['XMPP']['user'] = '%s@%s' % (uuid, config['XMPP']['host'])
 config['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
 config['XMPP']['mac'] = str(getnode())

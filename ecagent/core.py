@@ -8,8 +8,8 @@ from twisted.internet.task import LoopingCall
 from twisted.words.protocols.jabber.xmlstream import STREAM_END_EVENT
 from twisted.words.protocols.jabber.client import IQ
 
-import twlogging as log
 from random import random
+import twlogging as log
 
 # Add registerAccount to XMPPAuthenticator
 class FixedXMPPAuthenticator(client.XMPPAuthenticator):
@@ -27,7 +27,6 @@ class FixedXMPPAuthenticator(client.XMPPAuthenticator):
         iq.query.addElement("password", content=self.password)
 
         iq.addCallback(self._registerResultEvent)
-
         iq.send()
 
     def _registerResultEvent(self, iq):
