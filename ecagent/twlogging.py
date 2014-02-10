@@ -14,12 +14,14 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from twisted.python import log
-from twisted.python.logfile import LogFile
-
 from os.path import split, exists
 from os import makedirs
 from sys import modules
+
+# Twisted imports
+from twisted.python import log
+from twisted.python.logfile import LogFile
+
 
 def setup(app, config):
     loglevels = [

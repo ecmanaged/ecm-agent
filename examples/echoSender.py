@@ -13,7 +13,6 @@ from time import time
 
 target = "test@xmpp.ecmanaged.net/sm_agent-1"
 
-
 class JabberClient:
     def __init__(self):
         #Connect to jabber server

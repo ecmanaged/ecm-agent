@@ -14,7 +14,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-#Twisted
+from random import random
+
+# Twisted imports
 from twisted.words.protocols.jabber import client, jid, xmlstream
 from twisted.words.xish.domish import Element
 from twisted.internet import reactor
@@ -22,7 +24,7 @@ from twisted.internet.task import LoopingCall
 from twisted.words.protocols.jabber.xmlstream import STREAM_END_EVENT
 from twisted.words.protocols.jabber.client import IQ
 
-from random import random
+# Local
 import twlogging as log
 
 # Add registerAccount to XMPPAuthenticator

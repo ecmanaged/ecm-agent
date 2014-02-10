@@ -14,23 +14,23 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-#Twisted
+import os
+import sys
+import simplejson as json
+import zlib, base64
+from time import time
+
+# Twisted imports
 from twisted.internet.defer import Deferred
 from twisted.internet import reactor
 from twisted.internet.protocol import ProcessProtocol
 from twisted.internet.error import ProcessTerminated, ProcessDone
 from twisted.words.xish.domish import Element
 
-##Local
+# Local
 from ecagent.client import Client
 import ecagent.twlogging as log
 
-#Python
-import os
-import sys
-import simplejson as json
-import zlib, base64
-from time import time
 
 ## RSA Verify
 try:

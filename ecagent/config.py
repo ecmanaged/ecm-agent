@@ -14,27 +14,26 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-#Twisted
-from twisted.internet.defer import (inlineCallbacks, returnValue, Deferred)
+import random
+import socket
+
+from time import sleep
+from platform import node
+from configobj import ConfigObj
+
+# Twisted imports
+from twisted.internet.defer import inlineCallbacks, returnValue, Deferred
 from twisted.web.client import getPage
 from twisted.internet import reactor
 from twisted.internet.protocol import ProcessProtocol
 from twisted.internet.error import ProcessTerminated, ProcessDone
 
-#Local
+# Local
 import ecagent.twlogging as log
-
-#Python
-from time import sleep
-from platform import node
-import random
-import socket
-
-#External
-from configobj import ConfigObj
 
 _ECMANAGED_AUTH_URL = 'https://my.ecmanaged.com/agent/meta-data/uuid'
 _ECMANAGED_AUTH_URL_ALT = 'https://my.ecmanaged.com/agent/meta-data/uuid'
+
 
 class SMConfigObj(ConfigObj):
     """

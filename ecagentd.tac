@@ -27,10 +27,11 @@ sys.path.append(".")
 #Twisted
 from twisted.application.service import Application
 
-#Local
+# Local
 from ecagent.config import SMConfigObj
 from ecagent.agent import SMAgent
 import ecagent.twlogging as log
+
 
 # Read pre-configuration
 configure_uuid = None
@@ -47,7 +48,7 @@ try:
 except:
     pass
 
-#Parse config file or end execution
+# Parse config file or end execution
 config_filename = join(dirname(__file__), './config/ecagent.cfg')
 
 try:
@@ -68,7 +69,7 @@ except:
     print 'Agent will now quit'
     sys.exit(-1)
 
-#Start agent and setup logging
+# Start agent and setup logging
 application = Application("ecagent")
 
 log.setup(application, config['Log'])

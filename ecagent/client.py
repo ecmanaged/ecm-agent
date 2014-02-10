@@ -14,15 +14,15 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-#Twisted
+import logging as log
+
+# Twisted imports
 from twisted.internet.defer import DeferredSemaphore
 from twisted.words.xish.domish import Element
 
-#Python
-import logging as log
-
-#Local
+# Local
 from core import BasicClient
+
 
 class Client(BasicClient):
     def __init__(self, config, observers, resource='XMPPClient'):

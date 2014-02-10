@@ -30,12 +30,10 @@ PROTECTED_FILES = [
 import os
 import sys
 import inspect
-from base64 import b64decode
-
 import simplejson as json
-
 import __helper as ecm
 
+from base64 import b64decode
 
 sys.stdout.flush()
 sys.stderr.flush()

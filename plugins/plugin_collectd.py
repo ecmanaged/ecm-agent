@@ -42,13 +42,14 @@
 #    misrepresented as being the original software.
 # 3. This notice may not be removed or altered from any source distribution.
 
-DEFAULT_COLLECTD_SOCK = '/var/run/collectd-unixsock'
-
 import os
 import socket
 from sys import stderr
 
+# Local
 from __plugin import ECMPlugin
+
+DEFAULT_COLLECTD_SOCK = '/var/run/collectd-unixsock'
 
 class ECMCollectd(ECMPlugin):
     def cmd_collectd_get(self, *argv, **kwargs):
