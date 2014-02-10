@@ -36,9 +36,9 @@ def setup(app, config):
         log_level = loglevels.index(config['log_level'])
     else:
         warning('loglevel invalid or missing, falling back to "info"')
-        log_level = 3
+        log_level = 1
 
-    #Hack to speed up disabled logging methods
+    # Hack to speed up disabled logging methods
     modname = globals()['__name__']
     module = modules[modname]
     c = 0
