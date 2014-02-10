@@ -94,7 +94,7 @@ class ECMSource(ECMPlugin):
         return output
 
 
-class GIT(ECMCommon):
+class GIT():
     def __init__(self, working_dir, rotate):
 
         if not working_dir:
@@ -212,7 +212,7 @@ class GIT(ECMCommon):
         return bool(self._is_available())
 
 
-class SVN(ECMCommon):
+class SVN():
     def __init__(self, working_dir, rotate):
 
         if not working_dir:
@@ -272,9 +272,8 @@ class SVN(ECMCommon):
         return self._is_available()
 
 
-class FILE(ECMCommon):
+class FILE():
     def __init__(self, working_dir, rotate):
-
         if not working_dir:
             raise Exception("Invalid path")
 
@@ -288,7 +287,6 @@ class FILE(ECMCommon):
     def clone(self, branch, envars, url, username, password, private_key):
         """ Downloads a file from a remote url and decompress it
         """
-
         file_name = 'downloaded.file'
         tmp_dir = mkdtemp()
 
@@ -325,7 +323,6 @@ class FILE(ECMCommon):
     def _extract(self, file):
         """ extractor helper
         """
-
         try:
             file_type = self._get_file_type(file)
             if file_type == 'zip':
@@ -397,9 +394,8 @@ class FILE(ECMCommon):
         return False
 
 
-class Deploy(ECMCommon):
+class Deploy():
     def __init__(self, working_dir, rotate):
-
         self.working_dir = os.path.abspath(working_dir)
         self.rotate = rotate
 

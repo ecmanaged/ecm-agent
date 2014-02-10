@@ -446,7 +446,7 @@ def get_distribution():
 
 
 class ECMExec:
-    def _init__(self):
+    def __init__(self):
         self.thread_stdout = ''
         self.thread_stderr = ''
         self.thread_run = 1
