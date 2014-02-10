@@ -315,13 +315,13 @@ class CommandRunner():
     def _runProcess(self, filename, command_name, command_args, flush_callback=None, message=None):
         ext = os.path.splitext(filename)[1]
         if ext in ('.py', '.pyw', '.pyc'):
-            command = str(self._python_runner)
+            command = self._python_runner
 
             # -u: sets unbuffered output
             args = [command, '-u', '-W ignore::DeprecationWarning', filename, command_name]
 
         else:
-            command = str(filename)
+            command = filename
             args = [command, command_name]
 
         # Set timeout from command
