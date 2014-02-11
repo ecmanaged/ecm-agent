@@ -110,18 +110,18 @@ class PkgRelation(object):
         Depends, Recommends, Build-Depends ...)
         """
 
-        def parse_archs(raw):
+        def parse_archs(myraw):
             # assumption: no space beween '!' and architecture name
             archs = []
-            for arch in cls.__blank_sep_RE.split(raw.strip()):
+            for arch in cls.__blank_sep_RE.split(myraw.strip()):
                 if len(arch) and arch[0] == '!':
                     archs.append((False, arch[1:]))
                 else:
                     archs.append((True, arch))
             return archs
 
-        def parse_rel(raw):
-            match = cls.__dep_RE.match(raw)
+        def parse_rel(myraw):
+            match = cls.__dep_RE.match(myraw)
             if match:
                 parts = match.groupdict()
                 d = {'name': parts['name']}
@@ -135,7 +135,7 @@ class PkgRelation(object):
                     d['arch'] = parse_archs(parts['archs'])
                 return d
             else:
-                return {'name': raw, 'version': None, 'arch': None}
+                return {'name': myraw, 'version': None, 'arch': None}
 
         tl_deps = cls.__comma_sep_RE.split(raw.strip()) # top-level deps
         cnf = map(cls.__pipe_sep_RE.split, tl_deps)

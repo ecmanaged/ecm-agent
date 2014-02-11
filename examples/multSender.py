@@ -22,6 +22,7 @@ class JabberClient:
         reactor.connectTCP('ejabberd', 5222, factory)
         #Set up the looping call that will be sending messages.
         self._lc = LoopingCall(self.sendMessage)
+        self._xs = None
 
     def authd(self, xmlstream):
         print "Authenticated"

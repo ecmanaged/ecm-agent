@@ -61,7 +61,7 @@ class SMAgent:
         self.config = config
 
     def _checkConfig(self):
-        d = self.config.checkUUID()
+        d = self.config.check_uuid()
         d.addCallback(self._onConfigChecked)
         d.addErrback(self._onConfigCheckFailed)
 
@@ -156,7 +156,7 @@ class SMAgentXMPP(Client):
 
         flush_callback = self._Flush
         message.command_replaced = message.command.replace('.', '_')
-        d = self.command_runner.runCommand(message.command_replaced, message.command_args, flush_callback, message)
+        d = self.command_runner.run_command(message.command_replaced, message.command_args, flush_callback, message)
 
         if d:
             d.addCallbacks(self._onCallFinished, self._onCallFailed,
@@ -264,6 +264,8 @@ class CommandRunner():
             tools_path = config.get('tools_path_linux')
 
         self.timeout = int(config['timeout'])
+        self.timeout_dc = None
+
         self.env = os.environ
         self.env['DEBIAN_FRONTEND'] = 'noninteractive'
         self.env['PYTHONPATH'] = os.path.dirname(__file__)
@@ -275,10 +277,10 @@ class CommandRunner():
 
         log.debug("ENV: %s" % self.env)
         #reactor.callLater(0, self._loadCommands)
-        reactor.callWhenRunning(self._loadCommands)
-
-    def _loadCommands(self):
         self._commands = {}
+        reactor.callWhenRunning(self._load_commands)
+
+    def _load_commands(self):
         for path in self.command_paths:
             log.debug("Processing dir: %s" % path)
             try:
@@ -289,12 +291,12 @@ class CommandRunner():
 
                         log.debug("  Queuing plugin %s for process." % filename)
                         full_filename = os.path.join(path, filename)
-                        d = self._runProcess(full_filename, '', [])
-                        d.addCallback(self._addCommand, filename=full_filename)
+                        d = self._run_process(full_filename, '', [])
+                        d.addCallback(self._add_command, filename=full_filename)
             except:
                 print sys.exc_info()
 
-    def _addCommand(self, data, **kwargs):
+    def _add_command(self, data, **kwargs):
         (exit_code, stdout, stderr, timeout_called) = data
 
         if exit_code == 0:
@@ -306,13 +308,13 @@ class CommandRunner():
             log.error('Error adding commands from %s: %s'
                     % (kwargs['filename'], data))
 
-    def runCommand(self, command, command_args, flush_callback=None, message=None):
+    def run_command(self, command, command_args, flush_callback=None, message=None):
         if command in self._commands:
             log.debug("executing %s with args: %s" % (command, command_args))
-            return self._runProcess(self._commands[command], command, command_args, flush_callback, message)
+            return self._run_process(self._commands[command], command, command_args, flush_callback, message)
         return
 
-    def _runProcess(self, filename, command_name, command_args, flush_callback=None, message=None):
+    def _run_process(self, filename, command_name, command_args, flush_callback=None, message=None):
         ext = os.path.splitext(filename)[1]
         if ext in ('.py', '.pyw', '.pyc'):
             command = self._python_runner

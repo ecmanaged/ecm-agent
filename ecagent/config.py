@@ -45,7 +45,7 @@ class SMConfigObj(ConfigObj):
         ConfigObj.__init__(self, filename)
 
     @inlineCallbacks
-    def checkUUID(self):
+    def check_uuid(self):
         mac = self._get_mac()
 
         # Always generate a new password if not is set

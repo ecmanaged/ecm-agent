@@ -62,10 +62,10 @@ class ECMCollectd(ECMPlugin):
             raise Exception('Collectd socket not found')
 
         c = Collectd(sock_file, noisy=False)
-        list = c.list_val()
+        _list = c.list_val()
         ret = {}
 
-        for val in list:
+        for val in _list:
             stamp, identifier = val.split()
             ret[identifier] = {}
             ret[identifier]['timestamp'] = stamp
@@ -197,17 +197,17 @@ class Collectd():
 
     def _read_lines(self, sizehint=0):
         """Read multiple lines from socket"""
-        list = []
+        _list = []
         while True:
             line = self._read_line()
             if not line:
                 break
-            list.append(line)
-            total = len(list)
+            _list.append(line)
+            total = len(_list)
             if sizehint and total >= sizehint:
                 break
 
-        return list
+        return _list
 
     def __del__(self):
         if not self._sock:

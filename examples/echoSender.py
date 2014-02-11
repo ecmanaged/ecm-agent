@@ -16,13 +16,14 @@ target = "test@xmpp.ecmanaged.net/sm_agent-1"
 class JabberClient:
     def __init__(self):
         #Connect to jabber server
-        myJid = jid.JID('task-devel@cloud.ackstorm.es/tasker')
-        factory = client.basicClientFactory(myJid, 'mypass')
+        myjid = jid.JID('task-devel@cloud.ackstorm.es/tasker')
+        factory = client.basicClientFactory(myjid, 'mypass')
         factory.addBootstrap('//event/stream/authd', self.authd)
         reactor.connectTCP('xmpp.ecmanaged.net', 5222, factory)
 
         #Set up the looping call that will be sending messages.
-        self._lc = LoopingCall(self.sendMessage)
+        self._lc = LoopingCall(self.send_message)
+        self._xs = None
 
     def authd(self, xmlstream):
         print "Authenticated"
@@ -36,7 +37,7 @@ class JabberClient:
         #Send a message every 5 secs.
         self._lc.start(5)
 
-    def sendMessage(self):
+    def send_message(self):
         print "SENDMESSAGE"
 
         #Build the command message

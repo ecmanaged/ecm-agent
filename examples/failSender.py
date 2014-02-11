@@ -20,11 +20,12 @@ class JabberClient:
         factory = client.basicClientFactory(myjid, 'tester')
         factory.addBootstrap('//event/stream/authd', self.authd)
         reactor.connectTCP('ejabberd', 5222, factory)
+
         #Set up the looping call that will be sending messages.
-        self._lc = LoopingCall(self.sendMessage)
+        self._lc = LoopingCall(self.send_message)
+        self._xs = None
 
     def authd(self, xmlstream):
-        print "Authenticated"
         self._xs = xmlstream
 
         #Send presence update
@@ -35,9 +36,7 @@ class JabberClient:
         #Send a message every 5 secs.
         self._lc.start(5)
 
-    def sendMessage(self):
-        print "SENDMESSAGE"
-
+    def send_message(self):
         #Build the command message
         msg = domish.Element(("jabber:client", "iq"))
         msg["id"] = str(time())

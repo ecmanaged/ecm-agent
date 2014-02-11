@@ -75,6 +75,9 @@ class BasicClient:
         #auth = XMPPAuthenticator(client_jid, secret)
         #self._factory = HTTPBindingStreamFactory(auth)
 
+        self._xs = None
+        self._keep_alive_lc = None
+
         self._user = user
         self._password = password
         self._host = host

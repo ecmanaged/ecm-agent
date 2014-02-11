@@ -49,9 +49,9 @@ class ECMSource(ECMPlugin):
         chown_user = kwargs.get('chown_user', None)
         chown_group = kwargs.get('chown_group', None)
         rotate = kwargs.get('rotate', True)
-        type = kwargs.get('type', None)
+        stype = kwargs.get('type', None)
 
-        if not path or not url or not type:
+        if not path or not url or not stype:
             raise ecm.InvalidParameters(self.cmd_source_run.__doc__)
             
         if private_key:
@@ -60,13 +60,13 @@ class ECMSource(ECMPlugin):
             except:
                 raise ecm.InvalidParameters("Invalid private key format")
 
-        if type.upper() in ('URI', 'FILE'):
+        if stype.upper() in ('URI', 'FILE'):
             source = FILE(path, rotate)
 
-        elif type.upper() == 'GIT':
+        elif stype.upper() == 'GIT':
             source = GIT(path, rotate)
 
-        elif type.upper() == 'SVN':
+        elif stype.upper() == 'SVN':
             source = SVN(path, rotate)
 
         else:

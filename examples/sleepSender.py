@@ -16,12 +16,13 @@ target = "sm_agent@ejabberd/sm_agent-1"
 class JabberClient:
     def __init__(self):
         #Connect to jabber server
-        myJid = jid.JID('tester@ejabberd/test_send')
-        factory = client.basicClientFactory(myJid, 'tester')
+        myjid = jid.JID('tester@ejabberd/test_send')
+        factory = client.basicClientFactory(myjid, 'tester')
         factory.addBootstrap('//event/stream/authd', self.authd)
         reactor.connectTCP('ejabberd', 5222, factory)
         #Set up the looping call that will be sending messages.
         self._lc = LoopingCall(self.sendMessage)
+        self._xs = None
 
     def authd(self, xmlstream):
         print "Authenticated"
