@@ -84,7 +84,7 @@ class ECMPuppet(ECMPlugin):
         facts = ecm.envars_decode(facts)
 
         # Set environment variables before execution
-        ecm.write_envars_facts(envars, facts, True)
+        ecm.write_envars_facts(envars, facts)
 
         try:
             catalog = b64decode(recipe_base64)
