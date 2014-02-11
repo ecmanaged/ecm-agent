@@ -285,11 +285,13 @@ def envars_decode(coded_envars=None):
             envars = b64decode(coded_envars)
             envars = json.loads(envars)
             for var in envars.keys():
-                if not envars[var]: envars[var] = ''
+                if not envars[var]:
+                    envars[var] = ''
                 envars[var] = encode(envars[var])
 
     except:
         pass
+
     return envars
 
 
@@ -495,7 +497,8 @@ class ECMExec:
             p = Popen(
                 command,
                 env=env,
-                bufsize=0, stdin=PIPE, stdout=PIPE, stderr=PIPE,
+                bufsize=0,
+                stdin=PIPE, stdout=PIPE, stderr=PIPE,
                 cwd=working_dir,
                 universal_newlines=True,
                 close_fds=(os.name == 'posix')
@@ -505,6 +508,7 @@ class ECMExec:
             if std_input:
                 p.stdin.write(std_input)
                 p.stdin.flush()
+
             p.stdin.close()
 
             if is_windows():
@@ -542,14 +546,14 @@ class ECMExec:
         while self.thread_run:
             # Avoid Exception in thread Thread-1 (most likely raised during interpreter shutdown):
             try:
-                out = clean_stdout(self._non_block_read(std_output))
+                output = clean_stdout(self._non_block_read(std_output))
                 if output:
-                    self.thread_stdout += out
+                    self.thread_stdout += output
                     stdout.write(output)
 
-                out = clean_stdout(self._non_block_read(std_error))
+                output = clean_stdout(self._non_block_read(std_error))
                 if output:
-                    self.thread_stderr += out
+                    self.thread_stderr += output
                     stderr.write(output)
 
                 sleep(_FLUSH_WORKER_SLEEP_TIME)

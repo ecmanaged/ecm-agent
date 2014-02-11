@@ -66,8 +66,8 @@ class ECMPuppet(ECMPlugin):
         Syntax: puppet.appy[recipe_code,evars,facts]
         """
         recipe_base64 = kwargs.get('recipe_code', None)
-        recipe_envars = kwargs.get('envars', None)
-        recipe_facts = kwargs.get('facts', None)
+        envars = kwargs.get('envars', None)
+        facts = kwargs.get('facts', None)
 
         if not recipe_base64:
             raise ecm.InvalidParameters(self.cmd_puppet_apply.__doc__)
@@ -80,11 +80,11 @@ class ECMPuppet(ECMPlugin):
                 module_path = MODULES_PATH_WINDOWS
 
         # Set environment variables before execution
-        envars = ecm.envars_decode(recipe_envars)
-        facts = ecm.envars_decode(recipe_facts)
+        envars = ecm.envars_decode(envars)
+        facts = ecm.envars_decode(facts)
 
-        # Update envars and facts file
-        ecm.write_envars_facts(envars, facts)
+        # Set environment variables before execution
+        ecm.write_envars_facts(envars, facts, True)
 
         try:
             catalog = b64decode(recipe_base64)
@@ -116,8 +116,8 @@ class ECMPuppet(ECMPlugin):
         Syntax: puppet.apply_file[recipe_url,envars,facts]
         """
         recipe_url = kwargs.get('recipe_url', None)
-        recipe_envars = kwargs.get('envars', None)
-        recipe_facts = kwargs.get('facts', None)
+        envars = kwargs.get('envars', None)
+        facts = kwargs.get('facts', None)
 
         if not recipe_url:
             raise ecm.InvalidParameters(self.cmd_puppet_apply.__doc__)
@@ -129,8 +129,8 @@ class ECMPuppet(ECMPlugin):
         module_path = kwargs.get('module_path', module_path)
 
         # Set environment variables before execution
-        envars = ecm.envars_decode(recipe_envars)
-        facts = ecm.envars_decode(recipe_facts)
+        envars = ecm.envars_decode(envars)
+        facts = ecm.envars_decode(facts)
 
         # Update envars and facts file
         ecm.write_envars_facts(envars, facts)

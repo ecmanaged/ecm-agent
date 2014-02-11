@@ -38,18 +38,18 @@ class ECMSource(ECMPlugin):
         """
         Syntax: source.run[path,source,branch,envars,facts,username,password,private_key,chown_user,chown_group,rotate,type]
         """
-        path            = kwargs.get('path', None)
-        url             = kwargs.get('source', None)
-        branch          = kwargs.get('branch', None)
-        source_envars   = kwargs.get('envars', None)
-        source_facts    = kwargs.get('facts', None)
-        user            = kwargs.get('username', None)
-        passwd          = kwargs.get('password', None)
-        private_key     = kwargs.get('private_key', None)
-        chown_user      = kwargs.get('chown_user', None)
-        chown_group     = kwargs.get('chown_group', None)
-        rotate          = kwargs.get('rotate', True)
-        type            = kwargs.get('type', None)
+        path = kwargs.get('path', None)
+        url = kwargs.get('source', None)
+        branch = kwargs.get('branch', None)
+        envars = kwargs.get('envars', None)
+        facts = kwargs.get('facts', None)
+        user = kwargs.get('username', None)
+        passwd = kwargs.get('password', None)
+        private_key = kwargs.get('private_key', None)
+        chown_user = kwargs.get('chown_user', None)
+        chown_group = kwargs.get('chown_group', None)
+        rotate = kwargs.get('rotate', True)
+        type = kwargs.get('type', None)
 
         if not path or not url or not type:
             raise ecm.InvalidParameters(self.cmd_source_run.__doc__)
@@ -73,8 +73,8 @@ class ECMSource(ECMPlugin):
             raise ecm.InvalidParameters("Unknown source")
 
         # Set environment variables before execution
-        envars = ecm.envars_decode(source_envars)
-        facts = ecm.envars_decode(source_facts)
+        envars = ecm.envars_decode(envars)
+        facts = ecm.envars_decode(facts)
 
         # Update envars and facts file
         ecm.write_envars_facts(envars, facts)

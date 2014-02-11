@@ -36,9 +36,11 @@ class ECMSystem(ECMPlugin):
         """
         envars = kwargs.get('envars', None)
         facts = kwargs.get('facts', None)
+
         if not envars:
             raise ecm.InvalidParameters(self.cmd_set_info.__doc__)
 
+        # Set environment variables before execution
         envars = ecm.envars_decode(envars)
         facts = ecm.envars_decode(facts)
 
