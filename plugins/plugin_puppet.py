@@ -192,8 +192,8 @@ class ECMPuppet(ECMPlugin):
         command = [puppet_cmd, 'apply', '--detailed-exitcodes', '--modulepath', module_path, '--debug',
                    '--' + catalog_cmd, recipe_file]
 
-        out, stdout, stderr = ecm.run_command(command, workdir=recipe_path, envars=envars)
-        ret = ecm.format_output(out, stdout, stderr)
+        out, std_out, std_err = ecm.run_command(command, workdir=recipe_path, envars=envars)
+        ret = ecm.format_output(out, std_out, std_err)
 
         # --detailed-exitcodes
         # Provide transaction information via exit codes. If this is enabled,
@@ -204,8 +204,10 @@ class ECMPuppet(ECMPlugin):
         # bug in exitcodes in some version even with errors return 0
         # http://projects.puppetlabs.com/issues/6322
 
-        if ret['out'] == 2: ret['out'] = 0
-        if "\nError: " in ret['stderr']: ret['out'] = 4
+        if ret['out'] == 2:
+            ret['out'] = 0
+        if "\nError: " in ret['stderr']:
+            ret['out'] = 4
 
         return ret
 

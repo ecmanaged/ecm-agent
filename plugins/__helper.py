@@ -546,15 +546,15 @@ class ECMExec:
         while self.thread_run:
             # Avoid Exception in thread Thread-1 (most likely raised during interpreter shutdown):
             try:
-                output = clean_stdout(self._non_block_read(std_output))
-                if output:
-                    self.thread_stdout += output
-                    stdout.write(output)
+                out = clean_stdout(self._non_block_read(std_output))
+                if out:
+                    self.thread_stdout += out
+                    stdout.write(out)
 
-                output = clean_stdout(self._non_block_read(std_error))
-                if output:
-                    self.thread_stderr += output
-                    stderr.write(output)
+                out = clean_stdout(self._non_block_read(std_error))
+                if out:
+                    self.thread_stderr += out
+                    stderr.write(out)
 
                 sleep(_FLUSH_WORKER_SLEEP_TIME)
 
