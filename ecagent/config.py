@@ -177,7 +177,8 @@ class SMConfigObj(ConfigObj):
 
     def _get_mac(self):
         """
-            Try to get a unique identified, Some providers may change mac on stop/start
+        Try to get a unique identified, Some providers may change mac on stop/start
+        Use a low timeout to speed up agent start when no meta-data url
         """
         uuid = None
         try:

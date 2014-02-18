@@ -15,14 +15,27 @@
 #    under the License.
 
 from os.path import dirname, join
+from configobj import ConfigObj
 
 # Local
 from __plugin import ECMPlugin
 import __helper as ecm
-from ecagent.config import SMConfigObj
+
+# Needs to read config to get available nagios commands
+PATH_TO_CONFIG = '../config/ecagent.cfg'
 
 
 class ECMNagios(ECMPlugin):
+    def __init__(self, *argv, **kwargs):
+        config_filename = join(dirname(__file__), PATH_TO_CONFIG)
+
+        try:
+            config = ConfigObj(config_filename)
+            self.commands = self._get_commands(config)
+
+        except Exception:
+            raise Exception("Unable to read config at %s" % config_filename)
+
     def cmd_nagios_command(self, *argv, **kwargs):
         """
         Syntax: nagios.command[command,args]
@@ -33,29 +46,25 @@ class ECMNagios(ECMPlugin):
         if not command:
             raise ecm.InvalidParameters(self.cmd_nagios_command.__doc__)
 
-        nagios_commands = _get_commands()
+        if command not in self.commands.keys():
+            raise Exception("Command %s is not available" % command)
 
-        if command not in nagios_commands.keys():
-            raise ecm.InvalidParameters(self.cmd_nagios_command.__doc__)
-
-        return ecm.run_command(nagios_commands[command], params)
+        return ecm.run_command(self.commands[command], params)
 
     def cmd_nagios_get_commands(self, *argv, **kwargs):
         """
         Syntax: nagios.get_commands[]
         """
-        return _get_commands()
+        return self.commands
 
+    @staticmethod
+    def _get_commands(config):
+        retval = {}
+        if config.get('nagios', None) is not None:
+            for command in config['nagios'].keys():
+                retval[command] = config['nagios'][command]
 
-def _get_commands():
-    retval = {}
-    config_filename = join(dirname(__file__), '../config/ecagent.cfg')
-    config = SMConfigObj(config_filename)
-
-    if config.get('nagios', None) is not None:
-        for command in config['nagios'].keys():
-            retval[command] = config['nagios'][command]
-
-    return retval
+        return retval
 
 ECMNagios().run()
+

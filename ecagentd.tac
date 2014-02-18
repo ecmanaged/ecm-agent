@@ -64,7 +64,7 @@ try:
         config['XMPP']['manual'] = True
         config.write()
 
-except:
+except Exception:
     print 'Unable to read the config file at %s' % config_filename
     print 'Agent will now quit'
     sys.exit(-1)
