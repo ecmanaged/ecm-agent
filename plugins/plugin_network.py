@@ -23,6 +23,7 @@ import socket
 from __plugin import ECMPlugin
 import __helper as ecm
 
+
 class ECMNetwork(ECMPlugin):
     def cmd_web_regexp(self, *argv, **kwargs):
         """ Syntax: page_regexp <url> <regex> """
@@ -30,7 +31,7 @@ class ECMNetwork(ECMPlugin):
         url = kwargs.get('url', None)
         regex = kwargs.get('regex', None)
 
-        if not (url and regex):
+        if not url and regex:
             raise ecm.InvalidParameters(self.cmd_web_regexp.__doc__)
 
         try: urlopen = urllib.urlopen(url)
@@ -104,7 +105,7 @@ class ECMNetwork(ECMPlugin):
         port = kwargs.get('port', None)
         timeout = kwargs.get('timeout', 30)
 
-        if not (host and port):
+        if not host and port:
             raise ecm.InvalidParameters(self.cmd_net_tcp.__doc__)
 
         try:

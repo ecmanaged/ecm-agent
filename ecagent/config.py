@@ -183,7 +183,10 @@ class SMConfigObj(ConfigObj):
         try:
             import urllib
 
+            socket.setdefaulttimeout(2)
             urlopen = urllib.urlopen("http://169.254.169.254/latest/meta-data/instance-id")
+            socket.setdefaulttimeout(10)
+
             for line in urlopen.readlines():
                 if "i-" in line:
                     uuid = hex(line)

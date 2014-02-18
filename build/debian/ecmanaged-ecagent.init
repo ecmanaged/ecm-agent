@@ -15,11 +15,10 @@ TWISTD=/usr/bin/twistd
 TAC=$NAME.tac
 DESC="ECM Agent"
 
-test -x $DAEMON || exit 0
+test -x $TWISTD || exit 0
 
 DIR=/opt/ecmanaged/ecagent
 PID_FILE=$DIR/twistd.pid
-RETRY=15
 
 # Check working dir
 if test ! -d "$DIR"; then

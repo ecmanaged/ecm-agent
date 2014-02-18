@@ -79,6 +79,7 @@ def random_charts(length=60):
     """
     import string
     import random
+
     chars = string.ascii_uppercase + string.digits + '!@#$%^&*()'
     return ''.join(random.choice(chars) for x in range(length))
 
