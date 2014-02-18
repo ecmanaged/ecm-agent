@@ -1,0 +1,137 @@
+#!/bin/bash 
+# ecagentd        Init script for running the ecm_agent client daemon
+#
+# Author:       Juan Carlos Moreno <juancarlos.moreno@ecmanaged.com>
+#               Gonzalo Radio <gonzalo.radio@ackstorm.com>
+#
+# chkconfig: - 85 20
+#
+# description: Enables ECManaged Agent for monitoring and deployment
+# processname: ecagentd
+# config: /etc/sysconfig/ecagentd
+
+PATH=/usr/bin:/sbin:/bin:/usr/sbin
+export PATH
+
+[ -f /etc/sysconfig/ecagentd ] && . /etc/sysconfig/ecagentd
+
+NAME=${NAME-ecagentd}
+TWISTD=${TWISTD-/usr/bin/twistd}
+TAC=${TAC-"$NAME.tac"}
+DESC=${DESC-"ECM Agent"}
+DIR=${DIR-/opt/ecmanaged/ecagent}
+PID_FILE=${PID_FILE-"$DIR/twistd.pid"}
+RETRY=${RETRY-15}
+LOCKFILE=${LOCKFILE-"$DIR/$NAME.lock"}
+RETVAL=0
+
+test -x $TWISTD || exit 0
+set +e
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+# Determine if we can use the -p option to daemon, killproc, and status.
+# RHEL < 5 can't.
+if status | grep -q -- '-p' 2>/dev/null; then
+    daemonopts="--pidfile $PID_FILE"
+    pidopts="-p $PID_FILE"
+fi
+
+# Check working dir
+if test ! -d "$DIR"; then
+  echo "Unable to access work dir: $DIR"
+  exit 1;
+fi
+
+# Run in work directory
+cd $DIR
+
+# Figure out if the system just booted. Let's assume
+# boot doesn't take longer than 5 minutes
+## Not used for now
+##[ -n "$INIT_VERSION" ] && ECAGENT_OPTS="${ECAGENT_OPTS} --fullrun"
+
+start() {
+    echo -n $"Starting ${NAME}: "
+    killagent
+    /bin/rm -f $PID_FILE > /dev/null 2>&1
+    daemon $daemonopts $TWISTD -y $TAC 2>/dev/null
+    RETVAL=$?
+    echo
+    [ $RETVAL = 0 ] && touch ${LOCKFILE}
+}
+
+stop() {
+    echo -n $"Stopping ${NAME}: "
+    killproc $pidopts $PID_FILE
+    RETVAL=$?
+    echo
+    [ $RETVAL = 0 ] && rm -f ${LOCKFILE} ${PID_FILE}
+}
+
+status() {
+    echo -n "Checking status of ${NAME}: "
+    PID=$(getpid)
+    ls -l /proc/$PID/exe > /dev/null 2>&1
+    case "$?" in
+        0) echo 'Running'; exit 0 ;;
+        *) echo 'Stopped'; exit 1 ;;
+    esac
+}
+
+check() {
+    echo -n $"Status of ${NAME}: "
+    PID=$(getpid)
+    ls -l /proc/$PID/exe > /dev/null 2>&1
+    case "$?" in
+        0) echo 'Running' ;;
+        *) echo 'Stopped'; stop; start ;;
+    esac
+}
+
+killagent() {
+    echo $"Killing ${NAME} "
+    PID=$(getpid)
+    ls -l /proc/$PID/exe > /dev/null 2>&1
+    case "$?" in
+        0) kill -9 $PID >/dev/null 2>&1 ;;
+        *) ;;
+    esac
+}
+
+restart() {
+    stop
+    start
+}
+
+getpid() {
+    echo `cat $PID_FILE 2>/dev/null`
+}
+
+case "$1" in
+    start)
+        start
+    ;;
+    stop)
+        stop
+    ;;
+    restart)
+        restart
+    ;;
+    check)
+	check
+    ;;
+    status)
+        status
+    ;;
+    kill)
+        killagent
+    ;;
+    *)
+        echo $"Usage: $0 {start|stop|restart|status|kill}"
+        exit 1
+esac
+
+exit $RETVAL
+

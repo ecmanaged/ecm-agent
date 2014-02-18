@@ -21,11 +21,11 @@ from configobj import ConfigObj
 from __plugin import ECMPlugin
 import __helper as ecm
 
-# Needs to read config to get available nagios commands
+# Needs to read config to get available command commands
 PATH_TO_CONFIG = '../config/ecagent.cfg'
 
 
-class ECMNagios(ECMPlugin):
+class ECMCommand(ECMPlugin):
     def __init__(self, *argv, **kwargs):
         config_filename = join(dirname(__file__), PATH_TO_CONFIG)
 
@@ -36,35 +36,35 @@ class ECMNagios(ECMPlugin):
         except Exception:
             raise Exception("Unable to read config at %s" % config_filename)
 
-    def cmd_nagios_command(self, *argv, **kwargs):
+    def cmd_command_run(self, *argv, **kwargs):
         """
-        Syntax: nagios.command[command,args]
+        Syntax: command.run[command,args]
         """
         command = kwargs.get('command', None)
         params = kwargs.get('params', None)
 
         if not command:
-            raise ecm.InvalidParameters(self.cmd_nagios_command.__doc__)
+            raise ecm.InvalidParameters(self.cmd_command_run.__doc__)
 
         if command not in self.commands.keys():
             raise Exception("Command %s is not available" % command)
 
         return ecm.run_command(self.commands[command], params)
 
-    def cmd_nagios_get_commands(self, *argv, **kwargs):
+    def cmd_command_get(self, *argv, **kwargs):
         """
-        Syntax: nagios.get_commands[]
+        Syntax: command.get_commands[]
         """
         return self.commands
 
     @staticmethod
     def _get_commands(config):
         retval = {}
-        if config.get('nagios', None) is not None:
-            for command in config['nagios'].keys():
-                retval[command] = config['nagios'][command]
+        if config.get('commands', None) is not None:
+            for command in config['commands'].keys():
+                retval[command] = config['commands'][command]
 
         return retval
 
-ECMNagios().run()
+ECMCommand().run()
 
