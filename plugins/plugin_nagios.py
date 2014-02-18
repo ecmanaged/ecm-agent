@@ -31,12 +31,12 @@ class ECMNagios(ECMPlugin):
         params = kwargs.get('params', None)
 
         if not command:
-            raise ecm.InvalidParameters(self.cmd_nagios_check.__doc__)
+            raise ecm.InvalidParameters(self.cmd_nagios_command.__doc__)
 
         nagios_commands = _get_commands()
 
         if command not in nagios_commands.keys():
-            raise ecm.InvalidParameters(self.cmd_nagios_check.__doc__)
+            raise ecm.InvalidParameters(self.cmd_nagios_command.__doc__)
 
         return ecm.run_command(nagios_commands[command], params)
 
