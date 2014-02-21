@@ -16,8 +16,9 @@
 
 import os
 import sys
+import zlib
+import base64
 import simplejson as json
-import zlib, base64
 from time import time
 
 # Twisted imports
@@ -30,7 +31,6 @@ from twisted.words.xish.domish import Element
 # Local
 from ecagent.client import Client
 import ecagent.twlogging as log
-
 
 ## RSA Verify
 try:
@@ -57,21 +57,21 @@ FLUSH_TIME = 5
 
 class SMAgent:
     def __init__(self, config):
-        reactor.callWhenRunning(self._checkConfig)
+        reactor.callWhenRunning(self._check_config)
         self.config = config
 
-    def _checkConfig(self):
+    def _check_config(self):
         d = self.config.check_uuid()
-        d.addCallback(self._onConfigChecked)
-        d.addErrback(self._onConfigCheckFailed)
+        d.addCallback(self._on_config_checked)
+        d.addErrback(self._on_config_failed)
 
-    def _onConfigChecked(self, success):
+    def _on_config_checked(self, success):
         # Ok, now everything should be correctly configured,
         # let's start the party.
         if success:
             SMAgentXMPP(self.config)
 
-    def _onConfigCheckFailed(self, failure):
+    def _on_config_failed(self, failure):
         log.critical("Configuration check failed with: %s, exiting." % failure)
         log.critical("Please try configuring the XMPP subsystem manually.")
         reactor.stop()
@@ -103,14 +103,11 @@ class SMAgentXMPP(Client):
         self.command_runner = CommandRunner(config['Plugins'])
 
         log.debug("Loading XMPP...")
-        observers = [
-            ('/iq', self.__onIq),
-        ]
-        Client.__init__(self,
-                        self.config['XMPP'],
-                        observers,
-                        resource='ecm_agent-%d' % AGENT_VERSION_PROTOCOL
-        )
+        Client.__init__(
+            self,
+            self.config['XMPP'],
+            [('/iq', self.__onIq), ],
+            resource='ecm_agent-%d' % AGENT_VERSION_PROTOCOL)
 
     def __onIq(self, msg):
         """

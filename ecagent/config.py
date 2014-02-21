@@ -22,14 +22,14 @@ from platform import node
 from configobj import ConfigObj
 
 # Twisted imports
-from twisted.internet.defer import inlineCallbacks, returnValue, Deferred
+from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.web.client import getPage
-from twisted.internet import reactor
-from twisted.internet.protocol import ProcessProtocol
-from twisted.internet.error import ProcessTerminated, ProcessDone
 
 # Local
 import ecagent.twlogging as log
+
+_URL_METADATA_TIMEOUT = 2
+_URL_METADATA_INSTANCE_ID = 'http://169.254.169.254/latest/meta-data/instance-id'
 
 _ECMANAGED_AUTH_URL = 'https://my.ecmanaged.com/agent/meta-data/uuid'
 _ECMANAGED_AUTH_URL_ALT = 'https://my.ecmanaged.com/agent/meta-data/uuid'
@@ -40,7 +40,6 @@ class SMConfigObj(ConfigObj):
     A simple wrapper for ConfigObj that will check the MAC and try to
     reconfigure if it has changed before launching the agent.
     """
-
     def __init__(self, filename):
         ConfigObj.__init__(self, filename)
 
@@ -53,7 +52,7 @@ class SMConfigObj(ConfigObj):
             self['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
 
         if mac:
-            if str(mac) == str(self._getStoredMAC()):
+            if str(mac) == str(self._get_stored_mac()):
                 log.debug("MAC has not changed. Skip UUID check")
 
             else:
@@ -61,11 +60,11 @@ class SMConfigObj(ConfigObj):
                 uuid = None
                 for i in range(30):
                     try:
-                        uuid = yield self._getUUID()
+                        uuid = yield self._get_uuid()
                         if uuid:
                             break
 
-                    except:
+                    except Exception:
                         pass
                     sleep(20)
 
@@ -73,17 +72,14 @@ class SMConfigObj(ConfigObj):
                     log.error("ERROR: Could not obtain UUID. please set up XMPP manually in %s" % self.filename)
                     returnValue(False)
 
-                if str(uuid) == str(self._getStoredUUID()):
+                if str(uuid) == str(self._get_stored_uuid()):
                     log.debug("UUID has not changed.")
-
-                    # Update mac
                     self['XMPP']['mac'] = mac
                     self.write()
 
                 else:
                     log.info("UUID has changed, reconfiguring XMPP user/pass")
                     self['XMPP']['user'] = '@'.join((uuid, self['XMPP']['host']))
-
                     self['XMPP']['mac'] = mac
                     self.write()
 
@@ -93,7 +89,7 @@ class SMConfigObj(ConfigObj):
             log.error("ERROR: Could not obtain MAC. please set up XMPP manually in %s" % self.filename)
             returnValue(False)
 
-    def _getUUID(self):
+    def _get_uuid(self):
         if self['XMPP'].as_bool('manual'):
             log.info("Skipping UUID auto configuration as manual flag is set.")
             return self['XMPP']['user'].split('@')[0]
@@ -101,27 +97,27 @@ class SMConfigObj(ConfigObj):
         else:
             # Try to get from preconfigured
             log.info("try to get UUID via preconfiguration")
-            uuid = self._getUUIDPreConfig()
+            uuid = self._get_uuid_pre_configured()
 
             if not uuid:
                 # Try to configure via URL (ECM meta-data)
                 log.info("try to get UUID via URL (ecagent meta-data)")
-                uuid = self._getUUIDViaWeb()
+                uuid = self._get_uuid_via_web()
 
             return uuid
 
     @inlineCallbacks
-    def _getUUIDViaWeb(self):
+    def _get_uuid_via_web(self):
         hostname = ''
         address = ''
         try:
             hostname = self._get_hostname()
-            address  = self._get_ip()
-        except:
+            address = self._get_ip()
+        except Exception:
             pass
 
         auth_url = _ECMANAGED_AUTH_URL + "/?ipaddress=%s&hostname=%s" % (address, hostname)
-        auth_url_alt = _ECMANAGED_AUTH_URL + "/?ipaddress=%s&hostname=%s" % (address, hostname)
+        auth_url_alt = _ECMANAGED_AUTH_URL_ALT + "/?ipaddress=%s&hostname=%s" % (address, hostname)
 
         auth_content = yield getPage(auth_url)
 
@@ -134,7 +130,14 @@ class SMConfigObj(ConfigObj):
 
         returnValue('')
 
-    def _getUUIDPreConfig(self):
+    def _get_stored_uuid(self):
+        return self['XMPP']['user'].split('@')[0]
+
+    def _get_stored_mac(self):
+        return self['XMPP']['mac']
+
+    @staticmethod
+    def _get_uuid_pre_configured():
         from os import remove
         from os.path import dirname, abspath, join, exists
 
@@ -149,33 +152,19 @@ class SMConfigObj(ConfigObj):
 
         return None
 
-    def _run(self, command, args):
-        spp = SimpleProcessProtocol()
-        d = spp.getDeferredResult()
-        reactor.spawnProcess(spp, command, args.split())
-        d.addErrback(self._onErrorRunning)
-        return d
-
-    def _onErrorRunning(self, failure):
-        log.warn('Command failed to execute: %s' % failure)
-        return 255, '', ''
-
-    def _get_ip(self):
+    @staticmethod
+    def _get_ip():
         """Create dummy socket to get address"""
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(('my.ecmanaged.com', 0))
         return s.getsockname()[0]
 
-    def _get_hostname(self):
+    @staticmethod
+    def _get_hostname():
         return node()
 
-    def _getStoredUUID(self):
-        return self['XMPP']['user'].split('@')[0]
-
-    def _getStoredMAC(self):
-        return self['XMPP']['mac']
-
-    def _get_mac(self):
+    @staticmethod
+    def _get_mac():
         """
         Try to get a unique identified, Some providers may change mac on stop/start
         Use a low timeout to speed up agent start when no meta-data url
@@ -184,8 +173,8 @@ class SMConfigObj(ConfigObj):
         try:
             import urllib
 
-            socket.setdefaulttimeout(2)
-            urlopen = urllib.urlopen("http://169.254.169.254/latest/meta-data/instance-id")
+            socket.setdefaulttimeout(_URL_METADATA_TIMEOUT)
+            urlopen = urllib.urlopen(_URL_METADATA_INSTANCE_ID)
             socket.setdefaulttimeout(10)
 
             for line in urlopen.readlines():
@@ -193,7 +182,7 @@ class SMConfigObj(ConfigObj):
                     uuid = hex(line)
             urlopen.close()
 
-        except:
+        except Exception:
             pass
 
         # Use network mac
@@ -202,43 +191,3 @@ class SMConfigObj(ConfigObj):
             uuid = getnode()
 
         return uuid
-
-
-class SimpleProcessProtocol(ProcessProtocol):
-    def __init__(self):
-        self.stdout = ""
-        self.stderr = ""
-        self.deferreds = []
-
-    def connectionMade(self):
-        log.debug("Process started.")
-
-    def outReceived(self, data):
-        log.debug("Out made")
-        self.stdout += data
-
-    def errReceived(self, data):
-        log.debug("Err made: %s" % data)
-        self.stderr += data
-
-    def processEnded(self, status):
-        log.debug("process ended")
-        t = type(status.value)
-
-        if t is ProcessDone:
-            exit_code = 0
-
-        elif t is ProcessTerminated:
-            exit_code = status.value.exitCode
-
-        else:
-            raise status
-
-        for d in self.deferreds:
-            d.callback((exit_code, self.stdout, self.stderr))
-
-    def getDeferredResult(self):
-        d = Deferred()
-        self.deferreds.append(d)
-        return d
-

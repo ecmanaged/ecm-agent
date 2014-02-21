@@ -10,9 +10,6 @@
 # processname: ecagentd
 # config: /etc/sysconfig/ecagentd
 
-PATH=/usr/bin:/sbin:/bin:/usr/sbin
-export PATH
-
 [ -f /etc/sysconfig/ecagentd ] && . /etc/sysconfig/ecagentd
 
 NAME=${NAME-ecagentd}
@@ -27,6 +24,14 @@ RETVAL=0
 
 test -x $TWISTD || exit 0
 set +e
+
+export LANG="C"
+export PATH="${PATH:+$PATH:}/usr/sbin:/sbin"
+
+# clean related environment when started from cloud-init
+# bug: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=439763
+
+unset PERL_DL_NONLAZY
 
 # Source function library.
 . /etc/rc.d/init.d/functions
@@ -120,7 +125,7 @@ case "$1" in
         restart
     ;;
     check)
-	check
+		check
     ;;
     status)
         status

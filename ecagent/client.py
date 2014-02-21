@@ -129,14 +129,3 @@ class XMPPPresence:
         msg.addElement('status', content=self.status)
         msg.addElement('priority', content=str(self.priority))
         return msg
-
-
-#
-#Exceptions
-#
-class UserNotAvailable(Exception):
-    def __init__(self, user):
-        self._user = user
-
-    def __str__(self):
-        return "User %s is not available" % self._user
