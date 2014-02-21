@@ -132,10 +132,13 @@ class ECMHAConfig:
 
             # Add check timeout configuration
             listen.addOption(Option('timeout', ('check %i' % (health_timeout*1000),)))
+            
+            if self._protocol_dic(fproto) == 'http':
+                listen.addOption(Option('cookie', ('ECDN-HA-ID insert indirect nocache maxidle 30m maxlife 8h',)))
 
-            if hpath and self._protocol_dic(fproto) == 'http':
-                check = 'httpchk HEAD %s' % hpath
-                listen.addOption(Option('option', (check,)))
+            	if hpath:
+                	check = 'httpchk HEAD %s' % hpath
+                	listen.addOption(Option('option', (check,)))
 
             for backend in self.ecm_hash['backends']:
                 uuid = backend.keys()[0]
@@ -145,8 +148,7 @@ class ECMHAConfig:
 			server += ' cookie %s' % uuid
 
                 listen.addOption(Option('server', (server,)))
-	    if self._protocol_dic(fproto) == 'http':
-                listen.addOption(Option('cookie', ('ECDN-HA-ID insert indirect nocache maxidle 30m maxlife 8h',)))
+	    
 
         if not listeners:
             # Add default listener
