@@ -43,6 +43,7 @@ defaults
     timeout client 50000
     timeout server 50000
     timeout check 5000
+    balance leastconn
 """
 
 
@@ -140,7 +141,12 @@ class ECMHAConfig:
                 uuid = backend.keys()[0]
                 server = '%s %s:%s check inter %i rise %i fall %i' % (uuid, backend[uuid], fport, health_interval*1000,
                                                                       health_threshold, health_threshold)
+		if self._protocol_dic(fproto) == 'http':
+			server += ' cookie %s' % uuid
+
                 listen.addOption(Option('server', (server,)))
+	    if self._protocol_dic(fproto) == 'http':
+                listen.addOption(Option('cookie', ('ECDN-HA-ID insert indirect nocache maxidle 30m maxlife 8h',)))
 
         if not listeners:
             # Add default listener
