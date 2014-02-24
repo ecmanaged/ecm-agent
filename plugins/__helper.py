@@ -484,7 +484,9 @@ class ECMExec:
 
         # create command array and add args
         command = split(command)
-        if args and is_list(args):
+        if args:
+            if not is_list(args):
+                args = split(args)
             for arg in args:
                 command.append(arg)
 
