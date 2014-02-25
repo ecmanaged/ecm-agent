@@ -112,15 +112,6 @@ fi
 %attr(755,root,root) /opt/%{pname}
 %attr(400,root,root) %config /opt/ecmanaged/ecagent/config/ecagent.cfg
 
-%exclude %{source_path}%{pname}-%{version}/ecmanaged/ecagent/plugins/*.pyc
-%exclude %{source_path}%{pname}-%{version}/ecmanaged/ecagent/plugins/*.pyo
-%exclude %{source_path}%{pname}-%{version}/ecmanaged/ecagent/examples/*.pyc
-%exclude %{source_path}%{pname}-%{version}/ecmanaged/ecagent/examples/*.pyo
-%exclude %{source_path}%{pname}-%{version}/ecmanaged/ecagent/ecagent/*.pyc
-%exclude %{source_path}%{pname}-%{version}/ecmanaged/ecagent/ecagent/*.pyo
-%exclude %{source_path}%{pname}-%{version}/ecmanaged/ecagent/*.pyc
-%exclude %{source_path}%{pname}-%{version}/ecmanaged/ecagent/*.pyo
-
 %changelog
 * Wed Feb 20 2014 %{packager} - init 
 - Initialize %{name}-%{ver}.%{rel}.
