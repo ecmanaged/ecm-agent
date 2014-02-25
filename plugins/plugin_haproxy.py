@@ -16,7 +16,7 @@
 
 
 from base64 import b64decode
-from __haproxyconf import ECMHAConfig
+from __ecmhaproxy import ECMHAConfig, ECMHASocket
 
 HAPROXY_CONFIG = '/etc/haproxy/haproxy.cfg'
 HAPROXY_INIT = '/etc/init.d/haproxy'
@@ -65,6 +65,16 @@ class ECMHaproxy(ECMPlugin):
             
         else:
             raise Exception('Invalid configuration')
+
+    def cmd_haproxy_get_status(self, *argv, **kwargs):
+        """
+        haproxy.get_status[]
+        """
+        json_array = {}
+        ha = ECMHASocket()
+        for line in ha.get_server_stats():
+            json_array.setdefault(line['pxname'], {})[line['svname']] = line['status']
+        return json_array
 
     @staticmethod
     def _restart():

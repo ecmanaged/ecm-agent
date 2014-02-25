@@ -17,13 +17,18 @@ along with this program. If not, see <http://www.gnu.org/licenses/>
 """
 # -*- coding: utf-8 -*-
 
-from __haproxy import HAProxyConfig, Option
-import simplejson as json
 import warnings
-
 from os import path
 from tempfile import mktemp
+import socket
+import csv
 
+import simplejson as json
+from __haproxy import HAProxyConfig, Option
+
+NAME = 'haproxy'
+RECV_SIZE = 1024
+DEFAULT_SOCKET = '/tmp/haproxy'
 HAPROXY_BIN = '/usr/sbin/haproxy'
 
 TEMPLATE_FILE = '/etc/haproxy/haproxy.tpl'
@@ -136,19 +141,17 @@ class ECMHAConfig:
             if self._protocol_dic(fproto) == 'http':
                 listen.addOption(Option('cookie', ('ECDN-HA-ID insert indirect nocache maxidle 30m maxlife 8h',)))
 
-            	if hpath:
-                	check = 'httpchk HEAD %s' % hpath
-                	listen.addOption(Option('option', (check,)))
+                if hpath:
+                    check = 'httpchk HEAD %s' % hpath
+                    listen.addOption(Option('option', (check,)))
 
             for backend in self.ecm_hash['backends']:
                 uuid = backend.keys()[0]
                 server = '%s %s:%s check inter %i rise %i fall %i' % (uuid, backend[uuid], fport, health_interval*1000,
                                                                       health_threshold, health_threshold)
-		if self._protocol_dic(fproto) == 'http':
-			server += ' cookie %s' % uuid
-
-                listen.addOption(Option('server', (server,)))
-	    
+                if self._protocol_dic(fproto) == 'http':
+                    server += ' cookie %s' % uuid
+                    listen.addOption(Option('server', (server,)))
 
         if not listeners:
             # Add default listener
@@ -161,6 +164,49 @@ class ECMHAConfig:
             retval = 'http'
 
         return retval
+
+
+class ECMHASocket(object):
+    def __init__(self, socket_file=DEFAULT_SOCKET):
+        self.socket_file = socket_file
+
+    def connect(self):
+        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        s.connect(self.socket_file)
+        return s
+
+    def communicate(self, command):
+        """ Send a single command to the socket and return a single response (raw string) """
+        s = self.connect()
+        if not command.endswith('\n'): command += '\n'
+        s.send(command)
+        result = ''
+        buf = s.recv(RECV_SIZE)
+        while buf:
+            result += buf
+            buf = s.recv(RECV_SIZE)
+        s.close()
+        return result
+
+    def get_server_info(self):
+        result = {}
+        output = self.communicate('show info')
+        for line in output.splitlines():
+            try:
+                key, val = line.split(':')
+            except ValueError, e:
+                continue
+            result[key.strip()] = val.strip()
+        return result
+
+    def get_server_stats(self):
+        output = self.communicate('show stat -1 4 -1')
+        #sanitize and make a list of lines
+        output = output.lstrip('# ').strip()
+        output = [l.strip(',') for l in output.splitlines()]
+        csvreader = csv.DictReader(output)
+        result = [d.copy() for d in csvreader]
+        return result
 
 
 def is_valid(config):
