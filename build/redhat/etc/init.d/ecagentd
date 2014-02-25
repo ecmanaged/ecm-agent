@@ -1,5 +1,5 @@
 #!/bin/bash 
-# ecagentd        Init script for running the ecm_agent client daemon
+# ec_agent        Init script for running the ecm_agent client daemon
 #
 # Author:       Juan Carlos Moreno <juancarlos.moreno@ecmanaged.com>
 #               Gonzalo Radio <gonzalo.radio@ackstorm.com>
@@ -7,10 +7,15 @@
 # chkconfig: - 85 20
 #
 # description: Enables ECManaged Agent for monitoring and deployment
-# processname: ecagentd
-# config: /etc/sysconfig/ecagentd
+# processname: ecm_agent
+# config: /etc/sysconfig/ecm_agent
 
-[ -f /etc/sysconfig/ecagentd ] && . /etc/sysconfig/ecagentd
+set +e
+
+PATH=/usr/bin:/sbin:/bin:/usr/sbin
+export PATH
+
+[ -f /etc/sysconfig/ecagent ] && . /etc/sysconfig/ecagent
 
 NAME=${NAME-ecagentd}
 TWISTD=${TWISTD-/usr/bin/twistd}
@@ -23,7 +28,6 @@ LOCKFILE=${LOCKFILE-"$DIR/$NAME.lock"}
 RETVAL=0
 
 test -x $TWISTD || exit 0
-set +e
 
 export LANG="C"
 export PATH="${PATH:+$PATH:}/usr/sbin:/sbin"
@@ -59,7 +63,6 @@ cd $DIR
 
 start() {
     echo -n $"Starting ${NAME}: "
-    killagent
     /bin/rm -f $PID_FILE > /dev/null 2>&1
     daemon $daemonopts $TWISTD -y $TAC 2>/dev/null
     RETVAL=$?
@@ -75,34 +78,25 @@ stop() {
     [ $RETVAL = 0 ] && rm -f ${LOCKFILE} ${PID_FILE}
 }
 
-status() {
-    echo -n "Checking status of ${NAME}: "
-    PID=$(getpid)
-    ls -l /proc/$PID/exe > /dev/null 2>&1
-    case "$?" in
-        0) echo 'Running'; exit 0 ;;
-        *) echo 'Stopped'; exit 1 ;;
-    esac
-}
-
 check() {
-    echo -n $"Status of ${NAME}: "
-    PID=$(getpid)
-    ls -l /proc/$PID/exe > /dev/null 2>&1
-    case "$?" in
-        0) echo 'Running' ;;
-        *) echo 'Stopped'; stop; start ;;
-    esac
+  	echo -n $"Checking status of ${NAME}: "
+  	PID=$(getpid)
+  	ls -l /proc/$PID/exe > /dev/null 2>&1
+	case "$?" in
+		0) echo 'OK' ;;
+		*) echo 'KO'; stop; start ;;
+	esac
+
 }
 
 killagent() {
-    echo $"Killing ${NAME} "
-    PID=$(getpid)
-    ls -l /proc/$PID/exe > /dev/null 2>&1
-    case "$?" in
-        0) kill -9 $PID >/dev/null 2>&1 ;;
-        *) ;;
-    esac
+	echo $"Killing ${NAME} "
+	PID=$(getpid)
+        ls -l /proc/$PID/exe > /dev/null 2>&1
+        case "$?" in
+                0) kill -9 $PID >/dev/null 2>&1 ;;
+                *) ;;
+        esac
 }
 
 restart() {
@@ -125,16 +119,13 @@ case "$1" in
         restart
     ;;
     check)
-		check
-    ;;
-    status)
-        status
+    	check
     ;;
     kill)
-        killagent
+    	killagent
     ;;
     *)
-        echo $"Usage: $0 {start|stop|restart|status|kill}"
+        echo $"Usage: $0 {start|stop|restart|check|kill}"
         exit 1
 esac
 
