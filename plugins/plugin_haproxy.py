@@ -41,9 +41,6 @@ class ECMHaproxy(ECMPlugin):
 
         raise Exception("Unable to get config")
 
-    def cmd_haproxy_get_status(self, *argv, **kwargs):
-        pass
-
     def cmd_haproxy_set_config(self, *argv, **kwargs):
         """
         haproxy.set_config[config=base64_balancer_config]

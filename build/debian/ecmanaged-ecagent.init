@@ -14,6 +14,7 @@ NAME=ecagentd
 TWISTD=/usr/bin/twistd
 TAC=$NAME.tac
 DESC="ECM Agent"
+MIN_DISK=1000
 
 test -x $TWISTD || exit 0
 
@@ -54,10 +55,21 @@ killagent() {
     esac
 }
 
+check_disk() {
+    USED_SPACE=`df -H -k $DIR | grep -vE '^Filesystem|tmpfs|cdrom' | awk '{ print $3 }'`
+    FREE_SPACE=`df -H -k $DIR | grep -vE '^Filesystem|tmpfs|cdrom' | awk '{ print $4 }'`
+    if [ ${USED_SPACE} -gt 1 ] && [ ${FREE_SPACE} -lt ${MIN_DISK} ]; then
+        echo " Not starting, sorry. No enough free space on ${DIR}"
+        log_end_msg 1
+        exit 1
+    fi
+}
+
 case "$1" in
   start)
     log_daemon_msg "Starting $DESC" "$NAME"
-    killagent   
+    killagent
+    check_disk
     /bin/rm -f $PID_FILE > /dev/null 2>&1
     start-stop-daemon --oknodo --start --pidfile $PID_FILE \
         --background --chdir $DIR --exec $TWISTD -- -ny $TAC >/dev/null 2>&1

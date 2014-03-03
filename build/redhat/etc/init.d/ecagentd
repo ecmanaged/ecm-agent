@@ -26,6 +26,7 @@ PID_FILE=${PID_FILE-"$DIR/twistd.pid"}
 RETRY=${RETRY-15}
 LOCKFILE=${LOCKFILE-"$DIR/$NAME.lock"}
 RETVAL=0
+MIN_DISK=1000
 
 test -x $TWISTD || exit 0
 
@@ -63,6 +64,7 @@ cd $DIR
 
 start() {
     echo -n $"Starting ${NAME}: "
+    check_disk
     /bin/rm -f $PID_FILE > /dev/null 2>&1
     daemon $daemonopts $TWISTD -y $TAC 2>/dev/null
     RETVAL=$?
@@ -97,6 +99,15 @@ killagent() {
                 0) kill -9 $PID >/dev/null 2>&1 ;;
                 *) ;;
         esac
+}
+
+check_disk() {
+    USED_SPACE=`df -H -k $DIR | grep -vE '^Filesystem|tmpfs|cdrom' | awk '{ print $3 }'`
+    FREE_SPACE=`df -H -k $DIR | grep -vE '^Filesystem|tmpfs|cdrom' | awk '{ print $4 }'`
+    if [ ${USED_SPACE} -gt 1 ] && [ ${FREE_SPACE} -lt ${MIN_DISK} ]; then
+        echo " Not starting, sorry. No enough free space on ${DIR}"
+        exit 1
+    fi
 }
 
 restart() {
