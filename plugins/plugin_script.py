@@ -28,34 +28,32 @@ class ECMScript(ECMPlugin):
         run script(b64) extension envars runas executable
         Syntax: script.run[script,extenion,envars,facts,runas,executable]
         """
-        script_base64 = kwargs.get('script', None)
+        script_b64 = kwargs.get('script', None)
         script_extension = kwargs.get('extension', None)
-        script_envars = kwargs.get('envars', None)
-        script_facts = kwargs.get('facts', None)
         script_runas = kwargs.get('runas', None)
         script_executable = kwargs.get('executable', None)
+        metadata = kwargs.get('metadata', None)
 
         if not script_extension:
             script_extension = '.cmd'
 
-        if not script_base64:
+        if not script_b64:
             raise ecm.InvalidParameters(self.cmd_script_run.__doc__)
 
         try:
             # Write down
             tmp_dir = mkdtemp()
             tmp_file = tmp_dir + '/script' + script_extension
-            ecm.file_write(tmp_file, b64decode(script_base64))
+            ecm.file_write(tmp_file, b64decode(script_b64))
 
         except:
             raise ecm.InvalidParameters("Unable to decode script")
 
         # Set environment variables before execution
-        envars = ecm.envars_decode(script_envars)
-        facts = ecm.envars_decode(script_facts)
+        envars = ecm.metadata_to_env(metadata_b64=metadata)
 
-        # Update envars and facts file
-        ecm.write_envars_facts(envars, facts)
+        # Update metadata
+        ecm.write_metadata(metadata_b64=metadata)
 
         if script_executable:
             cmd = script_executable + ' ' + tmp_file

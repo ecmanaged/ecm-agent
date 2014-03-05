@@ -66,8 +66,8 @@ class ECMPuppet(ECMPlugin):
         Syntax: puppet.appy[recipe_code,evars,facts]
         """
         recipe_base64 = kwargs.get('recipe_code', None)
-        envars = kwargs.get('envars', None)
-        facts = kwargs.get('facts', None)
+        metadata_platform = kwargs.get('metadata_platform', None)
+        metadata_server = kwargs.get('metadata_server', None)
 
         if not recipe_base64:
             raise ecm.InvalidParameters(self.cmd_puppet_apply.__doc__)
@@ -80,11 +80,11 @@ class ECMPuppet(ECMPlugin):
                 module_path = MODULES_PATH_WINDOWS
 
         # Set environment variables before execution
-        envars = ecm.envars_decode(envars)
-        facts = ecm.envars_decode(facts)
+        envars = ecm.metadata_to_env(metadata_b64=metadata_server)
 
-        # Set environment variables before execution
-        ecm.write_envars_facts(envars, facts)
+        # Update metadata
+        ecm.write_metadata_platform(metadata_b64=metadata_platform)
+        ecm.write_metadata(metadata_b64=metadata_server)
 
         try:
             catalog = b64decode(recipe_base64)
@@ -116,8 +116,7 @@ class ECMPuppet(ECMPlugin):
         Syntax: puppet.apply_file[recipe_url,envars,facts]
         """
         recipe_url = kwargs.get('recipe_url', None)
-        envars = kwargs.get('envars', None)
-        facts = kwargs.get('facts', None)
+        metadata = kwargs.get('metadata', None)
 
         if not recipe_url:
             raise ecm.InvalidParameters(self.cmd_puppet_apply.__doc__)
@@ -125,15 +124,15 @@ class ECMPuppet(ECMPlugin):
         recipe_file = None
         recipe_path = None
         module_path = MODULES_PATH
-        if ecm.is_windows(): module_path = MODULES_PATH_WINDOWS
+        if ecm.is_windows():
+            module_path = MODULES_PATH_WINDOWS
         module_path = kwargs.get('module_path', module_path)
 
         # Set environment variables before execution
-        envars = ecm.envars_decode(envars)
-        facts = ecm.envars_decode(facts)
+        envars = ecm.metadata_to_env(metadata_b64=metadata)
 
-        # Update envars and facts file
-        ecm.write_envars_facts(envars, facts)
+        # Update metadata
+        ecm.write_metadata(metadata_b64=metadata)
 
         try:
             # Download recipe url

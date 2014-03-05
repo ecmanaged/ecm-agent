@@ -41,8 +41,6 @@ class ECMSource(ECMPlugin):
         path = kwargs.get('path', None)
         url = kwargs.get('source', None)
         branch = kwargs.get('branch', None)
-        envars = kwargs.get('envars', None)
-        facts = kwargs.get('facts', None)
         user = kwargs.get('username', None)
         passwd = kwargs.get('password', None)
         private_key = kwargs.get('private_key', None)
@@ -50,6 +48,7 @@ class ECMSource(ECMPlugin):
         chown_group = kwargs.get('chown_group', None)
         rotate = kwargs.get('rotate', True)
         stype = kwargs.get('type', None)
+        metadata = kwargs.get('metadata', None)
 
         if not path or not url or not stype:
             raise ecm.InvalidParameters(self.cmd_source_run.__doc__)
@@ -73,11 +72,10 @@ class ECMSource(ECMPlugin):
             raise ecm.InvalidParameters("Unknown source")
 
         # Set environment variables before execution
-        envars = ecm.envars_decode(envars)
-        facts = ecm.envars_decode(facts)
+        envars = ecm.metadata_to_env(metadata_b64=metadata)
 
-        # Update envars and facts file
-        ecm.write_envars_facts(envars, facts)
+        # Update metadata
+        ecm.write_metadata(metadata_b64=metadata)
 
         retval = source.clone(url=url, branch=branch, envars=envars, username=user, password=passwd,
                               private_key=private_key)

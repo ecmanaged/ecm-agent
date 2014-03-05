@@ -25,8 +25,18 @@ if not platform.startswith("win32"):
 
 _ETC = '/etc'
 _DIR = '/etc/ecmanaged'
-_ENV_FILE = _DIR + '/ecm_env'
-_INFO_FILE = _DIR + '/node_info'
+_ENV_FILE = _DIR + '/server-metadata.env'
+_INFO_FILE = _DIR + '/server-metadata.info'
+_JSON_FILE = _DIR + '/server-metadata.json'
+
+_STACK_JSON_FILE = _DIR + '/stack-metadata.json'
+_STACK_INFO_FILE = _DIR + '/stack-metadata.info'
+
+_CLOUD_JSON_FILE = _DIR + '/cloud-metadata.json'
+_CLOUD_INFO_FILE = _DIR + '/cloud-metadata.info'
+
+_PLATFORM_JSON_FILE = _DIR + '/platform-metadata.json'
+_PLATFORM_INFO_FILE = _DIR + '/platform-metadata.info'
 
 _DEFAULT_GROUP_LINUX = 'root'
 _DEFAULT_GROUP_WINDOWS = 'Administrators'
@@ -212,7 +222,8 @@ def install_package(packages, update=True):
         if distribution.lower() in ['debian', 'ubuntu']:
             envars['DEBIAN_FRONTEND'] = 'noninteractive'
 
-            if update: run_command(['apt-get', '-y', '-qq', 'update'])
+            if update:
+                run_command(['apt-get', '-y', '-qq', 'update'])
             command = ['apt-get',
                        '-o',
                        'Dpkg::Options::=--force-confold',
@@ -224,7 +235,8 @@ def install_package(packages, update=True):
                        packages]
 
         elif distribution.lower() in ['centos', 'redhat', 'fedora', 'amazon']:
-            if update: run_command(['yum', '-y', 'clean', 'all'])
+            if update:
+                run_command(['yum', '-y', 'clean', 'all'])
             command = ['yum',
                        '-y',
                        '--nogpgcheck',
@@ -239,8 +251,8 @@ def install_package(packages, update=True):
                        packages]
 
         elif distribution.lower() in ['arch']:
-            if update: run_command(['pacman', '-Sy'])
-            if update: run_command(['pacman', '-S', '--noconfirm', 'pacman'])
+            if update:
+                run_command(['pacman', '-S', '--noconfirm', 'pacman'])
             command = ['pacman',
                        '-S',
                        '--noconfirm',
@@ -275,52 +287,114 @@ def run_command(command, args=None, stdin=None, runas=None, workdir=None, envars
     return e.command(command, args, stdin, runas, workdir, envars)
 
 
-def envars_decode(coded_envars=None):
-    """ Decode base64/json envars """
-    import simplejson as json
+def write_metadata(metadata=None, metadata_b64=None, metadata_json=None):
     from base64 import b64decode
+    import simplejson as json
 
-    envars = None
-    try:
-        if coded_envars:
-            envars = b64decode(coded_envars)
-            envars = json.loads(envars)
-            for var in envars.keys():
-                if not envars[var]:
-                    envars[var] = ''
-                envars[var] = encode(envars[var])
+    if metadata_b64:
+        metadata_json = b64decode(metadata_b64)
 
-    except:
-        pass
+    if metadata_json:
+        metadata = json.loads(metadata_json)
 
-    return envars
+    return _write_metadata(metadata, _JSON_FILE, _INFO_FILE, _ENV_FILE)
 
 
-def write_envars_facts(envars=None, facts=None):
-    """
-    Writes env and facts file variables
-    """
-    if envars and is_dict(envars):
+def write_metadata_stack(metadata=None, metadata_b64=None, metadata_json=None):
+    from base64 import b64decode
+    import simplejson as json
+
+    if metadata_b64:
+        metadata_json = b64decode(metadata_b64)
+
+    if metadata_json:
+        metadata = json.loads(metadata_json)
+
+    return _write_metadata(metadata, _STACK_JSON_FILE, _STACK_INFO_FILE)
+
+
+def write_metadata_platform(metadata=None, metadata_b64=None, metadata_json=None):
+    from base64 import b64decode
+    import simplejson as json
+
+    if metadata_b64:
+        metadata_json = b64decode(metadata_b64)
+
+    if metadata_json:
+        metadata = json.loads(metadata_json)
+
+    return _write_metadata(metadata, _PLATFORM_JSON_FILE, _PLATFORM_INFO_FILE)
+
+
+def write_metadata_cloud(metadata=None, metadata_b64=None, metadata_json=None):
+    from base64 import b64decode
+    import simplejson as json
+
+    if metadata_b64:
+        metadata_json = b64decode(metadata_b64)
+
+    if metadata_json:
+        metadata = json.loads(metadata_json)
+
+    return _write_metadata(metadata, _CLOUD_JSON_FILE, _CLOUD_INFO_FILE)
+
+
+def _write_metadata(metadata=None, json_file=None, info_file=None, env_file=None):
+    import simplejson as json
+    
+    if metadata and is_dict(metadata):
+        hash_to_list = ''
+        for key in sorted(metadata.keys()):
+            hash_to_list += hash_to_str(metadata[key], key)
+
         try:
-            content_env = ''
-            for var in sorted(envars.keys()):
-                content_env += "export " + str(var) + '="' + encode(envars[var]) + "\"\n"
-            file_write(_ENV_FILE, content_env)
+            content_env = content_facts = ''
+            for var in sorted(hash_to_list.split("\n")):
+                if not var:
+                    continue
+                (key, value) = var.split(': ')
+                content_env += 'export ECM_' + key.upper().replace('.', '_') + '="' + value + "\"\n"
+                content_facts += var + "\n"
+            if env_file:
+                file_write(env_file, content_env)
+            if info_file:
+                file_write(info_file, content_facts)
 
-        except:
+        except Exception:
             return False
 
-    if facts and is_dict(envars):
+        if json_file:
+            file_write(json_file, json.dumps(metadata, indent=4))
+        return True
+
+    return False
+
+
+def metadata_to_env(metadata=None, metadata_b64=None, metadata_json=None):
+    from base64 import b64decode
+    import simplejson as json
+
+    if metadata_b64:
+        metadata = b64decode(metadata_b64)
+
+    if metadata_json:
+        metadata = json.loads(metadata_json)
+
+    retval = []
+    if metadata and is_dict(metadata):
+        hash_to_list = ''
+        for key in sorted(metadata.keys()):
+            hash_to_list += hash_to_str(metadata[key], key)
+
         try:
-            content_facts = ''
-            for var in sorted(facts.keys()):
-                content_facts += str(var) + ':' + encode(facts[var]) + "\n"
-            file_write(_INFO_FILE, content_facts)
+            for var in hash_to_list.split("\n"):
+                (key, value) = var.split(': ')
+                retval[key] = value
 
-        except:
-            return False
+        except Exception:
+            pass
 
-    return True
+    return retval
 
 
 def renice_me(nice):
@@ -402,7 +476,7 @@ def encode(string):
 def split_path(path):
     components = []
     while True:
-        (path,tail) = os.path.split(path)
+        (path, tail) = os.path.split(path)
         if tail == "":
             components.reverse()
             return components
@@ -452,6 +526,26 @@ def get_distribution():
                 pass
 
     return distribution, version
+
+
+def hash_to_str(_hash, _key):
+    final_str = ''
+    if is_dict(_hash):
+        for subkey in _hash.keys():
+            if is_dict(_hash[subkey]):
+                subsubkey = _key + '.' + subkey
+                final_str += hash_to_str(_hash[subkey], subsubkey)
+
+            else:
+                final_str += "%s.%s: %s\n" % (_key, subkey, _hash[subkey])
+
+    elif is_list(_hash):
+        final_str += _key + ': [' + ','.join('%s' % value for value in _hash) + ']'
+
+    else:
+        final_str += "%s: %s\n" % (_key, _hash)
+
+    return final_str
 
 
 class ECMExec:

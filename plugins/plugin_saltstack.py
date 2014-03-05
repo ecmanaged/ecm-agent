@@ -73,12 +73,11 @@ class ECMSaltstack(ECMPlugin):
         Apply a saltstack manifest
         Syntax: saltstack.apply[recipe_code,pillar_code,envars,facts]
         """
-        recipe_base64   = kwargs.get('recipe_code', None)
-        pillar_base64   = kwargs.get('pillar_code', None)
-        recipe_envars   = kwargs.get('envars', None)
-        recipe_facts    = kwargs.get('facts', None)
+        recipe_b64 = kwargs.get('recipe_code', None)
+        pillar_b64 = kwargs.get('pillar_code', None)
+        metadata = kwargs.get('metadata', None)
 
-        if not recipe_base64:
+        if not recipe_b64:
             raise ecm.InvalidParameters(self.cmd_saltstack_apply.__doc__)
 
         saltstack_cmd = self._is_available()
@@ -97,23 +96,22 @@ class ECMSaltstack(ECMPlugin):
         pillar_path = kwargs.get('pillar_path', default_pillar_path)
 
         # Set environment variables before execution
-        envars = ecm.envars_decode(recipe_envars)
-        facts = ecm.envars_decode(recipe_facts)
+        envars = ecm.metadata_to_env(metadata_b64=metadata)
 
-        # Update envars and facts file
-        ecm.write_envars_facts(envars, facts)
+        # Update metadata
+        ecm.write_metadata(metadata_b64=metadata)
 
         try:
             # Create top file
             self._create_top_file(module_path)
 
             recipe_file = module_path + '/ecmanaged.sls'
-            ecm.file_write(recipe_file, b64decode(recipe_base64))
+            ecm.file_write(recipe_file, b64decode(recipe_b64))
 
-            if pillar_base64:
+            if pillar_b64:
                 self._create_top_file(pillar_path)
                 pillar_file = pillar_path + '/ecmanaged.sls'
-                ecm.file_write(pillar_file, b64decode(pillar_base64))
+                ecm.file_write(pillar_file, b64decode(pillar_b64))
 
         except:
             raise Exception("Unable to write recipe")

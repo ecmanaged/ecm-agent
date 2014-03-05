@@ -32,19 +32,22 @@ class ECMSystem(ECMPlugin):
     def cmd_set_info(self, *argv, **kwargs):
         """
         Set ECManaged facts and environment variables
-        Syntax: set.info[envars,facts]
+        Syntax: set.info[metadata]
         """
-        envars = kwargs.get('envars', None)
-        facts = kwargs.get('facts', None)
+        metadata = kwargs.get('metadata', None)
+        metadata_stack = kwargs.get('metadata_stack', None)
+        metadata_cloud = kwargs.get('metadata_cloud', None)
+        metadata_platform = kwargs.get('metadata_platform', None)
 
-        if not envars:
+        if not metadata:
             raise ecm.InvalidParameters(self.cmd_set_info.__doc__)
 
-        # Set environment variables before execution
-        envars = ecm.envars_decode(envars)
-        facts = ecm.envars_decode(facts)
+        # Write other metadata if available
+        ecm.write_metadata_stack(metadata_b64=metadata_stack)
+        ecm.write_metadata_cloud(metadata_b64=metadata_cloud)
+        ecm.write_metadata_platform(metadata_b64=metadata_platform)
 
-        if ecm.write_envars_facts(envars, facts):
+        if ecm.write_metadata(metadata_b64=metadata):
             return True
 
         raise Exception('Unable to write environment file')
