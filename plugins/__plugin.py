@@ -27,14 +27,8 @@ PROTECTED_FILES = [
     '/etc/shadow',
 ]
 
-import os
+
 import sys
-import inspect
-import simplejson as json
-import __helper as ecm
-
-from base64 import b64decode
-
 sys.stdout.flush()
 sys.stderr.flush()
 
@@ -63,6 +57,11 @@ class ECMPlugin:
         Updates a plugin file from server
         cmd_plugin_update[file,content]
         """
+
+        import os
+        from base64 import b64decode
+        import __helper as ecm
+
         plugin = kwargs.get('plugin', None)
         content = kwargs.get('content', None)
 
@@ -89,6 +88,7 @@ class ECMPlugin:
         return False
 
     def _list_commands(self):
+        import inspect
         for member in inspect.getmembers(self):
             #Retrieve method names starting with "cmd_" (commands)
             if member[0].startswith('cmd_') and inspect.ismethod(member[1]):
@@ -97,6 +97,9 @@ class ECMPlugin:
                 print command_name, command_args
 
     def _run_command(self, command_name):
+        import simplejson as json
+        from base64 import b64decode
+
         try:
             command = getattr(self, 'cmd_' + command_name)
 

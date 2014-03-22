@@ -17,11 +17,9 @@
 import os
 import re
 
-from sys import platform, stdout, stderr
+from sys import platform
 from time import sleep, time
 
-if not platform.startswith("win32"):
-        import fcntl
 
 _ETC = '/etc'
 _DIR = '/etc/ecmanaged'
@@ -610,7 +608,6 @@ class ECMExec:
 
             if is_windows():
                 std_output, std_error = p.communicate()
-                
                 return p.wait(), std_output, std_error
 
             else:
@@ -640,6 +637,8 @@ class ECMExec:
         """
         needs to be in a thread so we can read the stdout w/o blocking
         """
+        from sys import stdout, stderr
+
         while self.thread_run:
             # Avoid Exception in thread Thread-1 (most likely raised during interpreter shutdown):
             try:
@@ -663,6 +662,8 @@ class ECMExec:
         """
         even in a thread, a normal read with block until the buffer is full
         """
+        import fcntl
+
         try:
             fd = out.fileno()
             fl = fcntl.fcntl(fd, fcntl.F_GETFL)

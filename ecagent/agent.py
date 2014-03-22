@@ -265,7 +265,7 @@ class CommandRunner():
 
         self.env = os.environ
         self.env['DEBIAN_FRONTEND'] = 'noninteractive'
-        self.env['PYTHONPATH'] = os.path.dirname(__file__)
+        #self.env['PYTHONPATH'] = os.path.dirname(__file__)
         self.env['LANG'] = 'en_US.utf8'
         self.env['PWD'] = '/root/'
 

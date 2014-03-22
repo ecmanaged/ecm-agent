@@ -15,7 +15,6 @@
 #    under the License.
 
 import os
-import re
 
 # Local
 from __plugin import ECMPlugin, PROTECTED_FILES
@@ -77,6 +76,7 @@ class ECMFile(ECMPlugin):
 
     def cmd_file_regexp(self, *argv, **kwargs):
         """Syntax: file.regexp[file,regex]"""
+        import re
 
         filename = kwargs.get('file', None)
         regex = kwargs.get('regex', None)

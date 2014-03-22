@@ -14,11 +14,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import os
-import platform
-import socket
-import psutil
-
 # Local
 from __plugin import ECMPlugin
 import __helper as ecm
@@ -53,18 +48,22 @@ class ECMSystem(ECMPlugin):
         raise Exception('Unable to write environment file')
 
     def cmd_system_hostname(self, *argv, **kwargs):
+        import platform
         return platform.node()
 
     def cmd_system_load(self, *argv, **kwargs):
+        import os
         load_average = ' '.join([str(x) for x in os.getloadavg()])
         return load_average
 
     def cmd_system_uname(self, *argv, **kwargs):
         #system,node,release,version,machine,processor
+        import platform
         return platform.uname()
 
     def cmd_system_info(self, *argv, **kwargs):
         """Syntax: system_info"""
+        import platform
         retval = {
             'os': str(platform.system()),
             'machine': str(platform.machine()),
@@ -78,6 +77,8 @@ class ECMSystem(ECMPlugin):
 
     def cmd_system_cpu_usage(self, *argv, **kwargs):
         """Syntax: load"""
+        import psutil
+
         try:
             return psutil.cpu_percent(interval=0.5, percpu=True)
 
@@ -86,17 +87,21 @@ class ECMSystem(ECMPlugin):
 
     def cmd_system_network_usage(self, *argv, **kwargs):
         """Syntax: system.network.usage[iface=eth0]"""
+        import psutil
 
-        iface = kwargs.get('iface', 'eth0')
+        iface = kwargs.get('iface', None)
         retval = {}
 
         try:
             network = psutil.network_io_counters(pernic=True)
-            if network[iface]:
+            if iface and network[iface]:
                 if hasattr(network[iface], 'bytes_sent'):
                     retval['bytes_sent'] = network[iface].bytes_sent
                 if hasattr(network[iface], 'bytes_recv'):
                     retval['bytes_recv'] = network[iface].bytes_recv
+            else:
+                # Return all interfaces
+                retval = network
 
         except:
             pass
@@ -104,6 +109,8 @@ class ECMSystem(ECMPlugin):
         return retval
 
     def cmd_system_disk_partitions(self, *argv, **kwargs):
+        import psutil
+
         try:
             retval = []
             for part in psutil.disk_partitions(all=False):
@@ -122,6 +129,8 @@ class ECMSystem(ECMPlugin):
             raise Exception("Unable to get info from psutil")
 
     def cmd_system_disk_usage(self, *argv, **kwargs):
+        import psutil
+
         try:
             retval = []
             for part in psutil.disk_partitions(all=False):
@@ -152,6 +161,8 @@ class ECMSystem(ECMPlugin):
             raise Exception("Unable to get info from psutil")
 
     def cmd_system_mem_usage(self, *argv, **kwargs):
+        import psutil
+
         try:
             phymem = psutil.phymem_usage()
             return {
@@ -185,6 +196,8 @@ class ECMSystem(ECMPlugin):
 
     @staticmethod
     def _boot_time_linux():
+        import psutil
+
         # Old psutil versions
         try: return psutil.BOOT_TIME
         except: pass
@@ -219,6 +232,7 @@ class ECMSystem(ECMPlugin):
 
     @staticmethod
     def _get_ip():
+        import socket
         """ Create dummy socket to get address """
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(('my.ecmanaged.com', 0))
