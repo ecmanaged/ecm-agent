@@ -19,8 +19,7 @@ from __plugin import ECMPlugin
 import __helper as ecm
 
 class ECMMysql(ECMPlugin):
-    @staticmethod
-    def cmd_mysql_exec(*argv, **kwargs):
+    def cmd_mysql_exec(self, *argv, **kwargs):
         """ Syntax mysql.exec[hostname],[user],[password],[database],[query] """
 
         try:
