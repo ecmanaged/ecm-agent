@@ -16,7 +16,7 @@
 %define	pname	  ecmanaged	  
 %define summary   EC Managed - Monitor and deploy agent
 %define version   1.1.14
-%define release   88
+%define release   89
 %define license   GPLv3+
 %define group     Applications/System
 %define user	`whoami` 
@@ -111,6 +111,14 @@ fi
 %attr(644,root,root) /etc/cron.d/ecmanaged-ecagent
 %attr(755,root,root) /opt/%{pname}
 %attr(400,root,root) %config /opt/ecmanaged/ecagent/config/ecagent.cfg
+%exclude /opt/%{pname}/ecagent/plugins/*.pyc
+%exclude /opt/%{pname}/ecagent/plugins/*.pyo
+%exclude /opt/%{pname}/ecagent/examples/*.pyc
+%exclude /opt/%{pname}/ecagent/examples/*.pyo
+%exclude /opt/%{pname}/ecagent/ecagent/*.pyc
+%exclude /opt/%{pname}/ecagent/ecagent/*.pyo
+%exclude /opt/%{pname}/ecagent/*.pyc
+%exclude /opt/%{pname}/ecagent/*.pyo
 
 %changelog
 * Wed Feb 20 2014 %{packager} - init 
