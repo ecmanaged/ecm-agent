@@ -59,7 +59,7 @@ class ECMSource(ECMPlugin):
             except:
                 raise ecm.InvalidParameters("Invalid private key format")
 
-        if stype.upper() in ('URI', 'FILE'):
+        if stype.upper() in ('URL', 'FILE'):
             source = FILE(path, rotate)
 
         elif stype.upper() == 'GIT':
