@@ -24,6 +24,8 @@ from base64 import b64decode
 try:
     import tarfile
     import zipfile
+    import gzip
+    import bz2
 
 except ImportError:
     pass
@@ -152,7 +154,7 @@ class GIT:
 
         return result_exec
         
-    def _get_command(self,url,branch):
+    def _get_command(self, url, branch):
         param = ''
         if branch and branch != 'master':
             param = " -b " + str(branch)
@@ -166,7 +168,7 @@ class GIT:
                 
         return command
 
-    def _certificate_helper(self,private_key=None):
+    def _certificate_helper(self, private_key=None):
         """
         Returns the path to a helper script which can be used in the GIT_SSH env
         var to use a custom private key file.
@@ -202,7 +204,9 @@ class GIT:
     def _is_available(self):
         """ checks if git is on path
         """
-        if ecm.is_windows(): return ecm.which('git.exe')
+        if ecm.is_windows():
+            return ecm.which('git.exe')
+
         return ecm.which('git')
 
     def _install(self):
@@ -260,7 +264,8 @@ class SVN:
     def _is_available(self):
         """ is svn on path
         """
-        if ecm.is_windows(): return ecm.which('svn.cmd')
+        if ecm.is_windows():
+            return ecm.which('svn.cmd')
         return ecm.which('svn')
 
     def _install(self):
@@ -323,16 +328,20 @@ class FILE:
         """
         try:
             file_type = self._get_file_type(filename)
+            opener = mode = None
+
             if file_type == 'zip':
-                opener, mode = zipfile.ZipFILE, 'r'
+                opener, mode = zipfile.ZipFile, 'r'
 
             elif file_type == 'gz':
-                opener, mode = tarfile.open, 'r:gz'
+                if tarfile.is_tarfile(filename):
+                    opener, mode = tarfile.open, 'r:gz'
 
             elif file_type == 'bz2':
-                opener, mode = tarfile.open, 'r:bz2'
+                if tarfile.is_tarfile(filename):
+                    opener, mode = tarfile.open, 'r:bz2'
 
-            else:
+            if not opener:
                 raise Exception("Unsupported file compression")
 
             cfile = opener(filename, mode)
@@ -350,9 +359,12 @@ class FILE:
             if is_packed:
                 for member in members:
                     member.name = member.name.replace(is_packed, '.')
-                    if member.name.endswith('/.'): continue
-                    if member.name == './': continue
-                    if member.name == '.': continue
+                    if member.name.endswith('/.'):
+                        continue
+                    if member.name == './':
+                        continue
+                    if member.name == '.':
+                        continue
 
                     stdout += "Extracted " + member.name + "\n"
                     cfile.extract(member, self.working_dir)
@@ -368,10 +380,50 @@ class FILE:
             cfile.close()
 
         except Exception as e:
-            raise Exception("Could not extract file: %s" % e)
+            try:
+                return self._extract_alternative(filename)
+            except:
+                raise Exception("Could not extract file: %s" % e)
 
         ret = {'out': 0, 'stderr': '', 'stdout': stdout}
         return ret
+
+    def _extract_alternative(self, filename):
+        """ extractor helper: Try to extract file using system commands
+        """
+        file_type = self._get_file_type(filename)
+
+        if file_type == 'zip':
+            package = 'unzip'
+            command = 'unzip'
+            args = [filename]
+
+        elif file_type == 'gz':
+            package = 'gzip'
+            command = 'tar'
+            args = ['-xvzf', filename]
+
+        elif file_type == 'bz2':
+            package = 'bzip2'
+            command = 'tar'
+            args = ['-xvjf', filename]
+
+        else:
+            raise Exception("Unsupported file compression")
+
+        exists = ecm.which(package)
+        if not exists:
+            # Try to install package
+            ecm.install_package(package)
+            exists = ecm.which(package)
+
+        if exists and command:
+            out, stdout, stderr = ecm.run_command(command, args, workdir=self.working_dir)
+
+            ret = {'out': out, 'stderr': stderr, 'stdout': stdout}
+            return ret
+
+        raise Exception("Could not extract file")
 
     def _get_file_type(self, filename):
         """ get compressed file type based on marks
@@ -388,6 +440,7 @@ class FILE:
             for magic, filetype in magic_dict.items():
                 if file_start.startswith(magic):
                     return filetype
+
         return False
 
 

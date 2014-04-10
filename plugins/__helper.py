@@ -124,7 +124,8 @@ def download_file(url, filename, user=None, passwd=None):
         with open(filename, 'wb') as fp:
             while True:
                 chunk = req.read(CHUNK)
-                if not chunk: break
+                if not chunk:
+                    break
                 fp.write(chunk)
     except:
         return False
@@ -213,6 +214,10 @@ def install_package(packages, update=True):
     """
     Install packages
     """
+
+    if is_windows():
+        return 1, '', NotSupported('Can\'t install packages on windows systems')
+
     try:
         envars = {}
         distribution, _version = get_distribution()
@@ -691,3 +696,10 @@ class NotAllowed(Exception):
     def __str__(self):
         return "Not allowed: %s" % self._reason
 
+
+class NotSupported(Exception):
+    def __init__(self, reason):
+        self._reason = reason
+
+    def __str__(self):
+        return "Not supported: %s" % self._reason
