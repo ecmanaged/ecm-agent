@@ -347,36 +347,20 @@ class FILE:
             cfile = opener(filename, mode)
 
             # if first member is dir, skip 1st container path
-            is_packed = None
             if file_type == 'zip':
                 members = cfile.namelist()
             else:
                 members = cfile.getmembers()
-                if members[0].isdir():
-                    is_packed = members[0].name
 
             stdout = ''
-            if is_packed:
-                for member in members:
-                    member.name = member.name.replace(is_packed, '.')
-                    if member.name.endswith('/.'):
-                        continue
-                    if member.name == './':
-                        continue
-                    if member.name == '.':
-                        continue
+            for member in members:
+                if file_type == 'zip':
+                    member_name = member
+                else:
+                    member_name = member.name
 
-                    stdout += "Extracted " + member.name + "\n"
-                    cfile.extract(member, self.working_dir)
-            else:
-                for member in members:
-                    if file_type == 'zip':
-                        member_name = member
-                    else:
-                        member_name = member.name
-
-                    stdout += "Extracted " + member_name + "\n"
-                cfile.extractall(self.working_dir)
+                stdout += "Extracted " + member_name + "\n"
+            cfile.extractall(self.working_dir)
             cfile.close()
 
         except Exception as e:
