@@ -378,12 +378,12 @@ def metadata_to_env(metadata=None, metadata_b64=None, metadata_json=None):
     import simplejson as json
 
     if metadata_b64:
-        metadata = b64decode(metadata_b64)
+        metadata_json = b64decode(metadata_b64)
 
     if metadata_json:
         metadata = json.loads(metadata_json)
 
-    retval = []
+    retval = {}
     if metadata and is_dict(metadata):
         hash_to_list = ''
         for key in sorted(metadata.keys()):
@@ -392,6 +392,7 @@ def metadata_to_env(metadata=None, metadata_b64=None, metadata_json=None):
         try:
             for var in hash_to_list.split("\n"):
                 (key, value) = var.split(': ')
+                key = 'ECM_' + key.upper().replace('.', '_')
                 retval[key] = value
 
         except Exception:
