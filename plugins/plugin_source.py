@@ -49,6 +49,8 @@ class ECMSource(ECMPlugin):
         chown_user = kwargs.get('chown_user', None)
         chown_group = kwargs.get('chown_group', None)
         rotate = kwargs.get('rotate', True)
+        extract = kwargs.get('extract', True)
+
         stype = kwargs.get('type', None)
         metadata = kwargs.get('metadata', None)
 
@@ -62,7 +64,7 @@ class ECMSource(ECMPlugin):
                 raise ecm.InvalidParameters("Invalid private key format")
 
         if stype.upper() in ('URL', 'FILE'):
-            source = FILE(path, rotate)
+            source = FILE(path, rotate, extract)
 
         elif stype.upper() == 'GIT':
             source = GIT(path, rotate)
@@ -79,7 +81,11 @@ class ECMSource(ECMPlugin):
         # Update metadata
         ecm.write_metadata(metadata_b64=metadata)
 
-        retval = source.clone(url=url, branch=branch, envars=envars, username=user, password=passwd,
+        retval = source.clone(url=url,
+                              branch=branch,
+                              envars=envars,
+                              username=user,
+                              password=passwd,
                               private_key=private_key)
 
         # Chown to specified user/group
@@ -99,7 +105,7 @@ class ECMSource(ECMPlugin):
 
 
 class GIT:
-    def __init__(self, working_dir, rotate):
+    def __init__(self, working_dir, rotate=False):
         if not working_dir:
             raise ecm.InvalidParameters("Invalid path")
 
@@ -217,7 +223,7 @@ class GIT:
 
 
 class SVN:
-    def __init__(self, working_dir, rotate):
+    def __init__(self, working_dir, rotate=False):
         if not working_dir:
             raise ecm.InvalidParameters("Invalid path")
 
@@ -276,12 +282,13 @@ class SVN:
 
 
 class FILE:
-    def __init__(self, working_dir, rotate):
+    def __init__(self, working_dir, rotate=False, extract=False):
         if not working_dir:
             raise ecm.InvalidParameters("Invalid path")
 
         self.working_dir = working_dir
         self.rotate = rotate
+        self.extract = extract
 
         # Create or rename working_dir
         deploy = Deploy(self.working_dir, rotate)
@@ -301,14 +308,22 @@ class FILE:
         )
 
         if file_downloaded:
-            extract = self._extract(file_downloaded)
-            if extract:
-                extract['head'] = ''
-                if extract.get('stdout', None):
-                    extract['head'] = ecm.output("Source deployed successfully to '%s'" % self.working_dir)
+            if self.extract:
+                extract = self._extract(file_downloaded)
 
-                if extract.get('stdout', None) and self.old_dir:
-                    extract['head'] += ecm.output("Old source files moved to '%s'" % self.old_dir)
+                if extract:
+                    extract['head'] = ''
+                    if extract.get('stdout', None):
+                        extract['head'] = ecm.output("Source deployed successfully to '%s'" % self.working_dir)
+
+                    if extract.get('stdout', None) and self.old_dir:
+                        extract['head'] += ecm.output("Old source files moved to '%s'" % self.old_dir)
+            else:
+                extract = {
+                    'stdout': ecm.output("Source deployed successfully to '%s'" % self.working_dir),
+                    'stderr': '',
+                    'out': 0
+                }
 
         else:
             rmtree(tmp_dir, ignore_errors=True)
@@ -321,6 +336,7 @@ class FILE:
             'stderr': extract.get('stderr', 'Unable to download file'),
             'out': extract.get('out', 1)
         }
+
         return ret
 
     def _extract(self, filename):
