@@ -22,14 +22,8 @@ class ECMMysql(ECMPlugin):
     def cmd_mysql_exec(self, *argv, **kwargs):
         """ Syntax mysql.exec[hostname],[user],[password],[database],[query] """
 
-        try:
-            _mysql = __import__("MySQLdb")
-        except ImportError:
-            # Try to install package and try again
-            ecm.install_package('python-mysqldb')
-
-            try: _mysql = __import__("MySQLdb")
-            except: raise Exception("Unsupported MySQLdb")
+        # Check required modules to connect
+        _mysql = self._check_modules()
 
         user = kwargs.get('user', 'root')
         password = kwargs.get('password', '')
@@ -63,6 +57,32 @@ class ECMMysql(ECMPlugin):
 
         except _mysql.Error, e:
             print "Error %d: %s" % (e.args[0], e.args[1])
+
+    def cmd_mysql_stats(self, *argv, **kwargs):
+        """
+        mysql.stats[]
+        """
+
+        # Check required modules to connect
+        _mysql = self._check_modules()
+
+        status_array = {}
+        return status_array
+
+    @staticmethod
+    def _check_modules():
+        try:
+            _mysql = __import__("MySQLdb")
+        except ImportError:
+            # Try to install package and try again
+            ecm.install_package('python-mysqldb')
+
+            try:
+                _mysql = __import__("MySQLdb")
+            except:
+                raise Exception("Unsupported MySQLdb")
+
+        return _mysql
 
 
 ECMMysql().run()

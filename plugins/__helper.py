@@ -16,6 +16,7 @@
 
 import os
 import re
+import urllib
 
 from sys import platform
 from time import sleep, time
@@ -131,6 +132,14 @@ def download_file(url, filename, user=None, passwd=None):
         return False
 
     return filename
+
+
+def get_url(url):
+    urlopen = urllib.urlopen(url)
+    retval = ''.join(urlopen.readlines())
+    urlopen.close()
+
+    return retval
 
 
 def chmod(filename, mode):

@@ -37,8 +37,10 @@ class ECMNetwork(ECMPlugin):
         try: urlopen = urllib.urlopen(url)
         except: raise Exception("Unable to retrieve URL %s" % url)
 
-        try: _regex = re.compile(regex)
-        except: raise Exception("Invalid regex %s" % regex)
+        try:
+            _regex = re.compile(regex)
+        except:
+            raise Exception("Invalid regex %s" % regex)
 
         retval = ''
         for line in urlopen.readlines():

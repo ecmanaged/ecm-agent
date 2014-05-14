@@ -109,7 +109,8 @@ class ECMPlugin:
 
         # Read command's arguments from stdin in json format (b64).
         lines = []
-        for line in sys.stdin: lines.append(line)
+        for line in sys.stdin:
+            lines.append(line)
         command_args = json.loads(b64decode('\n'.join(lines)))
 
         try:

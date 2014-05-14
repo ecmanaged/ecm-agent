@@ -27,9 +27,9 @@ import __helper as ecm
 
 
 class ECMHaproxy(ECMPlugin):
-    def cmd_haproxy_get_config(self, *argv, **kwargs):
+    def cmd_haproxy_config_get(self, *argv, **kwargs):
         """
-        haproxy.get_config[]
+        haproxy.config_get[]
         """
         f = open(HAPROXY_CONFIG, 'r')
         first_line = f.readline()
@@ -41,13 +41,13 @@ class ECMHaproxy(ECMPlugin):
 
         raise Exception("Unable to get config")
 
-    def cmd_haproxy_set_config(self, *argv, **kwargs):
+    def cmd_haproxy_config_set(self, *argv, **kwargs):
         """
-        haproxy.set_config[config=base64_balancer_config]
+        haproxy.config_set[config=base64_balancer_config]
         """
         config = kwargs.get('config', None)
         if not config:
-            raise ecm.InvalidParameters(self.cmd_haproxy_set_config.__doc__)
+            raise ecm.InvalidParameters(self.cmd_haproxy_config_set.__doc__)
 
         try:
             config = b64decode(config)
@@ -58,19 +58,26 @@ class ECMHaproxy(ECMPlugin):
         if ha_config.valid():
             ha_config.write(HAPROXY_CONFIG)
             self._restart()
-            return self.cmd_haproxy_get_config()
+            return self.cmd_haproxy_config_get()
             
         else:
             raise Exception('Invalid configuration')
 
-    def cmd_haproxy_get_status(self, *argv, **kwargs):
+    def cmd_haproxy_status(self, *argv, **kwargs):
         """
-        haproxy.get_status[]
+        haproxy.status[]
         """
-        json_array = {}
+        status_array = {}
         ha = ECMHASocket()
         for line in ha.get_server_stats():
-            json_array.setdefault(line['pxname'], {})[line['svname']] = line['status']
+            status_array.setdefault(line['pxname'], {})[line['svname']] = line['status']
+        return status_array
+
+    def cmd_haproxy_stats(self, *argv, **kwargs):
+        """
+        haproxy.stats[]
+        """
+        json_array = {}
         return json_array
 
     @staticmethod
