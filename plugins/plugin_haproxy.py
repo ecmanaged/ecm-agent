@@ -15,6 +15,7 @@
 #    under the License.
 
 
+import simplejson as json
 from base64 import b64decode
 from __ecmhaproxy import ECMHAConfig, ECMHASocket
 
@@ -36,8 +37,12 @@ class ECMHaproxy(ECMPlugin):
         f.close()
 
         if first_line.startswith('#'):
-            json_config = first_line.split('#')[1].rstrip('\n')
-            return json_config
+            config = first_line.split('#')[1].rstrip('\n')
+            status = self._status()
+            return {
+                'config': json.loads(config),
+                'status': status
+            }
 
         raise Exception("Unable to get config")
 
@@ -58,20 +63,11 @@ class ECMHaproxy(ECMPlugin):
         if ha_config.valid():
             ha_config.write(HAPROXY_CONFIG)
             self._restart()
+
             return self.cmd_haproxy_config_get()
             
         else:
             raise Exception('Invalid configuration')
-
-    def cmd_haproxy_status(self, *argv, **kwargs):
-        """
-        haproxy.status[]
-        """
-        status_array = {}
-        ha = ECMHASocket()
-        for line in ha.get_server_stats():
-            status_array.setdefault(line['pxname'], {})[line['svname']] = line['status']
-        return status_array
 
     def cmd_haproxy_stats(self, *argv, **kwargs):
         """
@@ -79,6 +75,14 @@ class ECMHaproxy(ECMPlugin):
         """
         json_array = {}
         return json_array
+
+    @staticmethod
+    def _status():
+        status_array = {}
+        ha = ECMHASocket()
+        for line in ha.get_server_stats():
+            status_array.setdefault(line['pxname'], {})[line['svname']] = line['status']
+        return status_array
 
     @staticmethod
     def _restart():
