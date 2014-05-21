@@ -73,16 +73,28 @@ class ECMHaproxy(ECMPlugin):
         """
         haproxy.stats[]
         """
-        json_array = {}
-        return json_array
+        try:
+            ha = ECMHASocket()
+            return {
+                'stats': ha.get_server_stats(),
+                'info':  ha.get_server_info()
+            }
+
+        except:
+            raise Exception("Unable to get config")
+
 
     @staticmethod
     def _status():
-        status_array = {}
-        ha = ECMHASocket()
-        for line in ha.get_server_stats():
-            status_array.setdefault(line['pxname'], {})[line['svname']] = line['status']
-        return status_array
+        try:
+            status_array = {}
+            ha = ECMHASocket()
+            for line in ha.get_server_stats():
+                status_array.setdefault(line['pxname'], {})[line['svname']] = line['status']
+            return status_array
+
+        except:
+            raise Exception("Unable to get config")
 
     @staticmethod
     def _restart():
@@ -94,6 +106,7 @@ class ECMHaproxy(ECMPlugin):
             return True
 
         raise Exception("Error restarting service: %s" % err)
+
 
 ECMHaproxy().run()
 
