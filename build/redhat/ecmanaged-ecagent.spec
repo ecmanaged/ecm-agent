@@ -16,7 +16,7 @@
 %define	pname	  ecmanaged	  
 %define summary   EC Managed - Monitor and deploy agent
 %define version   1.1.14
-%define release   94
+%define release   95
 %define license   GPLv3+
 %define group     Applications/System
 %define user	`whoami` 
