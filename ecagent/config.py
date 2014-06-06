@@ -56,9 +56,9 @@ class SMConfigObj(ConfigObj):
                 log.debug("MAC has not changed. Skip UUID check")
 
             else:
-                # Try to get uuid (one hour loop: 240x15)
+                # Try to get uuid (one hour and a half loop: 360x15)
                 uuid = None
-                for i in range(240):
+                for i in range(360):
                     try:
                         uuid = yield self._get_uuid()
                         if uuid:
