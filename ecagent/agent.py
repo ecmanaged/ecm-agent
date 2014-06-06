@@ -70,6 +70,7 @@ class SMAgent:
         # let's start the party.
         if success:
             SMAgentXMPP(self.config)
+        self._on_config_failed('Unable to get UUID')
 
     def _on_config_failed(self, failure):
         log.critical("Configuration check failed with: %s, exiting." % failure)
