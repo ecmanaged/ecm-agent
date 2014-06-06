@@ -70,7 +70,7 @@ class SMConfigObj(ConfigObj):
 
                 if not uuid:
                     log.error("ERROR: Could not obtain UUID. please set up XMPP manually in %s" % self.filename)
-                    returnValue(False)
+                    raise Exception('Could not obtain UUID')
 
                 if str(uuid) == str(self._get_stored_uuid()):
                     log.debug("UUID has not changed.")
@@ -87,7 +87,7 @@ class SMConfigObj(ConfigObj):
 
         else:
             log.error("ERROR: Could not obtain MAC. please set up XMPP manually in %s" % self.filename)
-            returnValue(False)
+            raise Exception('Could not obtain UUID')
 
     def _get_uuid(self):
         if self['XMPP'].as_bool('manual'):
