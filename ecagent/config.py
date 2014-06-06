@@ -56,9 +56,9 @@ class SMConfigObj(ConfigObj):
                 log.debug("MAC has not changed. Skip UUID check")
 
             else:
-                # Try to get uuid
+                # Try to get uuid (one hour loop: 240x15)
                 uuid = None
-                for i in range(30):
+                for i in range(240):
                     try:
                         uuid = yield self._get_uuid()
                         if uuid:
@@ -66,7 +66,7 @@ class SMConfigObj(ConfigObj):
 
                     except Exception:
                         pass
-                    sleep(20)
+                    sleep(15)
 
                 if not uuid:
                     log.error("ERROR: Could not obtain UUID. please set up XMPP manually in %s" % self.filename)
