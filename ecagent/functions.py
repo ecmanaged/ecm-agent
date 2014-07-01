@@ -14,28 +14,35 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import resource
-import gc
+from os import getpid
+
+try:
+    import psutil
+    from gc import collect
+
+except ImportError:
+    psutil = None
+    collect = None
+    pass
 
 import ecagent.twlogging as log
 
 
-def mem_usage(where=''):
-    usage = resource.getrusage(resource.RUSAGE_SELF)
+def mem_usage():
+    retval = 0
+    if psutil:
+        retval = (psutil.Process(getpid()).get_memory_info()[1])/1000000.0
 
-    return '''%s: usertime=%s systime=%s mem=%s mb''' % (where, usage[0], usage[1],
-           (usage[2]*resource.getpagesize())/1000000.0)
+    return retval
 
 
 def mem_clean(where='', dolog=False):
-    collect = gc.collect()
+    _collect = collect()
 
     if dolog:
-        log.info("_mem_clean: %s collected %d objects." % (where, collect))
-        log.info("_mem_clean: " + mem_usage(where))
+        log.info("_mem_clean: %s collected %d objects. (current mem: %s MB) " % (where, _collect, str(mem_usage())))
 
     else:
-        log.debug("_mem_clean: %s collected %d objects." % (where, collect))
-        log.debug("_mem_clean: " + mem_usage(where))
+        log.debug("_mem_clean: %s collected %d objects. (current mem: %s MB) " % (where, _collect, str(mem_usage())))
 
-    del collect, where, dolog
+    del _collect, where, dolog

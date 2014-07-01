@@ -27,7 +27,7 @@ from ecagent.message import IqMessage
 
 import ecagent.twlogging as log
 from ecagent.verify import ECVerify
-from ecagent.functions import mem_clean
+from ecagent.functions import mem_clean, mem_usage
 
 from message import AGENT_VERSION_PROTOCOL
 
@@ -175,17 +175,15 @@ class SMAgentXMPP(Client):
 
         del result
         mem_clean('agent._send')
-        self.send(message.toEtree())
+        self.send(message)
 
     @staticmethod
     def _check_memory(running_commands):
-        usage = resource.getrusage(resource.RUSAGE_SELF)
-        current = (usage[2]*resource.getpagesize())/1000000.0
+        current = mem_usage()
 
         log.info("Running commands: %i" % running_commands)
-        log.info("Current Memory usage: : %s MB" % current)
+        log.info("Current Memory usage: : %s MB" % str(current))
 
         if not running_commands and current > _CHECK_RAM_MAX_MB:
-            log.critical("Maximum allowed memory exceeded: %s MB, exiting." % _CHECK_RAM_MAX_MB)
+            log.critical("Maximum allowed memory exceeded: %i MB, exiting." % _CHECK_RAM_MAX_MB)
             reactor.stop()
-

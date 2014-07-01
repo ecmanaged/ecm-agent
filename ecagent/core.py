@@ -14,6 +14,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+KEEPALIVED_TIMEOUT = 60
+XMPP_PORT = 5222
+
 from random import random
 
 # Twisted imports
@@ -82,7 +85,7 @@ class BasicClient:
         self._user = user
         self._password = password
         self._host = host
-        self._port = 5222
+        self._port = XMPP_PORT
 
         self._observers = observers
         myJid = jid.JID('/'.join((user, resource)))
@@ -135,7 +138,7 @@ class BasicClient:
         #Keepalive: Send a newline every 60 seconds
         #to avoid server disconnect
         self._keep_alive_lc = LoopingCall(self._xs.send, '\n')
-        self._keep_alive_lc.start(60)
+        self._keep_alive_lc.start(KEEPALIVED_TIMEOUT)
         self._xs.addObserver(STREAM_END_EVENT,
                              lambda _: self._keep_alive_lc.stop())
 
@@ -150,17 +153,16 @@ class BasicClient:
 
     def send(self, elem):
         mem_clean('core.send [start]')
-        if not elem.getAttribute('id'):
-            log.debug('No message ID in message, creating one')
-            elem['id'] = self._newid()
 
-        a = elem.toXml()
-        mem_clean('core.send [med]')
-        self._xs.send(a)
+        if not elem.id:
+            log.debug('No message ID in message, creating one')
+            elem.id = self._newid()
+
+        self._xs.send(elem.toXml())
 
         #Reset keepalive looping call timer
         if self._keep_alive_lc.running:
             self._keep_alive_lc.stop()
-            self._keep_alive_lc.start(60)
+            self._keep_alive_lc.start(KEEPALIVED_TIMEOUT)
             
         mem_clean('core.send [stop]')

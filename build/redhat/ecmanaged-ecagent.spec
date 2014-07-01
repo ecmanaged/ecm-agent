@@ -16,10 +16,10 @@
 %define	pname	  ecmanaged	  
 %define summary   EC Managed - Monitor and deploy agent
 %define version   1.1.14
-%define release   97
+%define release   99
 %define license   GPLv3+
 %define group     Applications/System
-%define user	`whoami` 
+%define user	  `whoami`
 %define source_path /home/%{user}/rpmbuild/SOURCES/
 %define source    %{pname}-%{version}.tar.gz
 %define url       http://www.ecmanaged.com
