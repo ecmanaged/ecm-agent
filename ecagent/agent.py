@@ -34,7 +34,7 @@ from message import AGENT_VERSION_PROTOCOL
 _E_RUNNING_COMMAND = 253
 _E_UNVERIFIED_COMMAND = 251
 
-_MAX_RAM_MB = 95
+_MAX_RAM_MB = 250
 
 
 class SMAgent:
@@ -64,16 +64,17 @@ class SMAgentXMPP(Client):
         """
         XMPP agent class.
         """
-        log.info("Starting agent...")
+        log.info("Starting Agent...")
         
-        log.info("Loading commands...")
+        log.info("Loading Commands...")
         self.command_runner = CommandRunner(config['Plugins'])
 
-        log.info("Setting up certificate")
+        log.info("Setting up Certificate")
         self.verify = ECVerify()
 
-        log.info("Setting ip memory checker")
-        self.memory_checker = LoopingCall(self._check_memory)
+        log.info("Setting up Memory checker")
+        self.running_commands = 0
+        self.memory_checker = LoopingCall(self._check_memory, self.running_commands)
         self.memory_checker.start(300)
 
         log.debug("Loading XMPP...")
@@ -89,6 +90,7 @@ class SMAgentXMPP(Client):
         """
         log.debug('__onIq')
         mem_clean('__onIq [start]')
+        self.running_commands += 1
 
         log.debug("q Message received: \n%s" % msg.toXml())
         log.debug("Message type: %s" % msg['type'])
@@ -151,6 +153,7 @@ class SMAgentXMPP(Client):
         mem_clean('agent._onCallFinished', True)
         log.debug('Call Finished')
         self._send(result, message)
+        self.running_commands -= 1
 
     def _onCallFailed(self, failure, *argv, **kwargs):
         log.error("onCallFailed")
@@ -168,13 +171,16 @@ class SMAgentXMPP(Client):
         log.debug('Send Response')
         mem_clean('agent._send')
         message.toResult(*result)
+
+        del result
         mem_clean('agent._send')
         self.send(message.toEtree())
 
     @staticmethod
-    def _check_memory():
-        usage = resource.getrusage(resource.RUSAGE_SELF)
-        if (usage[2]*resource.getpagesize())/1000000.0 > _MAX_RAM_MB:
-            log.critical("Max allowed memory exceeded: %s, exiting." % _MAX_RAM_MB)
-            reactor.stop()
+    def _check_memory(running_commands):
+        if running_commands == 0:
+            usage = resource.getrusage(resource.RUSAGE_SELF)
+            if (usage[2]*resource.getpagesize())/1000000.0 > _MAX_RAM_MB:
+                log.critical("Max allowed memory exceeded: %s MB, exiting." % _MAX_RAM_MB)
+                reactor.stop()
 
