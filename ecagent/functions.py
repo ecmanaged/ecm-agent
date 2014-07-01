@@ -19,6 +19,7 @@ import gc
 
 import ecagent.twlogging as log
 
+
 def mem_usage(where=''):
     usage = resource.getrusage(resource.RUSAGE_SELF)
 
@@ -27,11 +28,14 @@ def mem_usage(where=''):
 
 
 def mem_clean(where='', dolog=False):
+    collect = gc.collect()
+
     if dolog:
-        log.info("_mem_clean: %s collected %d objects." % (where, gc.collect()))
+        log.info("_mem_clean: %s collected %d objects." % (where, collect))
         log.info("_mem_clean: " + mem_usage(where))
+
     else:
-        log.debug("_mem_clean: %s collected %d objects." % (where, gc.collect()))
+        log.debug("_mem_clean: %s collected %d objects." % (where, collect))
         log.debug("_mem_clean: " + mem_usage(where))
 
-    del where, dolog
+    del collect, where, dolog
