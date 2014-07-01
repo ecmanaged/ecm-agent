@@ -97,6 +97,8 @@ class CommandRunner():
         else:
             log.error('Error adding commands from %s: %s' % (kwargs['filename'], data))
 
+        del exit_code, stdout, stderr, timeout_called, data
+
     def run_command(self, message, flush_callback=None):
         if self._commands.get(message.command_name):
             log.debug("executing %s with args: %s" % (message.command_name, message.command_args))
@@ -125,10 +127,13 @@ class CommandRunner():
         else:
             log.info("[INIT] Loading commands from %s" % filename)
 
-        log.info('spawnProcess [start]' % mem_clean())
+        mem_clean('spawnProcess [start]')
         crp = CommandRunnerProcess(cmd_timeout, command_args, flush_callback, message)
         d = crp.getDeferredResult()
         reactor.spawnProcess(crp, command, args, env=self.env)
+
+        del cmd_timeout, filename, command_name, command_args
+        del flush_callback, message, args
 
         mem_clean('spawnProcess [end]')
         return d
@@ -149,10 +154,10 @@ class CommandRunnerProcess(ProcessProtocol):
         self.flush_later_forced = None
         self.message = message
 
-        del(timeout)
-        del(command_args)
-        del(flush_callback)
-        del(message)
+        del timeout
+        del command_args
+        del flush_callback
+        del message
 
     def connectionMade(self):
         log.debug("Process started.")
@@ -190,7 +195,9 @@ class CommandRunnerProcess(ProcessProtocol):
         self._flush()
 
     def _flush(self):
-        if not self.flush_callback: return
+        if not self.flush_callback:
+            return
+
         total_out = len(self.stdout) + len(self.stderr)
 
         if total_out - self.last_send_data_size > FLUSH_MIN_LENGTH:
@@ -209,13 +216,7 @@ class CommandRunnerProcess(ProcessProtocol):
             self.flush_later_forced = reactor.callLater(FLUSH_TIME, self.flush_callback,
                                                         (None, self.stdout, self.stderr, 0, total_out), self.message)
 
-    def _cancel_flush(self, flush_reactor):
-        if flush_reactor:
-            try:
-                flush_reactor.cancel()
-
-            except:
-                pass
+        del total_out
 
     def processEnded(self, status):
         log.debug("Process ended")
@@ -247,5 +248,14 @@ class CommandRunnerProcess(ProcessProtocol):
     def getDeferredResult(self):
         d = Deferred()
         self.deferreds.append(d)
+
         return d
 
+    @staticmethod
+    def _cancel_flush(flush_reactor):
+        if flush_reactor:
+            try:
+                flush_reactor.cancel()
+
+            except:
+                pass

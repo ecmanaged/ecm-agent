@@ -29,12 +29,12 @@ try:
     from Crypto.Util import number
     from Crypto.Hash import SHA
 
-except:
+except ImportError:
     pass
 
 
 class ECVerify():
-    def __init__(self, key_file = None):
+    def __init__(self, key_file=None):
         log.info("Setting up certificate")
         self.public_key = None
 
@@ -47,6 +47,7 @@ class ECVerify():
                 if _public_key:
                     key = PublicKey.RSA.importKey(_public_key)
                     self.public_key = key.publickey()
+
         except:
             pass
 
@@ -57,8 +58,10 @@ class ECVerify():
         if self.public_key:
             if not self._verify_message(message):
                 log.critical('[RSA CHECK: Failed] Command from %s has bad signature (Ignored)' % message.from_)
+                del message
                 return False
 
+        del message
         return True
 
     def _read_pub_key(self, key_file):
@@ -70,9 +73,12 @@ class ECVerify():
                 f = open(cert_file, 'r')
                 public_key = f.read()
                 f.close()
+                del f
+
         except:
             log.critical("Unable to read certificate file")
 
+        del key_file
         return public_key
 
     def _verify_message(self, message):
@@ -89,7 +95,6 @@ class ECVerify():
 
     def _rsa_verify(self, text, signature, command, sender):
         def _emsa_pkcs1_v1_5_encode(M, emLen):
-            # for PKCS1_V1_5 signing:
             SHA1DER = '\x30\x21\x30\x09\x06\x05\x2b\x0e\x03\x02\x1a\x05\x00\x04\x14'
             SHA1DERLEN = len(SHA1DER) + 0x14
 
@@ -114,4 +119,8 @@ class ECVerify():
                 return True
 
         log.error("[RSA CHECK: Error] %s - from: %s" % (command, sender))
+
+        del text, signature, command, sender
+        del signature, em
+
         return False

@@ -137,3 +137,6 @@ class IqMessage:
         self.timed_out = str(timed_out)
         self.partial = str(partial)
         self.command_args = {}
+
+        del retvalue, stdout, stderr, timed_out, partial
+

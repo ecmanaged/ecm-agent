@@ -14,15 +14,15 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import ecagent.twlogging as log
 import resource
 import gc
 
+import ecagent.twlogging as log
 
-def mem_usage(point=''):
+def mem_usage(where=''):
     usage = resource.getrusage(resource.RUSAGE_SELF)
 
-    return '''%s: usertime=%s systime=%s mem=%s mb''' % (point, usage[0], usage[1],
+    return '''%s: usertime=%s systime=%s mem=%s mb''' % (where, usage[0], usage[1],
            (usage[2]*resource.getpagesize())/1000000.0)
 
 
@@ -33,3 +33,5 @@ def mem_clean(where='', dolog=False):
     else:
         log.debug("_mem_clean: %s collected %d objects." % (where, gc.collect()))
         log.debug("_mem_clean: " + mem_usage(where))
+
+    del where, dolog
