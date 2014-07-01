@@ -16,6 +16,9 @@
 
 _CERTIFICATE_FILE = '../config/xmpp_cert.pub'
 
+SHA1DER = '\x30\x21\x30\x09\x06\x05\x2b\x0e\x03\x02\x1a\x05\x00\x04\x14'
+SHA1DERLEN = len(SHA1DER) + 0x14
+
 # System imports
 import os
 import base64
@@ -90,36 +93,34 @@ class ECVerify():
                message.command + '::' + \
                args_encoded
 
-        return self._rsa_verify(text, message.signature, message.command, message.from_)
-
-    def _rsa_verify(self, text, signature, command, sender):
-        def _emsa_pkcs1_v1_5_encode(M, emLen):
-            SHA1DER = '\x30\x21\x30\x09\x06\x05\x2b\x0e\x03\x02\x1a\x05\x00\x04\x14'
-            SHA1DERLEN = len(SHA1DER) + 0x14
-
-            H = SHA.new(M).digest()
-            T = SHA1DER + H
-            if emLen < (SHA1DERLEN + 11):
-                log.error('[RSA CHECK: Error] intended encoded message length too short (%s)' % emLen)
-                return
-            ps = '\xff' * (emLen - SHA1DERLEN - 3)
-            if len(ps) < 8:
-                log.error('[RSA CHECK: Error] ps length too short')
-                return
-            return '\x00\x01' + ps + '\x00' + T
-
-        signature = base64.b64decode(signature)
-        em = _emsa_pkcs1_v1_5_encode(text, len(signature))
+        signature = base64.b64decode(message.signature)
+        em = self._emsa_pkcs1_v1_5_encode(text, len(message.signature))
 
         if em:
             signature = number.bytes_to_long(signature)
             if self.public_key.verify(em, (signature,)):
-                log.info("[RSA CHECK: OK] command: %s - from: %s" % (command, sender))
+                log.info("[RSA CHECK: OK] command: %s - from: %s" % (message.command, message.from_))
+                del message, signature, em
                 return True
 
-        log.error("[RSA CHECK: Error] %s - from: %s" % (command, sender))
+        log.error("[RSA CHECK: Error] %s - from: %s" % (message.command, message.from_))
 
-        del text, signature, command, sender
-        del signature, em
-
+        del message, signature, em
         return False
+
+    @staticmethod
+    def _emsa_pkcs1_v1_5_encode(M, emLen):
+        H = SHA.new(M).digest()
+        T = SHA1DER + H
+        if emLen < (SHA1DERLEN + 11):
+            log.error('[RSA CHECK: Error] intended encoded message length too short (%s)' % emLen)
+            return
+        ps = '\xff' * (emLen - SHA1DERLEN - 3)
+        if len(ps) < 8:
+            log.error('[RSA CHECK: Error] ps length too short')
+            return
+        return '\x00\x01' + ps + '\x00' + T
+
+
+
+
