@@ -14,8 +14,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import resource
+
 # Twisted imports
 from twisted.internet import reactor
+from twisted.internet.task import LoopingCall
 
 # Local
 from ecagent.client import Client
@@ -30,6 +33,8 @@ from message import AGENT_VERSION_PROTOCOL
 
 _E_RUNNING_COMMAND = 253
 _E_UNVERIFIED_COMMAND = 251
+
+_MAX_RAM_MB = 95
 
 
 class SMAgent:
@@ -66,6 +71,10 @@ class SMAgentXMPP(Client):
 
         log.info("Setting up certificate")
         self.verify = ECVerify()
+
+        log.info("Setting ip memory checker")
+        self.memory_checker = LoopingCall(self._check_memory)
+        self.memory_checker.start(300)
 
         log.debug("Loading XMPP...")
         Client.__init__(
@@ -161,3 +170,11 @@ class SMAgentXMPP(Client):
         message.toResult(*result)
         mem_clean('agent._send')
         self.send(message.toEtree())
+
+    @staticmethod
+    def _check_memory():
+        usage = resource.getrusage(resource.RUSAGE_SELF)
+        if (usage[2]*resource.getpagesize())/1000000.0 > _MAX_RAM_MB:
+            log.critical("Max allowed memory exceeded: %s, exiting." % _MAX_RAM_MB)
+            reactor.stop()
+

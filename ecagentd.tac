@@ -17,6 +17,10 @@
 # Chmod to current path
 from os import chdir, remove
 from os.path import dirname, abspath, join, exists
+import gc
+
+# Enable automatic garbage collection.
+gc.enable()
 
 chdir(dirname(abspath(__file__)))
 
