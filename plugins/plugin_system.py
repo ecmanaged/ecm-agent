@@ -14,6 +14,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+_DEFAULT_CPU_INTERVAL = 0.5
+
 # Local
 from __plugin import ECMPlugin
 import __helper as ecm
@@ -81,7 +83,7 @@ class ECMSystem(ECMPlugin):
         """Syntax: load"""
 
         # Get param interval
-        interval = kwargs.get('interval', 0.5)
+        interval = kwargs.get('interval', _DEFAULT_CPU_INTERVAL)
 
         try:
             return psutil.cpu_percent(interval=interval, percpu=True)
