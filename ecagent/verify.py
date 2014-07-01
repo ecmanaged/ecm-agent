@@ -14,10 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-_CERTIFICATE_FILE = '../config/xmpp_cert.pub'
-
-SHA1DER = '\x30\x21\x30\x09\x06\x05\x2b\x0e\x03\x02\x1a\x05\x00\x04\x14'
-SHA1DERLEN = len(SHA1DER) + 0x14
+CERTIFICATE_FILE = '../config/xmpp_cert.pub'
 
 # System imports
 import os
@@ -41,7 +38,7 @@ class ECVerify():
         self.public_key = None
 
         if not key_file:
-            key_file = _CERTIFICATE_FILE
+            key_file = CERTIFICATE_FILE
 
         try:
             if Crypto.version_info[:2] >= (2, 2):
@@ -99,22 +96,23 @@ class ECVerify():
         if em:
             signature = number.bytes_to_long(signature)
             if self.public_key.verify(em, (signature,)):
-                log.info("[RSA CHECK: OK] command: %s - from: %s" % (message.command, message.from_))
-                del message, signature, em
+                del text, message, signature, em
                 return True
 
-        log.error("[RSA CHECK: Error] %s - from: %s" % (message.command, message.from_))
-
-        del message, signature, em
+        del text, message, signature, em
         return False
 
     @staticmethod
     def _emsa_pkcs1_v1_5_encode(M, emLen):
+        SHA1DER = '\x30\x21\x30\x09\x06\x05\x2b\x0e\x03\x02\x1a\x05\x00\x04\x14'
+        SHA1DERLEN = len(SHA1DER) + 0x14
+
         H = SHA.new(M).digest()
         T = SHA1DER + H
         if emLen < (SHA1DERLEN + 11):
             log.error('[RSA CHECK: Error] intended encoded message length too short (%s)' % emLen)
             return
+
         ps = '\xff' * (emLen - SHA1DERLEN - 3)
         if len(ps) < 8:
             log.error('[RSA CHECK: Error] ps length too short')
