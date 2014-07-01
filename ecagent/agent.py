@@ -186,6 +186,6 @@ class SMAgentXMPP(Client):
         log.info("Current Memory usage: : %s MB" % current)
 
         if not running_commands and current > _CHECK_RAM_MAX_MB:
-            log.critical("Max allowed memory exceeded: %s MB, exiting." % _CHECK_RAM_MAX_MB)
+            log.critical("Maximum allowed memory exceeded: %s MB, exiting." % _CHECK_RAM_MAX_MB)
             reactor.stop()
 

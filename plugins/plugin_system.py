@@ -18,6 +18,8 @@
 from __plugin import ECMPlugin
 import __helper as ecm
 
+import psutil
+
 
 class ECMSystem(ECMPlugin):
     def cmd_agent_ping(self, *argv, **kwargs):
@@ -77,17 +79,18 @@ class ECMSystem(ECMPlugin):
 
     def cmd_system_cpu_usage(self, *argv, **kwargs):
         """Syntax: load"""
-        import psutil
+
+        # Get param interval
+        interval = kwargs.get('interval', 0.5)
 
         try:
-            return psutil.cpu_percent(interval=0.5, percpu=True)
+            return psutil.cpu_percent(interval=interval, percpu=True)
 
         except:
             raise Exception("Unable to get info from psutil")
 
     def cmd_system_network_usage(self, *argv, **kwargs):
         """Syntax: system.network.usage[iface=eth0]"""
-        import psutil
 
         iface = kwargs.get('iface', None)
         retval = {}
@@ -109,8 +112,6 @@ class ECMSystem(ECMPlugin):
         return retval
 
     def cmd_system_disk_partitions(self, *argv, **kwargs):
-        import psutil
-
         try:
             retval = []
             for part in psutil.disk_partitions(all=False):
@@ -129,7 +130,6 @@ class ECMSystem(ECMPlugin):
             raise Exception("Unable to get info from psutil")
 
     def cmd_system_disk_usage(self, *argv, **kwargs):
-        import psutil
 
         try:
             retval = []
@@ -161,8 +161,6 @@ class ECMSystem(ECMPlugin):
             raise Exception("Unable to get info from psutil")
 
     def cmd_system_mem_usage(self, *argv, **kwargs):
-        import psutil
-
         try:
             phymem = psutil.phymem_usage()
             return {
@@ -196,8 +194,6 @@ class ECMSystem(ECMPlugin):
 
     @staticmethod
     def _boot_time_linux():
-        import psutil
-
         # Old psutil versions
         try: return psutil.BOOT_TIME
         except: pass
