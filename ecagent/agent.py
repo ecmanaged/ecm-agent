@@ -150,7 +150,7 @@ class SMAgentXMPP(Client):
         return
         
     def _onCallFinished(self, result, message):
-        mem_clean('agent._onCallFinished', True)
+        mem_clean('agent._onCallFinished')
         log.debug('Call Finished')
         self._send(result, message)
         self.running_commands -= 1
@@ -178,10 +178,13 @@ class SMAgentXMPP(Client):
 
     @staticmethod
     def _check_memory(running_commands):
-        log.critical("Running commands: %i" % running_commands)
-        if running_commands == 0:
-            usage = resource.getrusage(resource.RUSAGE_SELF)
-            if (usage[2]*resource.getpagesize())/1000000.0 > _MAX_RAM_MB:
-                log.critical("Max allowed memory exceeded: %s MB, exiting." % _MAX_RAM_MB)
-                reactor.stop()
+        usage = resource.getrusage(resource.RUSAGE_SELF)
+        current = (usage[2]*resource.getpagesize())/1000000.0
+
+        log.info("Running commands: %i" % running_commands)
+        log.info("Current Memory usage: : %s MB" % current)
+
+        if not running_commands and current > _MAX_RAM_MB:
+            log.critical("Max allowed memory exceeded: %s MB, exiting." % _MAX_RAM_MB)
+            reactor.stop()
 
