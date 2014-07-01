@@ -139,7 +139,7 @@ class SMAgentXMPP(Client):
         return
         
     def _onCallFinished(self, result, message):
-        mem_clean('agent._onCallFinished')
+        mem_clean('agent._onCallFinished', True)
         log.debug('Call Finished')
         self._send(result, message)
 

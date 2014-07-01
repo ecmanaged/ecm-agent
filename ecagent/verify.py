@@ -35,7 +35,6 @@ except ImportError:
 
 class ECVerify():
     def __init__(self, key_file=None):
-        log.info("Setting up certificate")
         self.public_key = None
 
         if not key_file:
