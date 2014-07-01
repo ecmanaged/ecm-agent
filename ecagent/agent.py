@@ -34,7 +34,8 @@ from message import AGENT_VERSION_PROTOCOL
 _E_RUNNING_COMMAND = 253
 _E_UNVERIFIED_COMMAND = 251
 
-_MAX_RAM_MB = 250
+_CHECK_RAM_MAX_MB = 250
+_CHECK_RAM_INTERVAL = 300
 
 
 class SMAgent:
@@ -75,7 +76,7 @@ class SMAgentXMPP(Client):
         log.info("Setting up Memory checker")
         self.running_commands = 0
         self.memory_checker = LoopingCall(self._check_memory, self.running_commands)
-        self.memory_checker.start(300)
+        self.memory_checker.start(_CHECK_RAM_INTERVAL)
 
         log.debug("Loading XMPP...")
         Client.__init__(
