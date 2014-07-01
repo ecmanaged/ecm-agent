@@ -178,6 +178,7 @@ class SMAgentXMPP(Client):
 
     @staticmethod
     def _check_memory(running_commands):
+        log.critical("Running commands: %i" % running_commands)
         if running_commands == 0:
             usage = resource.getrusage(resource.RUSAGE_SELF)
             if (usage[2]*resource.getpagesize())/1000000.0 > _MAX_RAM_MB:
