@@ -26,6 +26,7 @@ from twisted.words.protocols.jabber.client import IQ
 
 # Local
 import twlogging as log
+from functions import mem_clean
 
 # Add registerAccount to XMPPAuthenticator
 class FixedXMPPAuthenticator(client.XMPPAuthenticator):
@@ -148,25 +149,18 @@ class BasicClient:
         return str(int(random() * (10 ** 31)))
 
     def send(self, elem):
-        log.debug('BasicClient.send: %s' % elem.toXml())
+        mem_clean('core.send [start]')
         if not elem.getAttribute('id'):
             log.debug('No message ID in message, creating one')
             elem['id'] = self._newid()
-        d = self._xs.send(elem.toXml())
+
+        a = elem.toXml()
+        mem_clean('core.send [med]')
+        self._xs.send(a)
 
         #Reset keepalive looping call timer
         if self._keep_alive_lc.running:
             self._keep_alive_lc.stop()
             self._keep_alive_lc.start(60)
-        return d
-
-    def debug(self, elem):
-        """
-        Prints a dump of the xml message.
-
-        @param elem: Message to print.
-        """
-        log.debug("Message dump follows:")
-        log.debug("v" * 20)
-        log.debug(elem.toXml().encode('utf-8'))
-        log.debug("^" * 20)
+            
+        mem_clean('core.send [stop]')
