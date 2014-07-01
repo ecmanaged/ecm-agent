@@ -16,6 +16,9 @@
 
 CERTIFICATE_FILE = '../config/xmpp_cert.pub'
 
+SHA1DER = '\x30\x21\x30\x09\x06\x05\x2b\x0e\x03\x02\x1a\x05\x00\x04\x14'
+SHA1DERLEN = len(SHA1DER) + 0x14
+
 # System imports
 import os
 import base64
@@ -51,7 +54,7 @@ class ECVerify():
             pass
 
         if not self.public_key:
-            log.warn('PyCrypto not available or version is < 2.2: Please upgrade: http://www.pycrypto.org/')
+            log.info('PyCrypto not available or version is < 2.2: Please upgrade: http://www.pycrypto.org/')
 
     def signature(self, message):
         if self.public_key:
@@ -91,7 +94,7 @@ class ECVerify():
                args_encoded
 
         signature = base64.b64decode(message.signature)
-        em = self._emsa_pkcs1_v1_5_encode(text, len(message.signature))
+        em = self._emsa_pkcs1_v1_5_encode(text, len(signature))
 
         if em:
             signature = number.bytes_to_long(signature)
@@ -104,9 +107,6 @@ class ECVerify():
 
     @staticmethod
     def _emsa_pkcs1_v1_5_encode(M, emLen):
-        SHA1DER = '\x30\x21\x30\x09\x06\x05\x2b\x0e\x03\x02\x1a\x05\x00\x04\x14'
-        SHA1DERLEN = len(SHA1DER) + 0x14
-
         H = SHA.new(M).digest()
         T = SHA1DER + H
         if emLen < (SHA1DERLEN + 11):
