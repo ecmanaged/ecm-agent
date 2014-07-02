@@ -174,7 +174,7 @@ class SMAgentXMPP(Client):
 
         del result
         mem_clean('agent._send')
-        self.send(message)
+        self.send(message.toEtree())
 
     def _check_memory(self, running_commands):
         rss, vms = mem_usage()

@@ -154,9 +154,9 @@ class BasicClient:
     def send(self, elem):
         mem_clean('core.send [start]')
 
-        if not elem.id:
+        if not elem.getAttribute('id'):
             log.debug('No message ID in message, creating one')
-            elem.id = self._newid()
+            elem['id'] = self._newid()
 
         self._xs.send(elem.toXml())
 

@@ -121,23 +121,8 @@ class IqMessage:
         return msg
 
     def toXml(self):
-        # Manual XML to avoid memory usage (leak?) on toXml
-
         mem_clean('toXml [start]')
-        retval = "<iq xmlns='jabber:client' from='%s' type='result' id='%s' to='%s'>" \
-                 % (self.from_, self.id, self.to)
-        retval += "<ecm_message core='%s' version='%s' command='set.info' signature='%s'>" \
-                  % (AGENT_VERSION_CORE, AGENT_VERSION_PROTOCOL, self.signature)
-
-        retval += "<result partial='%s' retvalue='%s' timed_out='%s'>" \
-                  % (self.partial, self.retvalue, self.timed_out)
-
-        retval += "<gzip_stdout>%s</gzip_stdout>" % base64.b64encode(zlib.compress(self.stdout))
-        retval += "<gzip_stderr>%s</gzip_stderr>" % base64.b64encode(zlib.compress(self.stderr))
-        retval += "</result></ecm_message></iq>"
-
-        mem_clean('toXml [end]')
-        return retval
+        return self.toXml()
 
     def toResult(self, retvalue, stdout, stderr, timed_out, partial=0):
         """ Converts a query message to a result message. """
