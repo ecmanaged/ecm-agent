@@ -120,12 +120,10 @@ class IqMessage:
 
         return msg
 
-    def __toXml(self):
-        return self.toXml()
-
     def toXml(self):
-        mem_clean('toXml [start]')
         # Manual XML to avoid memory usage (leak?) on toXml
+
+        mem_clean('toXml [start]')
         retval = "<iq xmlns='jabber:client' from='%s' type='result' id='%s' to='%s'>" \
                  % (self.from_, self.id, self.to)
         retval += "<ecm_message core='%s' version='%s' command='set.info' signature='%s'>" \

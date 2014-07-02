@@ -29,20 +29,27 @@ import ecagent.twlogging as log
 
 
 def mem_usage():
-    retval = 0
-    if psutil:
-        retval = (psutil.Process(getpid()).get_memory_info()[1])/1000000.0
+    rss, vms = 0, 0
+    try:
+        rss, vms = psutil.Process(getpid()).get_memory_info()
+        rss /= 1000000.0
+        vms /= 1000000.0
+    except:
+        pass
 
-    return retval
+    return rss, vms
 
 
 def mem_clean(where='', dolog=False):
     _collect = collect()
+    rss, vms = mem_usage()
+    string = "_mem_clean: %s collected %d objects. (current mem: rss=%sMB | vms=%sMB)" % (where, _collect, rss, vms)
 
     if dolog:
-        log.info("_mem_clean: %s collected %d objects. (current mem: %s MB) " % (where, _collect, str(mem_usage())))
+        log.info(string)
 
     else:
-        log.debug("_mem_clean: %s collected %d objects. (current mem: %s MB) " % (where, _collect, str(mem_usage())))
+        log.debug(string)
 
-    del _collect, where, dolog
+    del _collect, where, dolog, rss, vms, string
+
