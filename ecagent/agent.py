@@ -34,9 +34,7 @@ from message import AGENT_VERSION_PROTOCOL
 _E_RUNNING_COMMAND = 253
 _E_UNVERIFIED_COMMAND = 251
 
-_CHECK_RAM_MAX_RSS_MB = 80
-_CHECK_RAM_MAX_VMS_MB = 250
-_CHECK_RAM_MAX_RSS_FACTOR = 3
+_CHECK_RAM_MAX_RSS_MB = 120
 _CHECK_RAM_INTERVAL = 60
 
 class SMAgent:
@@ -76,7 +74,6 @@ class SMAgentXMPP(Client):
 
         log.info("Setting up Memory checker")
         self.running_commands = 0
-        self.initial_ram = 0
         self.memory_checker = LoopingCall(self._check_memory, self.running_commands)
         self.memory_checker.start(_CHECK_RAM_INTERVAL)
 
@@ -184,20 +181,7 @@ class SMAgentXMPP(Client):
         log.info("Running commands: %i" % running_commands)
         log.info("Current Memory usage: rss=%sMB | vms=%sMB" % (rss, vms))
 
-        if not self.initial_ram:
-            self.initial_ram = vms
-
         if not running_commands and rss > _CHECK_RAM_MAX_RSS_MB:
             log.critical("Max allowed RSS memory exceeded: %s MB, exiting."
                          % _CHECK_RAM_MAX_RSS_MB)
-            reactor.stop()
-
-        if not running_commands and vms > _CHECK_RAM_MAX_VMS_MB:
-            log.critical("Max allowed VMS memory exceeded: %s MB, exiting."
-                         % _CHECK_RAM_MAX_VMS_MB)
-            reactor.stop()
-
-        if not running_commands and rss > self.initial_ram * _CHECK_RAM_MAX_RSS_FACTOR:
-            log.critical("Max allowed RSS memory exceeded: %s * %s MB, exiting."
-                         % (self.initial_ram, _CHECK_RAM_MAX_RSS_FACTOR))
             reactor.stop()
