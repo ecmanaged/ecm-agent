@@ -72,12 +72,26 @@ start() {
     [ $RETVAL = 0 ] && touch ${LOCKFILE}
 }
 
+killagent() {
+	echo $"Killing ${NAME} "
+	PID=$(getpid)
+        ls -l /proc/$PID/exe > /dev/null 2>&1
+        case "$?" in
+                0) kill -9 $PID >/dev/null 2>&1 ;;
+                *) ;;
+        esac
+}
+
 stop() {
     echo -n $"Stopping ${NAME}: "
     killproc $pidopts $PID_FILE
     RETVAL=$?
     echo
-    [ $RETVAL = 0 ] && rm -f ${LOCKFILE} ${PID_FILE}
+    if [ $RETVAL = 0 ]; then
+        rm -f ${LOCKFILE} ${PID_FILE}
+    else
+        killagent
+    fi
 }
 
 check() {
@@ -89,16 +103,6 @@ check() {
 		*) echo 'KO'; stop; start ;;
 	esac
 
-}
-
-killagent() {
-	echo $"Killing ${NAME} "
-	PID=$(getpid)
-        ls -l /proc/$PID/exe > /dev/null 2>&1
-        case "$?" in
-                0) kill -9 $PID >/dev/null 2>&1 ;;
-                *) ;;
-        esac
 }
 
 check_disk() {
