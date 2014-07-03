@@ -15,7 +15,7 @@
 #    under the License.
 
 # Chmod to current path
-from os import chdir, remove
+from os import chdir, remove, rename
 from os.path import dirname, abspath, join, exists
 import gc
 
@@ -54,6 +54,12 @@ except:
 
 # Parse config file or end execution
 config_filename = join(dirname(__file__), './config/ecagent.cfg')
+
+# Is inital config (move init to cfg)
+if not exists(config_filename):
+    config_filename_init = join(dirname(__file__), './config/ecagent.init.cfg')
+    if exists(config_filename_init):
+        rename(config_filename_init, config_filename)
 
 try:
     config = SMConfigObj(config_filename)
