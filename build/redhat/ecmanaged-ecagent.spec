@@ -110,7 +110,7 @@ fi
 %attr(750,root,root) /etc/rc.d/init.d/%{ename}
 %attr(644,root,root) /etc/cron.d/ecmanaged-ecagent
 %attr(750,root,root) /opt/%{pname}
-%attr(400,root,root) %config /opt/ecmanaged/ecagent/config/ecagent.ini.cfg
+%attr(400,root,root) %config /opt/ecmanaged/ecagent/config/ecagent.init.cfg
 %exclude /opt/%{pname}/ecagent/plugins/*.pyc
 %exclude /opt/%{pname}/ecagent/plugins/*.pyo
 %exclude /opt/%{pname}/ecagent/examples/*.pyc
