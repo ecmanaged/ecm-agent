@@ -94,20 +94,33 @@ fi
 
 %post
 if [ "$1" = "1" ]; then
-	chkconfig --add %{ename}
-	chkconfig --level 2345 %{ename} on
-	service %{ename} start >/dev/null 2>&1
+	%if 0%{?fedora}
+		systemctl enable /etc/systemd/system/%{ename}.service
+		systemctl --system daemon-reload
+		systemctl start %{ename}.service
+	%else
+		chkconfig --add %{ename}
+		chkconfig --level 2345 %{ename} on
+		service %{ename} start >/dev/null 2>&1
+	%endif
 fi
 
 %preun
 if [ "$1" = "0" ]; then
-	service %{ename} stop >/dev/null 2>&1
-	chkconfig --del %{ename}
+	%if 0%{?fedora}
+		systemctl stop %{ename}.service
+		systemctl disable /etc/systemd/system/%{ename}.service
+		systemctl --system daemon-reload
+	%else
+		service %{ename} stop >/dev/null 2>&1
+		chkconfig --del %{ename}
+	%endif
 fi
 
 %files
 %defattr(-,root,root)
 %attr(750,root,root) /etc/rc.d/init.d/%{ename}
+%attr(644,root,root) /etc/systemd/system/$ename.service
 %attr(644,root,root) /etc/cron.d/ecmanaged-ecagent
 %attr(750,root,root) /opt/%{pname}
 %attr(400,root,root) %config /opt/ecmanaged/ecagent/config/ecagent.init.cfg
