@@ -117,7 +117,7 @@ fi
 %files
 %defattr(-,root,root)
 %attr(750,root,root) /etc/rc.d/init.d/%{ename}
-%attr(644,root,root) /etc/systemd/system/$ename.service
+%attr(644,root,root) /etc/systemd/system/%{ename}.service
 %attr(644,root,root) /etc/cron.d/ecmanaged-ecagent
 %attr(750,root,root) /opt/%{pname}
 %attr(400,root,root) %config /opt/ecmanaged/ecagent/config/ecagent.init.cfg
