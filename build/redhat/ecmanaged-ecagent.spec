@@ -46,7 +46,7 @@ Requires:   python-twisted-web
 Requires:   python-protocols
 Requires:   python-configobj
 Requires:   python-twisted-words
-Requires:   _psutil_posix.so
+Requires:   psutil_posix.so
 Requires:   libxml2-python
 Requires:   python-simplejson
 Requires:   rpm-python
@@ -72,11 +72,13 @@ if [ "$RPM_BUILD_ROOT" = "%{_tmppath}/%{pname}-%{version}" ]; then
 	mkdir -p $RPM_BUILD_ROOT/etc
 	mkdir -p $RPM_BUILD_ROOT/etc/rc.d/init.d
 	mkdir -p $RPM_BUILD_ROOT/etc/cron.d
+	mkdir -p $RPM_BUILD_ROOT/etc/systemd/system
 	#mkdir -p $RPM_BUILD_ROOT/usr/share/doc/ecmanaged-ecagent/
 	tar -xzf %{source_path}%{source} -C %{source_path}
 	rsync -av --exclude '*build*' %{source_path}%{pname}-%{version}/* $RPM_BUILD_ROOT/opt
-	install -m 755 %{source_path}%{pname}-%{version}/ecmanaged/ecagent/build/redhat/etc/init.d/%{ename} $RPM_BUILD_ROOT/etc/rc.d/init.d
+	install -m 750 %{source_path}%{pname}-%{version}/ecmanaged/ecagent/build/redhat/etc/init.d/%{ename} $RPM_BUILD_ROOT/etc/rc.d/init.d
 	install -m 644 %{source_path}%{pname}-%{version}/ecmanaged/ecagent/build/redhat/etc/cron.d/ecmanaged-ecagent $RPM_BUILD_ROOT/etc/cron.d
+	install -m 750 %{source_path}%{pname}-%{version}/ecmanaged/ecagent/build/redhat/etc/systemd/system/%{ename}.service $RPM_BUILD_ROOT/etc/systemd/system
 	#cp -a /usr/share/doc/ecmanaged-ecagent/ $RPM_BUILD_ROOT/usr/share/doc/ecmanaged-ecagent/
 	rm -rf %{source_path}%{pname}-%{version}/build
 fi
@@ -120,7 +122,7 @@ fi
 %files
 %defattr(-,root,root)
 %attr(750,root,root) /etc/rc.d/init.d/%{ename}
-%attr(644,root,root) /etc/systemd/system/$ename.service
+%attr(750,root,root) /etc/systemd/system/%{ename}.service
 %attr(644,root,root) /etc/cron.d/ecmanaged-ecagent
 %attr(750,root,root) /opt/%{pname}
 %attr(400,root,root) %config /opt/ecmanaged/ecagent/config/ecagent.init.cfg
