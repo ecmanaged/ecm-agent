@@ -46,7 +46,7 @@ Requires:   python-twisted-web
 Requires:   python-protocols
 Requires:   python-configobj
 Requires:   python-twisted-words
-Requires:   psutil_posix.so
+Requires:   python-psutil
 Requires:   libxml2-python
 Requires:   python-simplejson
 Requires:   rpm-python
