@@ -69,6 +69,7 @@ if [ "$RPM_BUILD_ROOT" = "%{_tmppath}/%{pname}-%{version}" ]; then
 	mkdir -p $RPM_BUILD_ROOT/etc
 	mkdir -p $RPM_BUILD_ROOT/etc/rc.d/init.d
 	mkdir -p $RPM_BUILD_ROOT/etc/cron.d
+	mkdir -p $RPM_BUILD_ROOT/etc/systemd/system
 	#mkdir -p $RPM_BUILD_ROOT/usr/share/doc/ecmanaged-ecagent/
 	tar -xzf %{source_path}%{source} -C %{source_path}
 	rsync -av --exclude '*build*' %{source_path}%{pname}-%{version}/* $RPM_BUILD_ROOT/opt
