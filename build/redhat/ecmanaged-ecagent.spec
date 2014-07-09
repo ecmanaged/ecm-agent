@@ -7,6 +7,9 @@
 # Purpose: RPM Spec file for ecagent 
 #===============================================================================
 
+%global _binary_filedigest_algorithm 1
+%global _binary_payload w9.gzdio
+
 # No debuginfo:
 %define debug_package %{nil}
 
@@ -16,7 +19,7 @@
 %define	pname	  ecmanaged	  
 %define summary   EC Managed - Monitor and deploy agent
 %define version   1.1.14
-%define release   100
+%define release   101
 %define license   GPLv3+
 %define group     Applications/System
 %define user	  `whoami`
