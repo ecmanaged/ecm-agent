@@ -19,7 +19,7 @@
 %define	pname	  ecmanaged	  
 %define summary   EC Managed - Monitor and deploy agent
 %define version   1.1.14
-%define release   101
+%define release   102
 %define license   GPLv3+
 %define group     Applications/System
 %define user	  `whoami`
@@ -95,29 +95,29 @@ if [ -e %{source_path}%{pname}-%{version} ]; then
 fi
 
 %post
-if [ "$1" = "1" ]; then
-	%if 0%{?fedora}
-		systemctl enable /etc/systemd/system/%{ename}.service
-		systemctl --system daemon-reload
-		systemctl start %{ename}.service
-	%else
+#if [ "$1" = "1" ]; then
+#	%if 0%{?fedora}
+#		systemctl enable /etc/systemd/system/%{ename}.service
+#		systemctl --system daemon-reload
+#		systemctl start %{ename}.service
+#	%else
 		chkconfig --add %{ename}
 		chkconfig --level 2345 %{ename} on
 		service %{ename} start >/dev/null 2>&1
-	%endif
-fi
+#	%endif
+#fi
 
 %preun
-if [ "$1" = "0" ]; then
-	%if 0%{?fedora}
-		systemctl stop %{ename}.service
-		systemctl disable /etc/systemd/system/%{ename}.service
-		systemctl --system daemon-reload
-	%else
+#if [ "$1" = "0" ]; then
+#	%if 0%{?fedora}
+#		systemctl stop %{ename}.service
+#		systemctl disable /etc/systemd/system/%{ename}.service
+#		systemctl --system daemon-reload
+#	%else
 		service %{ename} stop >/dev/null 2>&1
 		chkconfig --del %{ename}
-	%endif
-fi
+#	%endif
+#fi
 
 %files
 %defattr(-,root,root)
