@@ -110,14 +110,16 @@ class SMConfigObj(ConfigObj):
     def _get_uuid_via_web(self):
         hostname = ''
         address = ''
+        mac = ''
         try:
             hostname = self._get_hostname()
             address = self._get_ip()
+            mac = self._get_mac()
         except Exception:
             pass
 
-        auth_url = _ECMANAGED_AUTH_URL + "/?ipaddress=%s&hostname=%s" % (address, hostname)
-        auth_url_alt = _ECMANAGED_AUTH_URL_ALT + "/?ipaddress=%s&hostname=%s" % (address, hostname)
+        auth_url = _ECMANAGED_AUTH_URL + "/?ipaddress=%s&hostname=%s&mac=%s" % (address, hostname, mac)
+        auth_url_alt = _ECMANAGED_AUTH_URL_ALT + "/?ipaddress=%s&hostname=%s&mac=%s" % (address, hostname, mac)
 
         auth_content = yield getPage(auth_url)
 
@@ -172,7 +174,7 @@ class SMConfigObj(ConfigObj):
         uuid = None
         try:
             import urllib
-
+            # Get info from meta-data
             socket.setdefaulttimeout(_URL_METADATA_TIMEOUT)
             urlopen = urllib.urlopen(_URL_METADATA_INSTANCE_ID)
             socket.setdefaulttimeout(10)
@@ -185,9 +187,10 @@ class SMConfigObj(ConfigObj):
         except Exception:
             pass
 
-        # Use network mac
         if not uuid:
+            # Use network mac address
             from uuid import getnode
-            uuid = getnode()
+            from re import findall
+            uuid = ':'.join(findall('..', '%012x' % getnode()))
 
         return uuid
