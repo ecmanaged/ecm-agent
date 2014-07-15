@@ -400,13 +400,13 @@ class FILE:
 
         elif file_type == 'gz':
             package = 'gzip'
-            command = 'tar'
-            args = ['-xvzf', filename]
+            command = 'gunzip'
+            args = [filename]
 
         elif file_type == 'bz2':
             package = 'bzip2'
-            command = 'tar'
-            args = ['-xvjf', filename]
+            command = 'bzip2'
+            args = ['-d', filename]
 
         else:
             raise Exception("Unsupported file compression")
@@ -418,7 +418,14 @@ class FILE:
             exists = ecm.which(package)
 
         if exists and command:
+            # Decompress
             out, stdout, stderr = ecm.run_command(command, args, workdir=self.working_dir)
+
+            try:
+                # Try to untar file (have not found a way to detect a tar file)
+                out, stdout, stderr = ecm.run_command('', ['xvj', filename], workdir=self.working_dir)
+            except:
+                pass
 
             ret = {'out': out, 'stderr': stderr, 'stdout': stdout}
             return ret
