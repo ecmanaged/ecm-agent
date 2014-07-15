@@ -302,7 +302,7 @@ class FILE:
 
         file_downloaded = ecm.download_file(
             url=url,
-            filename=tmp_dir + '/' + file_name,
+            filename=tmp_dir + os.path.altsep + file_name,
             user=username,
             passwd=password
         )
@@ -391,7 +391,14 @@ class FILE:
     def _extract_alternative(self, filename):
         """ extractor helper: Try to extract file using system commands
         """
+        from shutil import move
+        from os import path
+
         file_type = self._get_file_type(filename)
+
+        # Move file before decompress
+        move(filename, self.working_dir)
+        filename = path.join(self.working_dir, path.basename(filename))
 
         if file_type == 'zip':
             package = 'unzip'
@@ -411,22 +418,15 @@ class FILE:
         else:
             raise Exception("Unsupported file compression")
 
-        exists = ecm.which(package)
+        exists = ecm.which(command)
         if not exists:
             # Try to install package
             ecm.install_package(package)
-            exists = ecm.which(package)
+            exists = ecm.which(command)
 
         if exists and command:
             # Decompress
             out, stdout, stderr = ecm.run_command(command, args, workdir=self.working_dir)
-
-            try:
-                # Try to untar file (have not found a way to detect a tar file)
-                out, stdout, stderr = ecm.run_command('', ['xvj', filename], workdir=self.working_dir)
-            except:
-                pass
-
             ret = {'out': out, 'stderr': stderr, 'stdout': stdout}
             return ret
 

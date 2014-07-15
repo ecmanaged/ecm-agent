@@ -103,11 +103,12 @@ def clean_stdout(std_output):
         return std_output
 
 
-def download_file(url, filename, user=None, passwd=None):
+def download_file(url, filename=None, user=None, passwd=None):
     """
     Downloads a remote content
     """
     import urllib2
+    CHUNK = 256 * 10240
 
     try:
         if user and passwd:
@@ -121,13 +122,26 @@ def download_file(url, filename, user=None, passwd=None):
             urllib2.install_opener(opener)
 
         req = urllib2.urlopen(url.replace("'", ""))
-        CHUNK = 256 * 10240
+
+        # Try to get filename from headers
+        try:
+            import cgi
+            from os import path
+
+            _, params = cgi.parse_header(req.headers.get('Content-Disposition', ''))
+            _header_filename = params['filename']
+            if _header_filename:
+                filename = path.join(path.dirname(filename), _header_filename)
+        except:
+           pass
+
         with open(filename, 'wb') as fp:
             while True:
                 chunk = req.read(CHUNK)
                 if not chunk:
                     break
                 fp.write(chunk)
+
     except:
         return False
 
