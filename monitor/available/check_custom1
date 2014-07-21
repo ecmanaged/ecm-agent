@@ -1,0 +1,17 @@
+#!/usr/bin/python
+
+from sys import exit
+from random import random
+
+CHECK_NAME = 'CHECK CUSTOM1'
+CHECK_INTERVAL = 60
+
+CRITICAL = 2
+WARNING = 1
+OK = 0
+
+output = 'All checks ok'
+performance_data = 'time=%i' %int(random()*100)
+
+print "%s | %s" %(output, performance_data)
+exit(OK)

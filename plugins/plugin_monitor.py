@@ -21,8 +21,10 @@ from time import time
 
 # Local
 from __plugin import ECMPlugin
+from __helper import is_integer
 
-VALID_CACHE_TIME = 65
+COMMAND_GET_INTERVAL = 60
+COMMAND_CACHE_OFFSET = 10
 COMMAND_GLUE = ':::'
 
 MYPATH = os.path.dirname(os.path.abspath(__file__))
@@ -36,6 +38,7 @@ class ECMMonitor(ECMPlugin):
         """
         monitor_path = ENABLED_MONITORS_PATH
         retval = []
+        to_execute = []
 
         # Create dirs if necessary
         self._check_path(ENABLED_MONITORS_PATH)
@@ -47,37 +50,50 @@ class ECMMonitor(ECMPlugin):
         # Foreach monitor get cached result
         for root, dirs, files in os.walk(monitor_path):
             for f in files:
-                if f.endswith('.cache'): continue
-                if f.endswith('~'): continue
-                from_cache = self._read_cache(os.path.join(monitor_path, f))
+                if f.endswith('.cache'):
+                    continue
+                if f.endswith('~'):
+                    continue
+                
+                interval = self._get_interval_from_path(root)
+                script = os.path.join(root, f)
+                from_cache = self._read_cache(script, interval + COMMAND_CACHE_OFFSET)
                 
                 if from_cache:
-                    retval.append(from_cache)
-
-        # Foreach monitor execute it (background) and write cache
-        for root, dirs, files in os.walk(monitor_path):
-            for f in files:
-                if f.endswith('.cache'): continue
-                if f.endswith('~'): continue
-
-                _run_background_file(os.path.join(monitor_path, f))
+                    retval.append(f.upper() + COMMAND_GLUE + from_cache)
+                    
+                # Execute script if cache wont be valid on next command_get execution
+                if not self._read_cache(script, interval - COMMAND_GET_INTERVAL):
+                    to_execute.append(script)
+                    
+        for script in to_execute:
+            _run_background_file(script)
 
         return retval
-
+        
+    @staticmethod
+    def _get_interval_from_path(dir):
+        interval = os.path.split(dir)[-1]
+        if not is_integer(interval):
+            interval = COMMAND_GET_INTERVAL
+            
+        return int(interval)
+        
     @staticmethod
     def _check_path(path):
         if not os.path.isdir(path):
             os.makedirs(path)
 
     @staticmethod
-    def _read_cache(command):
+    def _read_cache(command, cache_time):
         cache_file = os.path.join(MONITORS_CACHE_PATH, os.path.basename(command) + '.cache')
         
         content = ''
         if os.path.isfile(cache_file):
             # check updated cache
             modified = os.path.getmtime(cache_file)
-            if (modified + VALID_CACHE_TIME) < time():
+            if (modified + cache_time) < time():
+                os.remove(cache_file)
                 return None
 
             # Return cache content
@@ -86,19 +102,16 @@ class ECMMonitor(ECMPlugin):
                 content += line
             f.close()
 
-            # remove cache
-            os.remove(cache_file)
-
-        return os.path.basename(command) + COMMAND_GLUE + content
+        return content
 
 
-def _run_background_file(file):
+def _run_background_file(script):
     """Detach a process from the controlling terminal and run it in the
     background as a daemon.
     """
 
-    workdir = os.path.dirname(file)
-    fullpath = os.path.abspath(file)
+    workdir = os.path.dirname(script)
+    fullpath = os.path.abspath(script)
     
     try:
         pid = os.fork()

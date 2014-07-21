@@ -484,6 +484,13 @@ def is_list(obj):
     return isinstance(obj, list)
 
 
+def is_integer(value):
+    try:
+        int(value)
+        return True
+    except ValueError:
+        return False
+
 def is_string(obj):
     """Check if the object is a list"""
     if isinstance(obj, str) or isinstance(obj, unicode):
