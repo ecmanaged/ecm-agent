@@ -1,0 +1,7 @@
+#!/usr/bin/python
+
+import sys
+from time import sleep
+
+sleep(2)
+print "OUTPUT | PERFDATA"
