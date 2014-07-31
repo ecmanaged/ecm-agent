@@ -21,15 +21,18 @@ from time import time
 
 # Local
 from __plugin import ECMPlugin
-from __helper import is_integer
+from __helper import is_integer, is_windows
 
+CRITICAL = 2
 COMMAND_GET_INTERVAL = 60
 COMMAND_CACHE_OFFSET = 10
 COMMAND_GLUE = ':::'
 
-MYPATH = os.path.dirname(os.path.abspath(__file__))
-ENABLED_MONITORS_PATH = os.path.join(MYPATH, '../monitor/enabled')
-MONITORS_CACHE_PATH = os.path.join(MYPATH, '../monitor/_cache')
+MY_PATH = os.path.dirname(os.path.abspath(__file__))
+ENABLED_MONITORS_PATH = os.path.join(MY_PATH, '../monitor/enabled')
+MONITORS_CACHE_PATH = os.path.join(MY_PATH, '../monitor/_cache')
+MONITORS_CACHE_EXT = 'cache'
+MONITOR_RUNAS_USER = ''
 
 class ECMMonitor(ECMPlugin):
     def cmd_monitor_get(self, *argv, **kwargs):
@@ -45,22 +48,23 @@ class ECMMonitor(ECMPlugin):
         self._check_path(MONITORS_CACHE_PATH)
 
         if not os.path.isdir(monitor_path):
-            return False
+            return retval
 
-        # Foreach monitor get cached result
+        # Foreach custom monitor
         for root, dirs, files in os.walk(monitor_path):
             for f in files:
-                if f.endswith('.cache'):
+                if f.endswith(MONITORS_CACHE_EXT):
                     continue
                 if f.endswith('~'):
                     continue
                 
-                interval = self._get_interval_from_path(root)
+                interval = self._interval_from_path(root)
                 script = os.path.join(root, f)
+
+                # Read last result from cache
                 from_cache = self._read_cache(script, interval + COMMAND_CACHE_OFFSET)
-                
                 if from_cache:
-                    retval.append(f.upper() + COMMAND_GLUE + from_cache)
+                    retval.append(self._parse_script_name(f) + COMMAND_GLUE + str(interval) + COMMAND_GLUE + from_cache)
                     
                 # Execute script if cache wont be valid on next command_get execution
                 if not self._read_cache(script, interval - COMMAND_GET_INTERVAL):
@@ -72,13 +76,22 @@ class ECMMonitor(ECMPlugin):
         return retval
         
     @staticmethod
-    def _get_interval_from_path(dir):
-        interval = os.path.split(dir)[-1]
+    def _interval_from_path(my_path):
+        interval = os.path.split(my_path)[-1]
         if not is_integer(interval):
             interval = COMMAND_GET_INTERVAL
             
         return int(interval)
-        
+
+    @staticmethod
+    def _parse_script_name(name):
+        components = str(name).split('.')
+        if components[-1] in ['py', 'pl', 'sh', 'rb', 'bash', 'cmd', 'bat']:
+            del components[-1]
+
+        return '.'.join(components).upper()
+
+
     @staticmethod
     def _check_path(path):
         if not os.path.isdir(path):
@@ -86,8 +99,7 @@ class ECMMonitor(ECMPlugin):
 
     @staticmethod
     def _read_cache(command, cache_time):
-        cache_file = os.path.join(MONITORS_CACHE_PATH, os.path.basename(command) + '.cache')
-        
+        cache_file = os.path.join(MONITORS_CACHE_PATH, os.path.basename(command) + '.' + MONITORS_CACHE_EXT)
         content = ''
         if os.path.isfile(cache_file):
             # check updated cache
@@ -105,25 +117,38 @@ class ECMMonitor(ECMPlugin):
         return content
 
 
+def _alarm_handler(signum, frame):
+    os._exit()
+
+
+def _write_cache(script, retval, std_out):
+    # Write to cache file
+    cache_file = os.path.abspath(
+        os.path.join(MONITORS_CACHE_PATH, script + '.' + MONITORS_CACHE_EXT)
+    )
+    f = open(cache_file, 'w')
+    f.write("%s%s%s" % (retval, COMMAND_GLUE, std_out))
+    f.close()
+
+
 def _run_background_file(script):
     """Detach a process from the controlling terminal and run it in the
     background as a daemon.
     """
-
     workdir = os.path.dirname(script)
     fullpath = os.path.abspath(script)
     
     try:
         pid = os.fork()
-    except OSError, e:
-        raise Exception, "%s [%d]" % (e.strerror, e.errno)
+    except OSError:
+        raise Exception
 
     if pid == 0:
         os.setsid()
         try:
             pid = os.fork()
-        except OSError, e:
-            raise Exception, "%s [%d]" % (e.strerror, e.errno)
+        except OSError:
+            raise Exception
 
         if pid == 0:
             os.chdir(workdir)
@@ -137,9 +162,22 @@ def _run_background_file(script):
     os.dup2(0, 1)
     os.dup2(0, 2)
 
+    # Set alarm
+    import signal
+    signal.signal(signal.SIGALRM, _alarm_handler)
+    signal.alarm(300)
+
+    # Write timeout to cache file
+    _write_cache(os.path.basename(fullpath), CRITICAL, 'Timeout')
+
     try:
+        command = [fullpath]
+
+        if MONITOR_RUNAS_USER and not is_windows():
+            command = ['su', MONITOR_RUNAS_USER, '-c', ' '.join(map(str, fullpath))]
+
         p = Popen(
-            [fullpath],
+            command,
             env=os.environ.copy(),
             bufsize=0,
             stdin=PIPE, stdout=PIPE, stderr=PIPE,
@@ -150,17 +188,13 @@ def _run_background_file(script):
         std_out, std_err = p.communicate()
         retval = p.wait()
 
-        # Write to cache file
-        cache_file = os.path.abspath(os.path.join(MONITORS_CACHE_PATH, os.path.basename(fullpath) + '.cache'))
-        f = open(cache_file, 'w')
-        f.write("%s%s%s" % (retval, COMMAND_GLUE, std_out))
-        f.close()
+        _write_cache(os.path.basename(fullpath), retval, std_out)
 
-    except:
+    except Exception, e:
+        _write_cache(os.path.basename(fullpath), CRITICAL, e.message)
         pass
 
     os._exit(0)
 
 
 ECMMonitor().run()
-

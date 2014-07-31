@@ -55,6 +55,10 @@ class ECMScript(ECMPlugin):
         # Update metadata
         ecm.write_metadata(metadata_b64=metadata)
 
+        # Chown
+        if script_runas:
+            ecm.chown(tmp_dir,script_runas,recursive=True)
+
         if script_executable:
             cmd = script_executable + ' ' + tmp_file
             out, stdout, stderr = ecm.run_command(cmd, runas=script_runas, workdir=tmp_dir, envars=envars)
