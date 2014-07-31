@@ -195,7 +195,7 @@ def which(command):
     return found
 
 
-def chown(path, user, group, recursive=False):
+def chown(path, user, group=None, recursive=False):
     """
     chown a file or path
     """
