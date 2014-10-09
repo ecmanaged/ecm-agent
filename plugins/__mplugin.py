@@ -38,9 +38,9 @@ from os import makedirs, chmod
 import logging 
 log = logging
 
+
 def _timeout(signum, frame):
     from os import _exit
-
     _exit(TIMEOUT)
 
 
@@ -73,7 +73,7 @@ class MPlugin:
             self.config[idx] = self.data.get('config').get(idx, {}).get('value', None)
             
         # set id and interval
-        self.interval = self.data.get('interval',DEFAULT_INTERVAL)
+        self.interval = self.data.get('interval', DEFAULT_INTERVAL)
         self.id = str(self.data.get('id', None))
             
         # Get counters information
@@ -81,7 +81,6 @@ class MPlugin:
 
         # Get name from config or filename
         self.name = str(self.data.get('name', basename(sys.argv[0])))
-
 
     def _read_config(self):
         retval = {}
@@ -114,7 +113,7 @@ class MPlugin:
             if mtime > valid_time:
                 return self._from_json(self._file_read(counters_file))
             else:
-                log.warning("Ignored couters file, is too old")
+                log.warning("Ignored counters file, is too old")
             
         return {}
     
@@ -164,7 +163,7 @@ class MPlugin:
 
     def install(self, id, config, script):
         if not id or not config or not script:
-            log.error("install: Invalid information recieved")
+            log.error("install: Invalid information received")
             return False
 
         plugin_path = abspath(join(self.path, id))
@@ -198,29 +197,7 @@ class MPlugin:
 
     # Helper functions
 
-    @staticmethod
-    def _is_dict(obj):
-        return isinstance(obj, dict)
-        
-    @staticmethod
-    def _is_list(obj):
-        return isinstance(obj, list)
-
-    @staticmethod
-    def _is_string(obj):
-        if isinstance(obj, str) or isinstance(obj, unicode):
-            return True
-
-        return False
-        
-    @staticmethod
-    def _is_number(obj):
-        if isinstance(obj, (int, long, float, complex)):
-            return True
-            
-        return False
-        
-    def _sanitize(self,obj):
+    def _sanitize(self, obj):
         if not self._is_dict(obj):
            return obj
  
@@ -238,7 +215,93 @@ class MPlugin:
                 obj[idx] = str(obj[idx])
                 
         return obj
-        
+
+    def _gauge(self, value):
+        """
+            value divided by the step interval
+        """
+        retval = 0
+        if value:
+            retval = value / self.interval
+
+        return retval
+
+    def _counter(self, value, index):
+        """
+            Saves a value and returns difference
+        """
+        retval = 0
+        if self.counters.get(index):
+            retval = value - self.counters[index]
+            if retval < 0: retval = 0
+
+        # Save counter
+        self.counters[index] = value
+
+        return retval
+
+    def _counters(self, obj, index):
+        """
+            Save values for metrics, compare with latest values and return difference
+            convert counter values to average values
+        """
+        if not self.counters.get(index):
+            self.counters[index] = {}
+
+        current_counter = self.counters[index]
+        new_counter = {}
+        retval = {}
+
+        if not self._is_dict(obj):
+            return retval
+
+        for elm in obj:
+            new_counter[elm] = {}
+            retval[elm] = {}
+
+            if not current_counter.get(elm):
+                current_counter[elm] = {}
+
+            # Go deeper if is dict
+            if self._is_dict(obj.get(elm)):
+                for elm2 in obj[elm]:
+                    new_counter[elm][elm2] = {}
+                    retval[elm][elm2] = {}
+
+                    # Update counter with current value
+                    new_counter[elm][elm2] = obj[elm][elm2]
+                    retval[elm][elm2] = 0
+
+                    if current_counter[elm].get(elm2):
+                        diff = obj[elm][elm2] - current_counter[elm].get(elm2)
+                        if diff > 0:
+                            retval[elm][elm2] = diff
+
+            elif self._is_list(obj.get(elm)):
+                # Not supported
+                continue
+
+            else:
+                # Update counter with current value
+                new_counter[elm] = obj[elm]
+                retval[elm] = 0
+
+                # Return difference between last counter and current
+                if current_counter.get(elm):
+                    diff = obj[elm] - current_counter.get(elm)
+                    if diff > 0:
+                        retval[elm] = diff
+
+        self.counters[index] = new_counter
+
+        return retval
+
+    def _to_gb(self, n):
+        return self._convert_bytes(n, 'G')
+
+    def _to_mb(self, n):
+        return self._convert_bytes(n, 'M')
+
     @staticmethod
     def _state_to_str(state):
         states = {
@@ -320,89 +383,18 @@ class MPlugin:
                 value = float(n) / prefix[s]
                 return '%.1f%s' % (value, s)
 
-    def _gauge(self, value):
-        """
-            value divided by the step interval
-        """
-        retval = 0
-        if value:
-            retval = value / self.interval
-            
-        return retval
-    
-    def _counter(self, value, index):
-        """
-            Saves a value and returns difference
-        """
-        retval = 0
-        if self.counters.get(index):
-            retval = value - self.counters[index]
-            if retval < 0: retval = 0
-            
-        # Save counter
-        self.counters[index] = value
-            
-        return retval
-        
-    def _counters(self, obj, index):
-        """
-            Save values for metrics, compare with latest values and return difference
-            convert counter values to average values
-        """
-        if not self.counters.get(index):
-            self.counters[index] = {}
-            
-        current_counter = self.counters[index]
-        new_counter = {}
-        retval = {}
-        
-        if not self._is_dict(obj):
-            return retval
-            
-        for elm in obj:
-            new_counter[elm] = {}
-            retval[elm] = {}
-            
-            if not current_counter.get(elm):
-                current_counter[elm] = {}
-                
-            # Go deeper if is dict
-            if self._is_dict(obj.get(elm)):
-                for elm2 in obj[elm]:
-                    new_counter[elm][elm2] = {}
-                    retval[elm][elm2] = {}
-                    
-                    # Update counter with current value
-                    new_counter[elm][elm2] = obj[elm][elm2]
-                    retval[elm][elm2] = 0
+    @staticmethod
+    def _is_dict(obj):
+        return isinstance(obj, dict)
 
-                    if current_counter[elm].get(elm2):
-                        diff = obj[elm][elm2] - current_counter[elm].get(elm2)
-                        if diff > 0:
-                            retval[elm][elm2] = diff
-            
-            elif self._is_list(obj.get(elm)):
-                # Not supported
-                continue
-                
-            else:
-                # Update counter with current value
-                new_counter[elm] = obj[elm]
-                retval[elm] = 0
+    @staticmethod
+    def _is_list(obj):
+        return isinstance(obj, list)
 
-                # Return difference between last counter and current
-                if current_counter.get(elm):
-                    diff = obj[elm] - current_counter.get(elm)
-                    if diff > 0:
-                        retval[elm] = diff
-                        
-        self.counters[index] = new_counter
+    @staticmethod
+    def _is_string(obj):
+        return isinstance(obj, str) or isinstance(obj, unicode)
 
-        return retval
-
-    def _to_gb(self, n):
-        return self._convert_bytes(n, 'G')
-
-    def _to_mb(self, n):
-        return self._convert_bytes(n, 'M')
-
+    @staticmethod
+    def _is_number(obj):
+        return isinstance(obj, (int, long, float, complex))
