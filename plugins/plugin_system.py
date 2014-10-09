@@ -18,6 +18,7 @@ _DEFAULT_CPU_INTERVAL = 0.5
 
 # Local
 from __plugin import ECMPlugin
+from __helper import AGENT_VERSION
 import __helper as ecm
 
 import psutil
@@ -74,6 +75,7 @@ class ECMSystem(ECMPlugin):
             'uptime': self._boot_time(),
             'hostname': platform.node(),
             'public_ip': self._get_ip(),
+            'agent_version': AGENT_VERSION
         }
         (retval['os_distrib'], retval['os_version']) = ecm.get_distribution()
 
