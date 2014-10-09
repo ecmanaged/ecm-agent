@@ -41,7 +41,9 @@ CACHE_FILE_EXTENSION = 'cache'
 CACHE_FILE_EXPIRES = 86400
 CACHE_SOFT_TIME = 10
 
-IGNORE_EXT = ('cache','~','pyc')
+PLUGIN_BASE = '__base__'
+
+IGNORE_EXT = ('cache', '~', 'pyc')
 
 class ECMMonitor(ECMPlugin):
     def cmd_monitor_get(self, *argv, **kwargs):
@@ -52,8 +54,10 @@ class ECMMonitor(ECMPlugin):
         config = None
         b64_config = kwargs.get('config', None)
         
-        try: config = json.loads(b64decode(b64_config))
-        except: pass
+        try:
+            config = json.loads(b64decode(b64_config))
+        except:
+            pass
         
         retval = []
         to_execute = []
@@ -75,10 +79,12 @@ class ECMMonitor(ECMPlugin):
                 continue
                 
             for root, dirs, files in os.walk(plugin_path):
-                if plugin_path is MPLUGIN_PATH: files = files + dirs
+                if plugin_path is MPLUGIN_PATH:
+                    files = files + dirs
+
                 for f in files:
                     # Ignore som file extensions
-                    if f.endswith((IGNORE_EXT)):
+                    if f.endswith(IGNORE_EXT):
                         continue
                         
                     # Set default interval or read from path name
@@ -97,8 +103,12 @@ class ECMMonitor(ECMPlugin):
                                     # Read data from plugin config
                                     mplugin = MPlugin(current_dir)
                                     
-                                    runas = mplugin.data.get('runas',None)
-                                    interval = mplugin.data.get('interval',interval)
+                                    runas = mplugin.data.get('runas', None)
+                                    interval = mplugin.data.get('interval', interval)
+
+                                    # Executable plugin base
+                                    if f == PLUGIN_BASE and not os.access(script, os.X_OK):
+                                        os.chmod(script, 0755)
                                     
                                     # Update config                                    
                                     if config:
@@ -116,10 +126,10 @@ class ECMMonitor(ECMPlugin):
                     
                     # Execute script if cache wont be valid on next command_get execution
                     if not self._cache_read(script, interval - COMMAND_INTERVAL):
-                        to_execute.append({'script' : script, 'runas': runas})
+                        to_execute.append({'script': script, 'runas': runas})
                         
         for data in to_execute:
-            _run_background_file(data['script'],data['runas'])
+            _run_background_file(data['script'], data['runas'])
             
         return retval
         
@@ -129,12 +139,15 @@ class ECMMonitor(ECMPlugin):
         """
         
         url = kwargs.get('url', None)
+        content = None
         
         if not url:
-            raise ecm.InvalidParameters(self.cmd_set_info.__doc__)
+            raise ecm.InvalidParameters(self.cmd_monitor_plugin_install.__doc__)
         
-        try: content = ecm.get_url(url)
-        except: pass
+        try:
+            content = ecm.get_url(url)
+        except:
+            pass
         
         if not content:
             raise Exception("Unable to get URL: %s" %url)
@@ -142,7 +155,7 @@ class ECMMonitor(ECMPlugin):
         try: 
             plugin = json.loads(content)
         except:
-            raise Exception("Invalid data recieved")
+            raise Exception("Invalid data received")
 
         id = plugin.get('id')
         runas = plugin.get('runas')
@@ -151,8 +164,10 @@ class ECMMonitor(ECMPlugin):
         arg_script_b64 = plugin.get('script')
         
         script = None
-        try: script = b64decode(arg_script_b64)
-        except: pass
+        try:
+            script = b64decode(arg_script_b64)
+        except:
+            pass
         
         config = {
             'id': id,
@@ -164,10 +179,10 @@ class ECMMonitor(ECMPlugin):
         
         if id and config and script:
             mplugin = MPlugin(MPLUGIN_PATH)
-            if mplugin.install(id,config,script):
+            if mplugin.install(id, config, script):
                 # Installation ok, run it
-                script_file = os.path.abspath(os.path.join(MPLUGIN_PATH,id,id))
-                _run_background_file(script_file,runas)
+                script_file = os.path.abspath(os.path.join(MPLUGIN_PATH, id, id))
+                _run_background_file(script_file, runas)
             
                 return True
             
@@ -181,7 +196,7 @@ class ECMMonitor(ECMPlugin):
         plugin_id = kwargs.get('id', None)
         
         if not plugin_id:
-            raise ecm.InvalidParameters(self.cmd_set_info.__doc__)
+            raise ecm.InvalidParameters(self.cmd_monitor_plugin_uninstall.__doc__)
         
         mplugin = MPlugin(MPLUGIN_PATH)
         return mplugin.uninstall(plugin_id)
@@ -198,7 +213,7 @@ class ECMMonitor(ECMPlugin):
     def _parse_script_name(name):
         components = str(name).split('.')
         if len(components) > 1:
-            del components[-1] # Delete ext
+            del components[-1]  # Delete ext
 
         return '.'.join(components)
 
@@ -230,15 +245,14 @@ class ECMMonitor(ECMPlugin):
     @staticmethod
     def _cache_clean():
         for f in os.listdir(CACHE_PATH):
-            file = os.path.join(CACHE_PATH,f)
-            modified = os.path.getmtime(file)
+            cachefile = os.path.join(CACHE_PATH, f)
+            modified = os.path.getmtime(cachefile)
             if modified < (time() - CACHE_FILE_EXPIRES):
-                os.remove(file)
+                os.remove(cachefile)
 
 
 def _alarm_handler(signum, frame):
     os._exit()
-
 
 def _write_cache(script, retval, std_out):
     # Write to cache file
@@ -248,7 +262,6 @@ def _write_cache(script, retval, std_out):
     f = open(cache_file, 'w')
     f.write("%s%s%s" % (retval, GLUE, std_out))
     f.close()
-
 
 def _run_background_file(script, run_as=None):
     """Detach a process from the controlling terminal and run it in the

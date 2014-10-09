@@ -127,7 +127,7 @@ class BaseMPlugin(MPlugin):
         return retval
 
     def _get_disk_io(self):
-        return self._counters(self._to_data(psutil.disk_io_counters(perdisk=True)),'disk_io')
+        return self._counters(self._to_data(psutil.disk_io_counters(perdisk=True)), 'disk_io')
 
     def _get_cpu(self):
         retval = {}
@@ -153,14 +153,14 @@ class BaseMPlugin(MPlugin):
         retval = {}
 
         try:
-            retval = self._counters(self._to_dict(psutil.cpu_times(percpu=False)),'cpu_times')
+            retval = self._counters(self._to_dict(psutil.cpu_times(percpu=False)), 'cpu_times')
         except:
             pass
 
         return retval
 
     def _get_network(self):
-        return self._counters(self._to_data(psutil.network_io_counters(pernic=True)),'network')
+        return self._counters(self._to_data(psutil.network_io_counters(pernic=True)), 'network')
         
     def _get_netstat(self):
         try:
