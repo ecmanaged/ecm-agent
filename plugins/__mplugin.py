@@ -15,8 +15,10 @@
 #    under the License.
 
 CONFIG_FILE_NAME = 'data.json'
-COUNTER_FILE_NAME = 'counter.dat'
 LOG_FILE_NAME = 'mplugin.log'
+
+COUNTER_FILE_NAME = '.counter.dat'
+TOUCH_FILE_NAME = '.touch'
 
 CHECK_TIMEOUT = 55
 DEFAULT_INTERVAL = 60
@@ -33,7 +35,7 @@ import signal
 
 from os.path import dirname, abspath, join, exists, basename, getmtime
 from time import time
-from os import makedirs, chmod
+from os import makedirs, chmod, utime
 
 import logging 
 log = logging
@@ -77,49 +79,13 @@ class MPlugin:
         self.id = str(self.data.get('id', None))
             
         # Get counters information
-        self.counters = self._counters_read()
+        self._counters = self._counters_read()
 
         # Get name from config or filename
         self.name = str(self.data.get('name', basename(sys.argv[0])))
-
-    def _read_config(self):
-        retval = {}
-
-        # Read from configfile
-        config_file = join(self.path, CONFIG_FILE_NAME)
-        if exists(config_file):
-            content = self._file_read(config_file)
-            retval = self._from_json(content)
-
-            if not retval:
-                log.warning("Invalid data in file: %s" % config_file)
-
-            # Add raw config
-            retval['.raw'] = content
-
-        else:
-            log.warning("Data file doesn't exists: %s" % config_file)
-
-        return retval
         
-    def _counters_read(self):
-        counters_file = join(self.path, COUNTER_FILE_NAME)
-        
-        if exists(counters_file):
-            # check last modification time
-            mtime = getmtime(counters_file)
-            valid_time = time() - self.interval - 30
-            
-            if mtime > valid_time:
-                return self._from_json(self._file_read(counters_file))
-            else:
-                log.warning("Ignored counters file, is too old")
-            
-        return {}
-    
-    def _counters_write(self):
-        counters_file = join(self.path, COUNTER_FILE_NAME)
-        self._file_write(counters_file, self._to_json(self.counters))
+        # Get last execution time
+        self.real_interval = self._get_real_interval()
 
     def write_config(self, config=None):
         if not config or not self._is_dict(config):
@@ -158,7 +124,15 @@ class MPlugin:
         self._counters_write()
 
         print str(
-            self._to_json({'id': self.id, 'name': self.name, 'message': message, 'data': data, 'metrics': metrics}))
+            self._to_json({
+                'id': self.id,
+                'name': self.name,
+                'message': message,
+                'data': data,
+                'metrics': metrics
+            })
+        )
+        
         sys.exit(state)
 
     def install(self, id, config, script):
@@ -194,6 +168,63 @@ class MPlugin:
             return True
 
         return False
+        
+    def _read_config(self):
+        retval = {}
+
+        # Read from configfile
+        config_file = join(self.path, CONFIG_FILE_NAME)
+        if exists(config_file):
+            content = self._file_read(config_file)
+            retval = self._from_json(content)
+
+            if not retval:
+                log.warning("Invalid data in file: %s" % config_file)
+
+            # Add raw config
+            retval['.raw'] = content
+
+        else:
+            log.warning("Data file doesn't exists: %s" % config_file)
+
+        return retval
+        
+    def _counters_read(self):
+        counters_file = join(self.path, COUNTER_FILE_NAME)
+        
+        if exists(counters_file):
+            # check last modification time
+            mtime = getmtime(counters_file)
+            valid_time = time() - self.interval - 30
+            
+            if mtime > valid_time:
+                return self._from_json(self._file_read(counters_file))
+            else:
+                log.warning("Ignored counters file, is too old")
+            
+        return {}
+    
+    def _counters_write(self):
+        if self._counters:
+            counters_file = join(self.path, COUNTER_FILE_NAME)
+            self._file_write(counters_file, self._to_json(self._counters))
+            
+    def _get_real_interval(self):
+        retval = 1
+        
+        touch_file = join(self.path,TOUCH_FILE_NAME)
+        
+        # Read mtime from touch file
+        if exists(touch_file):
+            tmp = int(time() - getmtime(touch_file))
+            retval = tmp if tmp > 0 else 1
+            
+        # touch file
+        with open(touch_file, 'a'):
+            utime(touch_file, None)
+            
+        return retval
+        
 
     # Helper functions
 
@@ -216,49 +247,50 @@ class MPlugin:
                 
         return obj
 
-    def _gauge(self, value):
+    def gauge(self, value):
         """
             value divided by the step interval
         """
-        retval = 0
-        if value:
-            retval = value / self.interval
+        if not self._is_number(value):
+            return value
+        
+        return value / self.real_interval
 
-        return retval
-
-    def _counter(self, value, index):
+    def counter(self, value, index, gauge=True):
         """
             Saves a value and returns difference
         """
+        if not self._is_number(value):
+            return value
+
         retval = 0
-        if self.counters.get(index):
-            retval = value - self.counters[index]
-            if retval < 0: retval = 0
+        if self._counters.get(index):
+            retval = self.gauge(value - self._counters[index]) if gauge else (value - self._counters[index])
 
         # Save counter
-        self.counters[index] = value
+        self._counters[index] = value
 
-        return retval
+        return retval if retval > 0 else 0
 
-    def _counters(self, obj, index):
+    def counters(self, obj, index, gauge=True):
         """
             Save values for metrics, compare with latest values and return difference
             convert counter values to average values
         """
-        if not self.counters.get(index):
-            self.counters[index] = {}
+        if not self._counters.get(index):
+            self._counters[index] = {}
 
-        current_counter = self.counters[index]
+        current_counter = self._counters[index]
         new_counter = {}
         retval = {}
-
+        
         if not self._is_dict(obj):
             return retval
 
         for elm in obj:
             new_counter[elm] = {}
             retval[elm] = {}
-
+            
             if not current_counter.get(elm):
                 current_counter[elm] = {}
 
@@ -275,7 +307,7 @@ class MPlugin:
                     if current_counter[elm].get(elm2):
                         diff = obj[elm][elm2] - current_counter[elm].get(elm2)
                         if diff > 0:
-                            retval[elm][elm2] = diff
+                            retval[elm][elm2] = self.gauge(diff) if gauge else diff
 
             elif self._is_list(obj.get(elm)):
                 # Not supported
@@ -290,16 +322,16 @@ class MPlugin:
                 if current_counter.get(elm):
                     diff = obj[elm] - current_counter.get(elm)
                     if diff > 0:
-                        retval[elm] = diff
+                        retval[elm] = self.gauge(diff) if gauge else diff
 
-        self.counters[index] = new_counter
+        self._counters[index] = new_counter
 
         return retval
 
-    def _to_gb(self, n):
+    def to_gb(self, n):
         return self._convert_bytes(n, 'G')
 
-    def _to_mb(self, n):
+    def to_mb(self, n):
         return self._convert_bytes(n, 'M')
 
     @staticmethod
@@ -371,7 +403,7 @@ class MPlugin:
     @staticmethod
     def _convert_bytes(n, to=None):
         if n == 0:
-            return "0B"
+            return "0"
 
         symbols = ('k', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y')
         prefix = {}
@@ -381,7 +413,7 @@ class MPlugin:
         for s in reversed(symbols):
             if to == s:
                 value = float(n) / prefix[s]
-                return '%.1f%s' % (value, s)
+                return '%.2f' % value
 
     @staticmethod
     def _is_dict(obj):
@@ -398,3 +430,10 @@ class MPlugin:
     @staticmethod
     def _is_number(obj):
         return isinstance(obj, (int, long, float, complex))
+        
+    @staticmethod
+    def is_windows():
+        if sys.platform.startswith("win32"):
+            return True
+            
+        return False
