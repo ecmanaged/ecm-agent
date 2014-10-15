@@ -68,29 +68,47 @@ class BaseMPlugin(MPlugin):
         try:
             if hasattr(psutil, 'virtual_memory'):
                 mem = psutil.virtual_memory()
+                
+                if hasattr(mem, 'active'):
+                    retval['active'] = self.to_gb(mem.active)
+                if hasattr(mem, 'inactive'):
+                    retval['inactive'] = self.to_gb(mem.inactive)
+                if hasattr(mem, 'buffers'):
+                    retval['buffers'] = self.to_gb(mem.buffers)
+                if hasattr(mem, 'cached'):
+                    retval['cached'] = self.to_gb(mem.cached)
+                if hasattr(mem, 'shared'):
+                    retval['shared'] = self.to_gb(mem.shared)
 
             else:
                 mem = psutil.phymem_usage()
-
-            retval = {
-                'total': self._to_gb(mem.total),
-                'used': self._to_gb(mem.used),
-                'free': self._to_gb(mem.free),
-                'percent': mem.percent
-            }
-
-            # psutil v2
-            if hasattr(mem, 'active'):
-                retval['active'] = self._to_gb(mem.active)
-            if hasattr(mem, 'inactive'):
-                retval['inactive'] = self._to_gb(mem.inactive)
-            if hasattr(mem, 'buffers'):
-                retval['buffers'] = self._to_gb(mem.buffers)
-            if hasattr(mem, 'cached'):
-                retval['cached'] = self._to_gb(mem.cached)
-            if hasattr(mem, 'shared'):
-                retval['shared'] = self._to_gb(mem.shared)
-
+                retval['cached'] = self.to_gb(psutil.cached_phymem())
+                retval['buffers'] = self.to_gb(psutil.phymem_buffers())
+                
+                if not self.is_windows():
+                    try:
+                        f = open('/proc/meminfo', 'r')
+    		        for line in f:
+        	            if line.startswith('Active:'):
+                                retval['active'] = self.to_gb(int(line.split()[1]) * 1024)
+		            if line.startswith('Inactive:'):
+                                retval['inactive'] = self.to_gb(int(line.split()[1]) * 1024)
+		            if line.startswith('Buffers:'):
+                                retval['buffers'] = self.to_gb(int(line.split()[1]) * 1024)
+		            if line.startswith('Cached:'):
+                                retval['cached'] = self.to_gb(int(line.split()[1]) * 1024)
+		            if line.startswith('Shared:'):
+                                retval['shared'] = self.to_gb(int(line.split()[1]) * 1024)
+                        f.close()
+                        
+                    except:
+                        pass
+                
+            retval['total'] = self.to_gb(mem.total)
+            retval['used'] = self.to_gb(mem.used)
+            retval['free'] = self.to_gb(mem.free)
+            retval['percent'] = mem.percent
+            
         except:
             pass
 
@@ -108,11 +126,11 @@ class BaseMPlugin(MPlugin):
                     if hasattr(part, 'device'):
                         tmp['device'] = part.device
                     if hasattr(usage, 'total'):
-                        tmp['total'] = self._to_gb(usage.total)
+                        tmp['total'] = self.to_gb(usage.total)
                     if hasattr(usage, 'used'):
-                        tmp['used'] = self._to_gb(usage.used)
+                        tmp['used'] = self.to_gb(usage.used)
                     if hasattr(usage, 'free'):
-                        tmp['free'] = self._to_gb(usage.free)
+                        tmp['free'] = self.to_gb(usage.free)
                     if hasattr(usage, 'percent'):
                         tmp['percent'] = usage.percent
 
@@ -127,7 +145,7 @@ class BaseMPlugin(MPlugin):
         return retval
 
     def _get_disk_io(self):
-        return self._counters(self._to_data(psutil.disk_io_counters(perdisk=True)), 'disk_io')
+        return self.counters(self._to_data(psutil.disk_io_counters(perdisk=True)), 'disk_io')
 
     def _get_cpu(self):
         retval = {}
@@ -153,17 +171,48 @@ class BaseMPlugin(MPlugin):
         retval = {}
 
         try:
-            retval = self._counters(self._to_dict(psutil.cpu_times(percpu=False)), 'cpu_times')
+            retval = self.counters(self._to_dict(psutil.cpu_times(percpu=False)), 'cpu_times')
         except:
             pass
 
         return retval
 
     def _get_network(self):
-        return self._counters(self._to_data(psutil.network_io_counters(pernic=True)), 'network')
-        
+        retval = {}
+
+        try:
+            data = self._to_data(psutil.network_io_counters(pernic=True))
+
+            if not data.get('errin') and not self.is_windows():
+                # Get manualy errors
+                try: 
+                    f = open("/proc/net/dev", "r")
+                    lines = f.readlines()
+                    for line in lines[2:]:
+                        colon = line.find(':')
+                        assert colon > 0, line
+                        name = line[:colon].strip()
+                        fields = line[colon+1:].strip().split()
+                        
+                        # Do not set counter or gauge for this values
+                        data[name]['errir'] = int(fields[2])
+                        data[name]['errout'] = int(fields[10])
+                    
+                    f.close()
+
+                except:
+                    pass
+                    
+            retval = self.counters(data,'network')
+                    
+        except:
+            pass        
+
+        return retval
+                
     def _get_netstat(self):
         try:
+            # psutil v2
             return self._to_data(psutil.net_connections(kind='inet'))
         except:
             return {}
@@ -215,8 +264,8 @@ class BaseMPlugin(MPlugin):
 
             retval.append((p.pid,
                            username,
-                           self._to_mb(getattr(p.dict['memory_info'], 'vms', 0)),
-                           self._to_mb(getattr(p.dict['memory_info'], 'rss', 0)),
+                           self.to_mb(getattr(p.dict['memory_info'], 'vms', 0)),
+                           self.to_mb(getattr(p.dict['memory_info'], 'rss', 0)),
                            p.dict['cpu_percent'],
                            p.dict['memory_percent'],
                            p.dict['name'] or '',
@@ -249,12 +298,18 @@ class BaseMPlugin(MPlugin):
         retval = {}
         try:
             # Only for psutil >= 2
-            swap = psutil.swap_memory()
-            retval = (
-                swap.percent,
-                self._to_gb(swap.used),
-                self._to_gb(swap.total)
-            )
+            if hasattr(psutil, 'swap_memory'):
+                swap = psutil.swap_memory()
+                
+            else:     
+                swap = psutil.virtmem_usage()
+            
+            retval = {
+                'total': swap.percent,
+                'used': self.to_gb(swap.used),
+                'total': self.to_gb(swap.total),
+                'free': self.to_gb(swap.free)
+            }
         except:
             pass
 
