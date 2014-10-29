@@ -369,7 +369,8 @@ class MPlugin:
             for key in elm.keys():
                 if self._is_dict(elm[key]):
                     for key2 in elm[key].keys():
-                        elm[key][key2] = decode(elm[key][key2],'utf-8','ignore')
+                        if self._is_string(elm[key][key2]):
+                            elm[key][key2] = decode(elm[key][key2],'utf-8','ignore')
                         
                 if self._is_string(elm[key]):
                     elm[key] = decode(elm[key],'utf-8','ignore')
@@ -382,11 +383,10 @@ class MPlugin:
 
         retval = ''
 
-#        try:
-        if True:
+        try:
             retval = json.dumps(elm).encode('utf8')
-#        except:
-#            pass
+        except:
+            pass
 
         return retval
 
