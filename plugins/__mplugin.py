@@ -383,11 +383,10 @@ class MPlugin:
 
         retval = ''
 
-#        try:
-        if True:
+        try:
             retval = json.dumps(elm).encode('utf8')
-#        except:
-#            pass
+        except:
+            pass
 
         return retval
 
