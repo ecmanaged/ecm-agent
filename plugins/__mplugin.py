@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # -*- coding:utf-8 -*-
 
 # Copyright (C) 2012 Juan Carlos Moreno <juancarlos.moreno at ecmanaged.com>
@@ -37,7 +39,7 @@ from os.path import dirname, abspath, join, exists, basename, getmtime
 from time import time
 from os import makedirs, chmod, utime
 
-import logging
+import logging 
 log = logging
 
 
@@ -57,7 +59,7 @@ class MPlugin:
 
         else:
             self.path = abspath(dirname(sys.argv[0]))
-
+            
         # Configure log
         if self.path:
             log.basicConfig(
@@ -65,7 +67,7 @@ class MPlugin:
                 format='%(levelname)s:%(message)s',
                 level=log.DEBUG
             )
-
+        
         # Read configuration
         self.data = self._read_config()
 
@@ -73,17 +75,17 @@ class MPlugin:
         self.config = {}
         for idx in self.data.get('config', {}).keys():
             self.config[idx] = self.data.get('config').get(idx, {}).get('value', None)
-
+            
         # set id and interval
         self.interval = self.data.get('interval', DEFAULT_INTERVAL)
         self.id = str(self.data.get('id', None))
-
+            
         # Get counters information
         self._counters = self._counters_read()
 
         # Get name from config or filename
         self.name = str(self.data.get('name', basename(sys.argv[0])))
-
+        
         # Get last execution time
         self.real_interval = self._get_real_interval()
 
@@ -115,24 +117,24 @@ class MPlugin:
 
         if not metrics or not self._is_dict(metrics):
             metrics = {}
-
+            
         # Sanitize
         data = self._sanitize(data)
         metrics = self._sanitize(metrics)
-
+            
         # Write counters
         self._counters_write()
-
+        
         print str(
             self._to_json({
                 'id': self.id,
-                'name': self.name,
-                'message': message,
-                'data': data,
-                'metrics': metrics
-            })
+                'name': self._to_utf8(self.name),
+                'message': self._to_utf8(message),
+                'data': self._to_utf8(data),
+                'metrics': self._to_utf8(metrics)
+            }).encode('utf-8')
         )
-
+        
         sys.exit(state)
 
     def install(self, id, config, script):
@@ -168,7 +170,7 @@ class MPlugin:
             return True
 
         return False
-
+        
     def _read_config(self):
         retval = {}
 
@@ -188,50 +190,50 @@ class MPlugin:
             log.warning("Data file doesn't exists: %s" % config_file)
 
         return retval
-
+        
     def _counters_read(self):
         counters_file = join(self.path, COUNTER_FILE_NAME)
-
+        
         if exists(counters_file):
             # check last modification time
             mtime = getmtime(counters_file)
             valid_time = time() - self.interval - 30
-
+            
             if mtime > valid_time:
                 return self._from_json(self._file_read(counters_file))
             else:
                 log.warning("Ignored counters file, is too old")
-
+            
         return {}
-
+    
     def _counters_write(self):
         if self._counters:
             counters_file = join(self.path, COUNTER_FILE_NAME)
             self._file_write(counters_file, self._to_json(self._counters))
-
+            
     def _get_real_interval(self):
         retval = 1
-
+        
         touch_file = join(self.path,TOUCH_FILE_NAME)
-
+        
         # Read mtime from touch file
         if exists(touch_file):
             tmp = int(time() - getmtime(touch_file))
             retval = tmp if tmp > 0 else 1
-
+            
         # touch file
         with open(touch_file, 'a'):
             utime(touch_file, None)
-
+            
         return retval
-
+        
 
     # Helper functions
 
     def _sanitize(self, obj):
         if not self._is_dict(obj):
            return obj
-
+ 
         for idx in obj:
             if self._is_dict(obj[idx]):
                 obj[idx] = self._sanitize(obj[idx])
@@ -244,7 +246,7 @@ class MPlugin:
                 pass
             else:
                 obj[idx] = str(obj[idx])
-
+                
         return obj
 
     def gauge(self, value):
@@ -253,7 +255,7 @@ class MPlugin:
         """
         if not self._is_number(value):
             return value
-
+        
         return value / self.real_interval
 
     def counter(self, value, index, gauge=True):
@@ -283,14 +285,14 @@ class MPlugin:
         current_counter = self._counters[index]
         new_counter = {}
         retval = {}
-
+        
         if not self._is_dict(obj):
             return retval
 
         for elm in obj:
             new_counter[elm] = {}
             retval[elm] = {}
-
+            
             if not current_counter.get(elm):
                 current_counter[elm] = {}
 
@@ -359,17 +361,32 @@ class MPlugin:
             pass
 
         return retval
+        
+    def _to_utf8(self,elm):
+        # FIXME: Do it recursive
+        from codecs import decode
+        if self._is_dict(elm):
+            for key in elm.keys():
+                if self._is_dict(elm[key]):
+                    for key2 in elm[key].keys():
+                        elm[key][key2] = decode(elm[key][key2],'utf-8','ignore')
+                        
+                if self._is_string(elm[key]):
+                    elm[key] = decode(elm[key],'utf-8','ignore')
+                
+        return elm
+        
 
-    @staticmethod
-    def _to_json(elm):
+    def _to_json(self, elm):
         import simplejson as json
 
         retval = ''
 
-        try:
-            retval = json.dumps(elm)
-        except:
-            pass
+#        try:
+        if True:
+            retval = json.dumps(elm).encode('utf8')
+#        except:
+#            pass
 
         return retval
 
@@ -430,10 +447,10 @@ class MPlugin:
     @staticmethod
     def _is_number(obj):
         return isinstance(obj, (int, long, float, complex))
-
+        
     @staticmethod
     def is_windows():
         if sys.platform.startswith("win32"):
             return True
-
+            
         return False
