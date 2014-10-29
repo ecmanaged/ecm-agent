@@ -18,7 +18,7 @@
 %define	ename	  ecagentd
 %define	pname	  ecmanaged	  
 %define summary   EC Managed - Monitor and deploy agent
-%define version   1.1.14
+%define version   2.1.0
 %define release   104
 %define license   GPLv3+
 %define group     Applications/System
