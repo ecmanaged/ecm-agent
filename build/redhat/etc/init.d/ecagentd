@@ -73,13 +73,22 @@ start() {
 }
 
 killagent() {
-	echo $"Killing ${NAME} "
-	PID=$(getpid)
+    echo $"Killing ${NAME} "
+    PID=$(getpid)
         ls -l /proc/$PID/exe > /dev/null 2>&1
         case "$?" in
                 0) kill -9 $PID >/dev/null 2>&1 ;;
                 *) ;;
         esac
+}
+
+zombies() {     
+    PID=$(getpid)
+    for i in $(ps axo ppid,state|grep -w Z|awk '{ print $1 }'); do
+        if [ $i -eq ${PID} ]; then
+            killagent
+        fi
+    done
 }
 
 stop() {
@@ -95,14 +104,13 @@ stop() {
 }
 
 check() {
-  	echo -n $"Checking status of ${NAME}: "
-  	PID=$(getpid)
-  	ls -l /proc/$PID/exe > /dev/null 2>&1
-	case "$?" in
-		0) echo 'OK' ;;
-		*) echo 'KO'; stop; start ;;
-	esac
-
+    echo -n $"Checking status of ${NAME}: "
+    PID=$(getpid)
+    ls -l /proc/$PID/exe > /dev/null 2>&1
+    case "$?" in
+        0) zombies; echo 'OK' ;;
+        *) echo 'KO'; stop; start ;;
+    esac
 }
 
 check_disk() {
@@ -134,10 +142,10 @@ case "$1" in
         restart
     ;;
     check)
-    	check
+        check
     ;;
     kill)
-    	killagent
+        killagent
     ;;
     *)
         echo $"Usage: $0 {start|stop|restart|check|kill}"

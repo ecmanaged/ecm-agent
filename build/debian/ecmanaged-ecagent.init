@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/sh 
 ### BEGIN INIT INFO
 # Provides:          ecagentd
 # Required-Start:    $remote_fs $network 
@@ -14,7 +14,6 @@ NAME=ecagentd
 TWISTD=/usr/bin/twistd
 TAC=$NAME.tac
 DESC="ECM Agent"
-MIN_DISK=1000
 
 test -x $TWISTD || exit 0
 
@@ -55,21 +54,19 @@ killagent() {
     esac
 }
 
-check_disk() {
-    USED_SPACE=`df -H -k $DIR | grep -vE '^Filesystem|tmpfs|cdrom' | awk '{ print $3 }'`
-    FREE_SPACE=`df -H -k $DIR | grep -vE '^Filesystem|tmpfs|cdrom' | awk '{ print $4 }'`
-    if [ ${USED_SPACE} -gt 1 ] && [ ${FREE_SPACE} -lt ${MIN_DISK} ]; then
-        echo " Not starting, sorry. No enough free space on ${DIR}"
-        log_end_msg 1
-        exit 1
-    fi
+zombies() {
+    PID=$(getpid)
+    for i in $(ps axo ppid,state|grep -w Z|awk '{ print $1 }'); do
+        if [ $i -eq ${PID} ]; then
+            killagent
+        fi
+    done
 }
 
 case "$1" in
   start)
     log_daemon_msg "Starting $DESC" "$NAME"
-    killagent
-    check_disk
+    killagent   
     /bin/rm -f $PID_FILE > /dev/null 2>&1
     start-stop-daemon --oknodo --start --pidfile $PID_FILE \
         --background --chdir $DIR --exec $TWISTD -- -ny $TAC >/dev/null 2>&1
@@ -103,7 +100,7 @@ case "$1" in
     PID=$(getpid)
     ls -l /proc/$PID/exe > /dev/null 2>&1
     case "$?" in
-        0) log_end_msg 0 ;;
+        0) zombies; log_end_msg 0 ;;
         *) $0 restart ;;
     esac
     ;;
