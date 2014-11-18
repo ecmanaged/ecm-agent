@@ -110,6 +110,9 @@ def download_file(url, filename=None, user=None, passwd=None):
     Downloads a remote content
     """
     import urllib2
+    import cgi
+    from os import path
+
     CHUNK = 256 * 10240
 
     try:
@@ -125,17 +128,19 @@ def download_file(url, filename=None, user=None, passwd=None):
 
         req = urllib2.urlopen(url.replace("'", ""))
 
-        # Try to get filename from headers
-        try:
-            import cgi
-            from os import path
+        if not filename:
+            from tempfile import mkdtemp
+            filename = path.join(mkdtemp(), 'downloaded.file')
 
-            _, params = cgi.parse_header(req.headers.get('Content-Disposition', ''))
-            _header_filename = params['filename']
-            if _header_filename:
-                filename = path.join(path.dirname(filename), _header_filename)
-        except:
-           pass
+            # Try to get filename from headers
+            try:
+                _, params = cgi.parse_header(req.headers.get('Content-Disposition', ''))
+                _header_filename = params['filename']
+
+                if _header_filename:
+                    filename = path.join(path.dirname(filename), _header_filename)
+            except:
+               pass
 
         with open(filename, 'wb') as fp:
             while True:

@@ -297,15 +297,13 @@ class FILE:
     def clone(self, branch, envars, url, username, password, private_key):
         """ Downloads a file from a remote url and decompress it
         """
-        file_name = 'downloaded.file'
-        tmp_dir = mkdtemp()
-
         file_downloaded = ecm.download_file(
             url=url,
-            filename=tmp_dir + os.path.altsep + file_name,
             user=username,
             passwd=password
         )
+
+        tmp_dir = os.path.dirname(file_downloaded)
 
         if file_downloaded:
             if self.extract:

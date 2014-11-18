@@ -362,7 +362,7 @@ class MPlugin:
 
         return retval
         
-    def _to_utf8(self,elm):
+    def _to_utf8(self, elm):
         # FIXME: Do it recursive
         from codecs import decode
         if self._is_dict(elm):
