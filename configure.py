@@ -19,7 +19,7 @@ import sys
 sys.path.append(".")
 
 import random
-from os.path import join, dirname
+from os.path import join, dirname, exists
 from uuid import getnode
 
 #Local
@@ -33,20 +33,11 @@ else:
     print "where XXXX-XXXX-XXX-XXX is the manualy set up UUID for the agent."
     sys.exit(1)
 
-
-#Parse config file or end execution
-config_filename = join(dirname(__file__), './config/ecagent.cfg')
-try:
-    config = ConfigObj(config_filename)
-except:
-    print 'Unable to read the config file at %s' % config_filename
-    print 'Agent will now quit'
-    sys.exit(2)
-
-config['XMPP']['user'] = '%s@%s' % (uuid, config['XMPP']['host'])
-config['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
-config['XMPP']['mac'] = str(getnode())
-config['XMPP']['manual'] = True
-config.write()
+# Just write uuid file and ecagentd.tac will do the rest
+config_uuid = join(dirname(__file__), './config/_uuid.cfg')
+if not exists(config_uuid):
+    f = open(config_uuid, 'w')
+    f.write('uuid:' + uuid)
+    f.close()
 
 print 'Manual configuration override succeeded.'
