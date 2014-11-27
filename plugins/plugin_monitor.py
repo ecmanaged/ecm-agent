@@ -41,10 +41,6 @@ CACHE_FILE_EXTENSION = 'cache'
 CACHE_FILE_EXPIRES = 86400
 CACHE_SOFT_TIME = 10
 
-PLUGIN_BASE = '__base__'
-
-IGNORE_EXT = ('cache', '~', 'pyc')
-
 class ECMMonitor(ECMPlugin):
     def cmd_monitor_get(self, *argv, **kwargs):
         """
@@ -78,51 +74,54 @@ class ECMMonitor(ECMPlugin):
             if not os.path.isdir(plugin_path):
                 continue
                 
-            for root, dirs, files in os.walk(plugin_path):
-                if plugin_path is MPLUGIN_PATH:
-                    files = files + dirs
-
-                for f in files:
-                    # Ignore som file extensions
-                    if f.endswith(IGNORE_EXT):
-                        continue
+            for p_path in os.listdir(plugin_path):
+                p_path = os.path.join(plugin_path, p_path)
+                if not os.path.isdir(p_path):
+                    continue
                         
-                    # Set default interval or read from path name
-                    runas = None
-                    script = os.path.join(root, f)
-                    interval = self._interval_from_path(root)
-                    
-                    # If is a directory search for script
-                    if plugin_path is MPLUGIN_PATH:
-                        current_dir = os.path.join(root, f)
-                        for _, _, files2 in os.walk(current_dir):
-                            for f2 in files2:
-                                if not f2.endswith('~') and f2.startswith(f):
-                                    script = os.path.join(current_dir, f2)
-                                    
-                                    # Read data from plugin config
-                                    mplugin = MPlugin(current_dir)
-                                    
-                                    runas = mplugin.data.get('runas', None)
-                                    interval = mplugin.data.get('interval', interval)
+                runas = None
+                scripts = []
+                interval = COMMAND_INTERVAL
 
-                                    # Executable plugin base
-                                    if f == PLUGIN_BASE and not os.access(script, os.X_OK):
-                                        os.chmod(script, 0755)
-                                    
-                                    # Update config                                    
-                                    if config:
-                                        mplugin.write_config(config.get(mplugin.id))
-                                        
-                                    break
-                       
-                    # Check is valid and executable 
-                    if not script or not os.access(script, os.X_OK):
+                # Search for plugin files
+                if plugin_path == MPLUGIN_PATH:
+                    mplugin = MPlugin(p_path)
+                        
+                    runas = mplugin.data.get('runas', None)
+                    interval = mplugin.data.get('interval', interval)
+                    script = os.path.join(plugin_path, p_path, mplugin.id)
+                        
+                    if not os.path.exists(script):
+                        script += '.py'
+                        
+                    if not os.path.exists(script):
                         continue
+
+                    # Add as valid mplugin script
+                    scripts.append(script)
+                                    
+                    # Executable plugin base
+                    if not os.access(script, os.X_OK):
+                        os.chmod(script, 0755)
+                                    
+                    # Update config                                    
+                    if config:
+                        mplugin.write_config(config.get(mplugin.id))
                     
+                # Custom plugins path
+                elif plugin_path == CPLUGIN_PATH:
+                    # Set default interval or read from path name
+                    interval = self._interval_from_path(p_path)
+
+                    for filename in os.listdir(p_path):
+                        _tmp = os.path.join(plugin_path, p_path, filename)
+                        if os.access(_tmp, os.X_OK):
+                            scripts.append(_tmp)
+                            
+                for script in scripts:
                     # Read last result from cache (even if void)
                     from_cache = self._cache_read(script, interval + CACHE_SOFT_TIME)
-                    retval.append(self._parse_script_name(f) + GLUE + str(interval) + GLUE + from_cache)
+                    retval.append(self._parse_script_name(script) + GLUE + str(interval) + GLUE + from_cache)
                     
                     # Execute script if cache wont be valid on next command_get execution
                     if not self._cache_read(script, interval - COMMAND_INTERVAL):
@@ -130,7 +129,7 @@ class ECMMonitor(ECMPlugin):
                         
         for data in to_execute:
             _run_background_file(data['script'], data['runas'])
-            
+
         return retval
         
     def cmd_monitor_plugin_install(self, *argv, **kwargs):
@@ -150,7 +149,7 @@ class ECMMonitor(ECMPlugin):
             pass
         
         if not content:
-            raise Exception("Unable to get URL: %s" %url)
+            raise Exception("Unable to get URL: %s" % url)
             
         try: 
             plugin = json.loads(content)
@@ -192,7 +191,7 @@ class ECMMonitor(ECMPlugin):
         """
         Uninstalls a plugin [id=plugin_id]
         """
-        
+
         plugin_id = kwargs.get('id', None)
         
         if not plugin_id:
@@ -204,6 +203,7 @@ class ECMMonitor(ECMPlugin):
     @staticmethod
     def _interval_from_path(my_path):
         interval = os.path.split(my_path)[-1]
+        
         if not ecm.is_integer(interval):
             interval = COMMAND_INTERVAL
             
@@ -211,6 +211,7 @@ class ECMMonitor(ECMPlugin):
 
     @staticmethod
     def _parse_script_name(name):
+        name = os.path.basename(name)
         components = str(name).split('.')
         if len(components) > 1:
             del components[-1]  # Delete ext
@@ -227,18 +228,21 @@ class ECMMonitor(ECMPlugin):
     def _cache_read(command, cache_time):
         cache_file = os.path.join(CACHE_PATH, os.path.basename(command) + '.' + CACHE_FILE_EXTENSION)
         content = ''
-        if os.path.isfile(cache_file):
-            # check updated cache
-            modified = os.path.getmtime(cache_file)
-            if (modified + cache_time) < time():
-                os.remove(cache_file)
-                return content
 
-            # Return cache content
-            f = open(cache_file, 'r')
-            for line in f.readlines():
-                content += line
-            f.close()
+        # check updated cache
+        if os.path.isfile(cache_file):
+            modified = os.path.getmtime(cache_file)
+    
+            if (modified + cache_time) < time():
+                # Invalid cache file
+                os.remove(cache_file)
+            
+            else:
+                # Return cache content
+                f = open(cache_file, 'r')
+                for line in f.readlines():
+                    content += line
+                f.close()
 
         return content
         
@@ -303,7 +307,7 @@ def _run_background_file(script, run_as=None):
     
     # Write timeout to cache file
     _write_cache(script_name, CRITICAL, 'Timeout')
-
+    
     try:
         command = [fullpath]
         

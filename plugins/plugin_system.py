@@ -235,7 +235,7 @@ class ECMSystem(ECMPlugin):
         import socket
         """ Create dummy socket to get address """
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(('my.ecmanaged.com', 0))
+        s.connect(('app.ecmanaged.com', 0))
         return s.getsockname()[0]
 
     @staticmethod

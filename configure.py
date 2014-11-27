@@ -18,12 +18,7 @@
 import sys
 sys.path.append(".")
 
-import random
 from os.path import join, dirname, exists
-from uuid import getnode
-
-#Local
-from configobj import ConfigObj
 
 if len(sys.argv) == 2:
     uuid = sys.argv[1]

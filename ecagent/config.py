@@ -31,8 +31,8 @@ import ecagent.twlogging as log
 _URL_METADATA_TIMEOUT = 2
 _URL_METADATA_INSTANCE_ID = 'http://169.254.169.254/latest/meta-data/instance-id'
 
-_ECMANAGED_AUTH_URL = 'https://my.ecmanaged.com/agent/meta-data/uuid'
-_ECMANAGED_AUTH_URL_ALT = 'https://my.ecmanaged.com/agent/meta-data/uuid'
+_ECMANAGED_AUTH_URL = 'https://app.ecmanaged.com/agent/meta-data/uuid'
+_ECMANAGED_AUTH_URL_ALT = 'https://app.ecmanaged.com/agent/meta-data/uuid'
 
 
 class SMConfigObj(ConfigObj):
@@ -158,7 +158,7 @@ class SMConfigObj(ConfigObj):
     def _get_ip():
         """Create dummy socket to get address"""
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(('my.ecmanaged.com', 0))
+        s.connect(('app.ecmanaged.com', 0))
         return s.getsockname()[0]
 
     @staticmethod
