@@ -88,16 +88,16 @@ class BaseMPlugin(MPlugin):
                 if not self.is_windows():
                     try:
                         f = open('/proc/meminfo', 'r')
-    		        for line in f:
-        	            if line.startswith('Active:'):
+                        for line in f:
+                            if line.startswith('Active:'):
                                 retval['active'] = self.to_gb(int(line.split()[1]) * 1024)
-		            if line.startswith('Inactive:'):
+                            if line.startswith('Inactive:'):
                                 retval['inactive'] = self.to_gb(int(line.split()[1]) * 1024)
-		            if line.startswith('Buffers:'):
+                            if line.startswith('Buffers:'):
                                 retval['buffers'] = self.to_gb(int(line.split()[1]) * 1024)
-		            if line.startswith('Cached:'):
+                            if line.startswith('Cached:'):
                                 retval['cached'] = self.to_gb(int(line.split()[1]) * 1024)
-		            if line.startswith('Shared:'):
+                            if line.startswith('Shared:'):
                                 retval['shared'] = self.to_gb(int(line.split()[1]) * 1024)
                         f.close()
                         
@@ -145,7 +145,13 @@ class BaseMPlugin(MPlugin):
         return retval
 
     def _get_disk_io(self):
-        return self.counters(self._to_data(psutil.disk_io_counters(perdisk=True)), 'disk_io')
+        retval = {}
+        try:
+            retval = self.counters(self._to_data(psutil.disk_io_counters(perdisk=True)), 'disk_io')
+        except:
+            pass
+            
+        return retval
 
     def _get_cpu(self):
         retval = {}
@@ -305,7 +311,7 @@ class BaseMPlugin(MPlugin):
                 swap = psutil.virtmem_usage()
             
             retval = {
-                'total': swap.percent,
+                'percent': swap.percent,
                 'used': self.to_gb(swap.used),
                 'total': self.to_gb(swap.total),
                 'free': self.to_gb(swap.free)
@@ -325,15 +331,14 @@ class BaseMPlugin(MPlugin):
 
     @staticmethod
     def _boot_time_linux():
-        # Old psutil versions
         try:
-            return psutil.BOOT_TIME
+            return psutil.boot_time()
         except:
             pass
 
-        # psutil v2 versions
+        # Old psutil versions
         try:
-            return psutil.boot_time()
+            return psutil.BOOT_TIME
         except:
             pass
 
@@ -385,4 +390,3 @@ class BaseMPlugin(MPlugin):
 
 mplugin = BaseMPlugin()
 mplugin.run()
-
