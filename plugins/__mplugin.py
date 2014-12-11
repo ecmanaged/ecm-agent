@@ -44,8 +44,7 @@ log = logging
 
 
 def _timeout(signum, frame):
-    from os import _exit
-    _exit(TIMEOUT)
+    sys.exit(TIMEOUT)
 
 
 class MPlugin:

@@ -254,10 +254,6 @@ class ECMMonitor(ECMPlugin):
             if modified < (time() - CACHE_FILE_EXPIRES):
                 os.remove(cachefile)
 
-
-def _alarm_handler(signum, frame):
-    os._exit()
-
 def _write_cache(script, retval, std_out):
     # Write to cache file
     cache_file = os.path.abspath(
@@ -300,11 +296,6 @@ def _run_background_file(script, run_as=None):
     os.dup2(0, 1)
     os.dup2(0, 2)
 
-    # Set alarm
-    import signal
-    signal.signal(signal.SIGALRM, _alarm_handler)
-    signal.alarm(COMMAND_TIMEOUT)
-    
     # Write timeout to cache file
     _write_cache(script_name, CRITICAL, 'Timeout')
     
