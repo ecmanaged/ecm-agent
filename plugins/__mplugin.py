@@ -228,16 +228,21 @@ class MPlugin:
         return retval
         
     # Helper functions
-    def _sanitize(self, obj):
+    def _sanitize(self, obj, recursion=0):
         if not self._is_dict(obj):
             return obj
- 
+
+        # Avoid recursion loop
+        recursion += 1
+        if recursion > 100:
+            return obj
+
         for idx in obj:
             if self._is_dict(obj[idx]):
-                obj[idx] = self._sanitize(obj[idx])
+                obj[idx] = self._sanitize(obj[idx], recursion)
 
             elif self._is_list(obj[idx]):
-                obj[idx] = self._sanitize(obj[idx])
+                obj[idx] = self._sanitize(obj[idx], recursion)
 
             elif self._is_string:
                 obj[idx] = str(obj[idx])
