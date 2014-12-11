@@ -49,6 +49,7 @@ def _timeout(signum, frame):
 
 class MPlugin:
     def __init__(self, plugin_path=None):
+
         # set alarm for timeout
         signal.signal(signal.SIGALRM, _timeout)
         signal.alarm(CHECK_TIMEOUT)
