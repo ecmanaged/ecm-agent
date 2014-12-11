@@ -227,23 +227,25 @@ class MPlugin:
             
         return retval
         
-
     # Helper functions
-
     def _sanitize(self, obj):
         if not self._is_dict(obj):
-           return obj
+            return obj
  
         for idx in obj:
             if self._is_dict(obj[idx]):
                 obj[idx] = self._sanitize(obj[idx])
+
             elif self._is_list(obj[idx]):
                 obj[idx] = self._sanitize(obj[idx])
+
             elif self._is_string:
                 obj[idx] = str(obj[idx])
                 pass
+
             elif self._is_number(obj[idx]):
                 pass
+
             else:
                 obj[idx] = str(obj[idx])
                 
