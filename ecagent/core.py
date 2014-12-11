@@ -15,6 +15,7 @@
 #    under the License.
 
 KEEPALIVED_TIMEOUT = 60
+MAX_FAILED_LOGINS = 5
 XMPP_PORT = 5222
 
 from random import random
@@ -79,6 +80,8 @@ class BasicClient:
         #auth = XMPPAuthenticator(client_jid, secret)
         #self._factory = HTTPBindingStreamFactory(auth)
 
+        self.failed_count = 0
+
         self._xs = None
         self._keep_alive_lc = None
 
@@ -106,18 +109,24 @@ class BasicClient:
         #            connector.connect()
 
         # Give time to load commands
-        reactor.callLater(3, self._connect)
+        reactor.callLater(5, self._connect)
 
     def _connect(self):
         reactor.connectTCP(self._host, self._port, self._factory)
 
     def _failed_auth(self, error):
         """ overwrite in derivated class """
+        self.failed_count += 1
         log.info("Auth failed, trying to autoregister")
+
+        if self.failed_count > MAX_FAILED_LOGINS:
+            log.critical("Too many auth failures")
+            reactor.stop()
+
         self._factory.authenticator.registerAccount(self._user.split('@')[0], self._password)
 
         # Initialize again in a few
-        reactor.callLater(3, self._factory.authenticator.initializeStream)
+        reactor.callLater(5, self._factory.authenticator.initializeStream)
 
     def _stream_end(self, error):
         """ overwrite in derivated class """

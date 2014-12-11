@@ -377,10 +377,10 @@ class MPlugin:
                 if self._is_dict(elm[key]):
                     for key2 in elm[key].keys():
                         if self._is_string(elm[key][key2]):
-                            elm[key][key2] = decode(elm[key][key2],'utf-8','ignore')
+                            elm[key][key2] = decode(elm[key][key2], 'utf-8', 'ignore')
                         
                 if self._is_string(elm[key]):
-                    elm[key] = decode(elm[key],'utf-8','ignore')
+                    elm[key] = decode(elm[key], 'utf-8', 'ignore')
                 
         return elm
         
