@@ -19,7 +19,7 @@ import os
 import simplejson as json
 from base64 import b64decode
 from subprocess import Popen, PIPE
-from time import time
+from time import time, sleep
 
 # Local
 import __helper as ecm
@@ -263,38 +263,63 @@ def _write_cache(script, retval, std_out):
     f.write("%s%s%s" % (retval, GLUE, std_out))
     f.close()
 
-def _run_background_file(script, run_as=None):
+def _create_daemon(script):
     """Detach a process from the controlling terminal and run it in the
     background as a daemon.
     """
     workdir = os.path.dirname(script)
-    fullpath = os.path.abspath(script)
-    
-    script_name = os.path.basename(fullpath)
-    
+
     try:
+        # Fork a child process so the parent can exit
         pid = os.fork()
     except OSError:
         raise Exception
 
     if pid == 0:
+        # To become the session leader of this new session and the process group
+        # leader of the new process group, we call os.setsid().  The process is
+        # also guaranteed not to have a controlling terminal.
         os.setsid()
+        
         try:
+            # Fork a second child and exit immediately to prevent zombies.  This
+            # causes the second child process to be orphaned, making the init
+            # process responsible for its cleanup.
             pid = os.fork()
         except OSError:
             raise Exception
 
         if pid == 0:
+            # The second child.
             os.chdir(workdir)
             os.umask(0)
         else:
+            # Exit parent (the first child) of the second child.
             os._exit(0)
     else:
         # parent returns
-        return
+        return(1)
 
+    # The standard I/O file descriptors are redirected to /dev/null by default.
+    if (hasattr(os, "devnull")):
+       REDIRECT_TO = os.devnull
+    else:
+       REDIRECT_TO = "/dev/null"
+
+    os.open(REDIRECT_TO, os.O_RDWR)
     os.dup2(0, 1)
     os.dup2(0, 2)
+    
+    return(0)
+
+def _run_background_file(script, run_as=None):
+
+    fullpath = os.path.abspath(script)
+    script_name = os.path.basename(fullpath)
+
+    # Create child process and return if parent
+    if _create_daemon(script):
+        return
 
     # Write timeout to cache file
     _write_cache(script_name, CRITICAL, 'Timeout')
@@ -312,25 +337,63 @@ def _run_background_file(script, run_as=None):
             # don't use su - xxx or env variables will not be available
             command = ['su', run_as, '-c', ' '.join(map(str, fullpath))]
 
+        # Avoid PIPE is your enemy problem:
+        # http://www.synsecblog.com/2013/01/python-subprocesspipe-is-your-enemy.html
+            
+        import socket
+
+        stdout = socket.socketpair()
+        stderr = socket.socketpair()
+        
+        # nonblocking and timeout is not the same, timeout is easier to handle via socket.timeout exception
+        stdout[0].settimeout(0.01)
+        stderr[0].settimeout(0.01)
+
+        retval = None
+        out, err = u"",u""
+
         p = Popen(
             command,
             env=os.environ.copy(),
             bufsize=0,
-            stdin=PIPE, stdout=PIPE, stderr=PIPE,
+            stdout=stdout[1],
+            stderr=stderr[1],
             universal_newlines=True,
             close_fds=(os.name == 'posix')
         )
         
-        std_out, std_err = p.communicate()
-        retval = p.wait()
+        while True:
+            p.poll()
+ 
+            try:
+                outtmp = stdout[0].recv(4096)
+            except socket.timeout as exc:
+                outtmp = ""
+     
+            try:
+                errtmp = stderr[0].recv(4096)
+            except socket.timeout as exc:
+                errtmp = ""
+ 
+            out += outtmp
+            err += errtmp
 
-        _write_cache(script_name, retval, std_out)
+            # finish if empty buffers and has finished            
+            if not outtmp and not errtmp and retval != None:
+                break
+ 
+            if p.returncode != None:
+                retval = p.returncode
+                    
+            sleep(0.1)
+
+        _write_cache(script_name, retval, out)
 
     except Exception, e:
         _write_cache(script_name, CRITICAL, e.message)
         pass
 
-    os._exit(0)
+    exit(0)
 
 
 ECMMonitor().run()
