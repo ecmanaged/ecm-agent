@@ -58,7 +58,7 @@ zombies() {
     PID=$(getpid)
     for i in $(ps axo ppid,state|grep -w Z|awk '{ print $1 }'); do
         if [ $i -eq ${PID} ]; then
-            killagent
+            $0 restart
         fi
     done
 }
