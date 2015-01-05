@@ -218,7 +218,6 @@ class ECMMonitor(ECMPlugin):
 
         return '.'.join(components)
 
-
     @staticmethod
     def _check_path(path):
         if not os.path.isdir(path):
