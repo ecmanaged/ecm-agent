@@ -15,6 +15,7 @@
 #    under the License.
 
 import os
+import sys
 
 import simplejson as json
 from base64 import b64decode
@@ -271,45 +272,41 @@ def _create_daemon(script):
     try:
         # Fork a child process so the parent can exit
         pid = os.fork()
+
+        # parent returns
+        if pid > 0:
+            return 1
+
     except OSError:
         raise Exception
 
-    if pid == 0:
-        # To become the session leader of this new session and the process group
-        # leader of the new process group, we call os.setsid().  The process is
-        # also guaranteed not to have a controlling terminal.
-        os.setsid()
-        
-        try:
-            # Fork a second child and exit immediately to prevent zombies.  This
-            # causes the second child process to be orphaned, making the init
-            # process responsible for its cleanup.
-            pid = os.fork()
-        except OSError:
-            raise Exception
+    # Decouple from parent environment
+    os.chdir(workdir)
+    os.setsid()
+    os.umask(0)
 
-        if pid == 0:
-            # The second child.
-            os.chdir(workdir)
-            os.umask(0)
-        else:
-            # Exit parent (the first child) of the second child.
-            os._exit(0)
-    else:
-        # parent returns
-        return(1)
+    # Second fork
+    try:
+        pid = os.fork()
 
-    # The standard I/O file descriptors are redirected to /dev/null by default.
-    if (hasattr(os, "devnull")):
-       REDIRECT_TO = os.devnull
-    else:
-       REDIRECT_TO = "/dev/null"
+        # Exit from second parent
+        if pid > 0:
+            sys.exit(0)
 
-    os.open(REDIRECT_TO, os.O_RDWR)
-    os.dup2(0, 1)
-    os.dup2(0, 2)
-    
-    return(0)
+    except OSError:
+        raise Exception
+
+    # Redirect standard file descriptors
+    sys.stdout.flush()
+    sys.stderr.flush()
+    si = file('/dev/null', 'r')
+    so = file('/dev/null', 'a+')
+    se = file('/dev/null', 'a+', 0)
+    os.dup2(si.fileno(), sys.stdin.fileno())
+    os.dup2(so.fileno(), sys.stdout.fileno())
+    os.dup2(se.fileno(), sys.stderr.fileno())
+
+    return 0
 
 def _run_background_file(script, run_as=None):
 
@@ -326,7 +323,6 @@ def _run_background_file(script, run_as=None):
     try:
         command = [fullpath]
         
-        import sys
         sys.path.append(MY_PATH)
         
         env = os.environ.copy()
@@ -336,7 +332,7 @@ def _run_background_file(script, run_as=None):
             # don't use su - xxx or env variables will not be available
             command = ['su', run_as, '-c', ' '.join(map(str, fullpath))]
 
-        # Avoid PIPE is your enemy problem:
+        # Avoid "PIPE is your enemy" problem:
         # http://www.synsecblog.com/2013/01/python-subprocesspipe-is-your-enemy.html
             
         import socket
@@ -384,7 +380,7 @@ def _run_background_file(script, run_as=None):
             if p.returncode != None:
                 retval = p.returncode
                     
-            sleep(0.1)
+            sleep(0.2)
 
         _write_cache(script_name, retval, out)
 
@@ -392,7 +388,7 @@ def _run_background_file(script, run_as=None):
         _write_cache(script_name, CRITICAL, e.message)
         pass
 
-    exit(0)
+    sys.exit(0)
 
 
 ECMMonitor().run()
