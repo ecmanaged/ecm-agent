@@ -42,6 +42,7 @@ CACHE_FILE_EXTENSION = 'cache'
 CACHE_FILE_EXPIRES = 86400
 CACHE_SOFT_TIME = 10
 
+
 class ECMMonitor(ECMPlugin):
     def cmd_monitor_get(self, *argv, **kwargs):
         """
@@ -254,6 +255,7 @@ class ECMMonitor(ECMPlugin):
             if modified < (time() - CACHE_FILE_EXPIRES):
                 os.remove(cachefile)
 
+
 def _write_cache(script, retval, std_out):
     # Write to cache file
     cache_file = os.path.abspath(
@@ -263,12 +265,11 @@ def _write_cache(script, retval, std_out):
     f.write("%s%s%s" % (retval, GLUE, std_out))
     f.close()
 
-def _create_daemon(script):
+
+def _fork(workdir):
     """Detach a process from the controlling terminal and run it in the
     background as a daemon.
     """
-    workdir = os.path.dirname(script)
-
     try:
         # Fork a child process so the parent can exit
         pid = os.fork()
@@ -297,24 +298,33 @@ def _create_daemon(script):
         raise Exception
 
     # Redirect standard file descriptors
+    # The standard I/O file descriptors are redirected to /dev/null by default.
+    DEVNULL = "/dev/null"
+    
+    if hasattr(os, "devnull"):
+        DEVNULL = os.devnull
+       
     sys.stdout.flush()
     sys.stderr.flush()
-    si = file('/dev/null', 'r')
-    so = file('/dev/null', 'a+')
-    se = file('/dev/null', 'a+', 0)
+    
+    si = file(DEVNULL, 'r')
+    so = file(DEVNULL, 'a+')
+    se = file(DEVNULL, 'a+', 0)
+    
     os.dup2(si.fileno(), sys.stdin.fileno())
     os.dup2(so.fileno(), sys.stdout.fileno())
     os.dup2(se.fileno(), sys.stderr.fileno())
 
     return 0
 
-def _run_background_file(script, run_as=None):
 
+def _run_background_file(script, run_as=None):
     fullpath = os.path.abspath(script)
     script_name = os.path.basename(fullpath)
+    workdir = os.path.dirname(script)
 
     # Create child process and return if parent
-    if _create_daemon(script):
+    if _fork(workdir):
         return
 
     # Write timeout to cache file
@@ -322,67 +332,13 @@ def _run_background_file(script, run_as=None):
     
     try:
         command = [fullpath]
-        
         sys.path.append(MY_PATH)
         
         env = os.environ.copy()
         env['PYTHONPATH'] = MY_PATH + ':' + env.get('PYTHONPATH', '')
         
-        if run_as and not ecm.is_windows():
-            # don't use su - xxx or env variables will not be available
-            command = ['su', run_as, '-c', ' '.join(map(str, fullpath))]
-
-        # Avoid "PIPE is your enemy" problem:
-        # http://www.synsecblog.com/2013/01/python-subprocesspipe-is-your-enemy.html
-            
-        import socket
-
-        stdout = socket.socketpair()
-        stderr = socket.socketpair()
-        
-        # nonblocking and timeout is not the same, timeout is easier to handle via socket.timeout exception
-        stdout[0].settimeout(0.01)
-        stderr[0].settimeout(0.01)
-
-        retval = None
-        out, err = u"",u""
-
-        p = Popen(
-            command,
-            env=os.environ.copy(),
-            bufsize=0,
-            stdout=stdout[1],
-            stderr=stderr[1],
-            universal_newlines=True,
-            close_fds=(os.name == 'posix')
-        )
-        
-        while True:
-            p.poll()
- 
-            try:
-                outtmp = stdout[0].recv(4096)
-            except socket.timeout as exc:
-                outtmp = ""
-     
-            try:
-                errtmp = stderr[0].recv(4096)
-            except socket.timeout as exc:
-                errtmp = ""
- 
-            out += outtmp
-            err += errtmp
-
-            # finish if empty buffers and has finished            
-            if not outtmp and not errtmp and retval != None:
-                break
- 
-            if p.returncode != None:
-                retval = p.returncode
-                    
-            sleep(0.2)
-
-        _write_cache(script_name, retval, out)
+        retval, stdout, stderr = ecm.run_command(command, runas=run_as, envars=env)
+        _write_cache(script_name, retval, stdout)
 
     except Exception, e:
         _write_cache(script_name, CRITICAL, e.message)
