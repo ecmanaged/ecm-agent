@@ -266,65 +266,13 @@ def _write_cache(script, retval, std_out):
     f.close()
 
 
-def _fork(workdir):
-    """Detach a process from the controlling terminal and run it in the
-    background as a daemon.
-    """
-    try:
-        # Fork a child process so the parent can exit
-        pid = os.fork()
-
-        # parent returns
-        if pid > 0:
-            return 1
-
-    except OSError:
-        raise Exception
-
-    # Decouple from parent environment
-    os.chdir(workdir)
-    os.setsid()
-    os.umask(0)
-
-    # Second fork
-    try:
-        pid = os.fork()
-
-        # Exit from second parent
-        if pid > 0:
-            sys.exit(0)
-
-    except OSError:
-        raise Exception
-
-    # Redirect standard file descriptors
-    # The standard I/O file descriptors are redirected to /dev/null by default.
-    DEVNULL = "/dev/null"
-    
-    if hasattr(os, "devnull"):
-        DEVNULL = os.devnull
-       
-    sys.stdout.flush()
-    sys.stderr.flush()
-    
-    si = file(DEVNULL, 'r')
-    so = file(DEVNULL, 'a+')
-    se = file(DEVNULL, 'a+', 0)
-    
-    os.dup2(si.fileno(), sys.stdin.fileno())
-    os.dup2(so.fileno(), sys.stdout.fileno())
-    os.dup2(se.fileno(), sys.stderr.fileno())
-
-    return 0
-
-
 def _run_background_file(script, run_as=None):
     fullpath = os.path.abspath(script)
     script_name = os.path.basename(fullpath)
     workdir = os.path.dirname(script)
 
     # Create child process and return if parent
-    if _fork(workdir):
+    if ecm.fork(workdir):
         return
 
     # Write timeout to cache file
