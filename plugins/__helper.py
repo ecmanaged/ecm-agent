@@ -312,12 +312,12 @@ def run_file(filename, args=None, stdin=None, runas=None, workdir=None, envars=N
     return 255, '', 'Script file not found'
 
 
-def run_command(command, args=None, stdin=None, runas=None, workdir=None, envars=None):
+def run_command(command, args=None, stdin=None, runas=None, workdir=None, envars=None, only_stdout=False):
     """
     Execute command and flush stdout/stderr using threads
     """
     e = ECMExec()
-    return e.command(command, args, stdin, runas, workdir, envars)
+    return e.command(command, args, stdin, runas, workdir, envars, only_stdout)
 
 
 def write_metadata(metadata=None, metadata_b64=None, metadata_json=None):
@@ -649,7 +649,7 @@ class ECMExec:
         self.thread_stderr = ''
         self.thread_run = 1
 
-    def command(self, command, args=None, std_input=None, run_as=None, working_dir=None, envars=None):
+    def command(self, command, args=None, std_input=None, run_as=None, working_dir=None, envars=None, only_stdout = False):
         """
         Execute command and flush stdout/stderr using threads
         """
@@ -708,7 +708,7 @@ class ECMExec:
                 return p.wait(), std_output, std_error
 
             else:
-                thread = Thread(target=self._thread_flush_worker, args=[p.stdout, p.stderr])
+                thread = Thread(target=self._thread_flush_worker, args=[p.stdout, p.stderr, only_stdout])
                 thread.daemon = True
                 thread.start()
 
@@ -730,7 +730,7 @@ class ECMExec:
         except Exception as e:
             return 255, '', 'Unknown error: %s' % e
 
-    def _thread_flush_worker(self, std_output, std_error):
+    def _thread_flush_worker(self, std_output, std_error, only_stdout=False):
         """
         needs to be in a thread so we can read the stdout w/o blocking
         """
@@ -746,8 +746,13 @@ class ECMExec:
 
                 out = clean_stdout(self._non_block_read(std_error))
                 if out:
-                    self.thread_stderr += out
-                    stderr.write(out)
+                    if only_stdout:
+                        self.thread_stdout += out
+                        stdout.write(out)
+
+                    else:
+                        self.thread_stderr += out
+                        stderr.write(out)
 
                 sleep(_FLUSH_WORKER_SLEEP_TIME)
 

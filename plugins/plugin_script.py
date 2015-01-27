@@ -47,7 +47,7 @@ class ECMScript(ECMPlugin):
             ecm.file_write(tmp_file, b64decode(script_b64))
 
         except:
-            raise ecm.InvalidParameters("Unable to decode script")
+            raise ecm.InvalidParameters("Unable to decode b64")
 
         # Set environment variables before execution
         envars = ecm.metadata_to_env(metadata_b64=metadata)
@@ -66,6 +66,27 @@ class ECMScript(ECMPlugin):
             out, stdout, stderr = ecm.run_file(tmp_file, runas=script_runas, workdir=tmp_dir, envars=envars)
 
         rmtree(tmp_dir, ignore_errors=True)
+        return ecm.format_output(out, stdout, stderr)
+
+    def cmd_code_run(self, *argv, **kwargs):
+        """
+        run code(b64) in path
+        Syntax: code.run[code,path,runas]
+        """
+        code_b64 = kwargs.get('code', None)
+        code_path = kwargs.get('path', None)
+        code_runas = kwargs.get('runas', None)
+
+        if not code_b64:
+            raise ecm.InvalidParameters(self.cmd_code_run.__doc__)
+
+        try:
+            code = b64decode(code_b64)
+
+        except:
+            raise ecm.InvalidParameters("Unable to decode b64")
+
+        out, stdout, stderr = ecm.run_command(code, runas=code_runas, workdir=code_path, only_stdout=True)
         return ecm.format_output(out, stdout, stderr)
 
 

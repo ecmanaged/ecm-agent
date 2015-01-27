@@ -28,7 +28,6 @@ PATH_TO_CONFIG = '../config/ecagent.cfg'
 class ECMCommand(ECMPlugin):
     def __init__(self, *argv, **kwargs):
         config_filename = join(dirname(__file__), PATH_TO_CONFIG)
-
         try:
             config = ConfigObj(config_filename)
             self.commands = self._get_commands(config)
