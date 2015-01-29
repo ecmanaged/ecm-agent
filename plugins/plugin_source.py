@@ -317,6 +317,7 @@ class FILE:
                     if extract.get('stdout', None) and self.old_dir:
                         extract['head'] += ecm.output("Old source files moved to '%s'" % self.old_dir)
             else:
+                move(file_downloaded, self.working_dir)
                 extract = {
                     'stdout': ecm.output("Source deployed successfully to '%s'" % self.working_dir),
                     'stderr': '',
