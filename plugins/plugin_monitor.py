@@ -78,7 +78,13 @@ class ECMMonitor(ECMPlugin):
                 
             for p_path in os.listdir(plugin_path):
                 p_path = os.path.join(plugin_path, p_path)
+
+                # Skip disabled plugins
                 if not os.path.isdir(p_path):
+                    continue
+
+                # Skip disabled plugins
+                if p_path.startswith('.'):
                     continue
                         
                 runas = None
