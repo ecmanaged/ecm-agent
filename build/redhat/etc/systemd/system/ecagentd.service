@@ -3,19 +3,15 @@ Description=ECManaged Agent for monitoring and deployment
 
 [Service]
 Type=simple
+PIDFile=/opt/ecmanaged/ecagent/twistd.pid
 #ExecStart=/usr/bin/twistd -y /opt/ecmanaged/ecagent/ecagentd.tac
 ExecStart=\
         /bin/twistd \
         --nodaemon \
-        --pidfile= \
+        --pidfile=/opt/ecmanaged/ecagent/twistd.pid \
         --no_save \
         --python=/opt/ecmanaged/ecagent/ecagentd.tac
 WorkingDirectory=/opt/ecmanaged/ecagent
-NonBlocking=true
-
-[Socket]
-ListenStream=0.0.0.0:443
 
 [Install]
 WantedBy=multi-user.target
-WantedBy=sockets.target

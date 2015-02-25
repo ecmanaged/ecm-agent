@@ -3,6 +3,7 @@
 #
 # Author:       Juan Carlos Moreno <juancarlos.moreno@ecmanaged.com>
 #               Gonzalo Radio <gonzalo.radio@ackstorm.com>
+#               Arindam Choudhury <arindam@live.com>
 #
 # chkconfig: - 85 20
 #
@@ -12,26 +13,21 @@
 
 set +e
 
-PATH=/usr/bin:/sbin:/bin:/usr/sbin
-export PATH
-
-[ -f /etc/sysconfig/ecagent ] && . /etc/sysconfig/ecagent
-
-NAME=${NAME-ecagentd}
-TWISTD=${TWISTD-/usr/bin/twistd}
-TAC=${TAC-"$NAME.tac"}
-DESC=${DESC-"ECM Agent"}
-DIR=${DIR-/opt/ecmanaged/ecagent}
-PID_FILE=${PID_FILE-"$DIR/twistd.pid"}
-RETRY=${RETRY-15}
-LOCKFILE=${LOCKFILE-"$DIR/$NAME.lock"}
+NAME=${NAME:-ecagentd}
+TWISTD=${TWISTD:-/usr/bin/twistd}
+TAC=${TAC:-"$NAME.tac"}
+DESC=${DESC:-"ECM Agent"}
+DIR=${DIR:-/opt/ecmanaged/ecagent}
+PID_FILE=${PID_FILE:-"$DIR/twistd.pid"}
+RETRY=${RETRY:-15}
+LOCKFILE=${LOCKFILE:-"$DIR/$NAME.lock"}
 RETVAL=0
 MIN_DISK=1000
 
 test -x $TWISTD || exit 0
 
-export LANG="C"
-export PATH="${PATH:+$PATH:}/usr/sbin:/sbin"
+#export LANG="C"
+#export PATH="${PATH:-$PATH}:/usr/sbin:/sbin"
 
 # clean related environment when started from cloud-init
 # bug: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=439763
@@ -93,7 +89,7 @@ zombies() {
 
 stop() {
     echo -n $"Stopping ${NAME}: "
-    killproc $pidopts $PID_FILE
+    killproc $pidopts
     RETVAL=$?
     echo
     if [ $RETVAL = 0 ]; then
@@ -123,8 +119,8 @@ check_disk() {
 }
 
 restart() {
-    stop
-    start
+    systemctl stop ecagentd.service
+    systemctl start ecagentd.service
 }
 
 getpid() {
@@ -153,4 +149,3 @@ case "$1" in
 esac
 
 exit $RETVAL
-
