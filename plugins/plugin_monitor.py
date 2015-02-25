@@ -84,7 +84,7 @@ class ECMMonitor(ECMPlugin):
                     continue
 
                 # Skip disabled plugins
-                if p_path.startswith('.'):
+                if os.path.basename(p_path).startswith('.'):
                     continue
                         
                 runas = None
