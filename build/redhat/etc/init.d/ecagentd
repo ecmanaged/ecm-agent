@@ -20,7 +20,7 @@ DESC=${DESC:-"ECM Agent"}
 DIR=${DIR:-/opt/ecmanaged/ecagent}
 PID_FILE=${PID_FILE:-"$DIR/twistd.pid"}
 RETRY=${RETRY:-15}
-LOCKFILE=${LOCKFILE:-"$DIR/$NAME.lock"}
+#LOCKFILE=${LOCKFILE:-"$DIR/$NAME.lock"}
 RETVAL=0
 MIN_DISK=1000
 
@@ -59,13 +59,21 @@ cd $DIR
 ##[ -n "$INIT_VERSION" ] && ECAGENT_OPTS="${ECAGENT_OPTS} --fullrun"
 
 start() {
-    echo -n $"Starting ${NAME}: "
     check_disk
-    /bin/rm -f $PID_FILE > /dev/null 2>&1
+    if [ -f ${PID_FILE} ]; then
+        PID=$(getpid)
+        if [ -e /proc/${PID} -a /proc/${PID}/exe ]; then
+            echo ${NAME} is already running: $PID
+            exit 2;
+        else
+            rm  -f ${PID_FILE}
+        fi
+    fi
+    
+    echo -n $"Starting ${NAME}: "
     daemon $daemonopts $TWISTD -y $TAC 2>/dev/null
     RETVAL=$?
     echo
-    [ $RETVAL = 0 ] && touch ${LOCKFILE}
 }
 
 killagent() {
@@ -93,7 +101,7 @@ stop() {
     RETVAL=$?
     echo
     if [ $RETVAL = 0 ]; then
-        rm -f ${LOCKFILE} ${PID_FILE}
+        rm -f ${PID_FILE}
     else
         killagent
     fi
@@ -134,6 +142,9 @@ case "$1" in
     stop)
         stop
     ;;
+    status)
+        status twistd        
+    ;;
     restart)
         restart
     ;;
@@ -144,7 +155,7 @@ case "$1" in
         killagent
     ;;
     *)
-        echo $"Usage: $0 {start|stop|restart|check|kill}"
+        echo $"Usage: $0 {start|stop|status|restart|check|kill}"
         exit 1
 esac
 
