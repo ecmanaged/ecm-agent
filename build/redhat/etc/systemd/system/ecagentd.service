@@ -11,7 +11,10 @@ ExecStart=\
         --pidfile=/opt/ecmanaged/ecagent/twistd.pid \
         --no_save \
         --python=/opt/ecmanaged/ecagent/ecagentd.tac
+
 WorkingDirectory=/opt/ecmanaged/ecagent
+Restart=always
+RestartSec=300
 
 [Install]
 WantedBy=multi-user.target
