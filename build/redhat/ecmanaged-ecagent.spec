@@ -114,5 +114,5 @@ systemctl daemon-reload
 %exclude /opt/ecmanaged/ecagent/configure.pyo
 
 %changelog
-* Thursday February 26 2015 Arindam Choudhury <arindam@live.com>
+* Wed Feb 25 2015 Arindam Choudhury <arindam@live.com> - 2.1.2-109
 - updated for better systemd integration
