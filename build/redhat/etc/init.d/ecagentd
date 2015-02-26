@@ -119,8 +119,8 @@ check_disk() {
 }
 
 restart() {
-    systemctl stop ecagentd.service
-    systemctl start ecagentd.service
+    stop
+    start
 }
 
 getpid() {
