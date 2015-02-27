@@ -57,7 +57,7 @@ ECManaged  Agent - Monitoring and deployment agent
 
 rm -rf %{buildroot}
 
-mkdir -p %{buildroot}/opt//ecmanaged/ecagent
+mkdir -p %{buildroot}/opt/ecmanaged/ecagent
 mkdir -p %{buildroot}/etc
 mkdir -p %{buildroot}/etc/rc.d/init.d
 mkdir -p %{buildroot}/etc/cron.d
