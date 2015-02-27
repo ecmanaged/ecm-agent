@@ -61,7 +61,6 @@ mkdir -p %{buildroot}/opt//ecmanaged/ecagent
 mkdir -p %{buildroot}/etc
 mkdir -p %{buildroot}/etc/rc.d/init.d
 mkdir -p %{buildroot}/etc/cron.d
-mkdir -p %{buildroot}%{_unitdir}/
 
 rsync -av --exclude '*build*' %{_builddir}/%{name}/* %{buildroot}/opt/ecmanaged/ecagent/
 
