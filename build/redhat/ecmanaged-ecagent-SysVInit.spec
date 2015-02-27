@@ -14,7 +14,7 @@
 %define ename     ecagentd
 %define pname     ecmanaged
 
-Name:		  %{name}
+Name:		          %{name}
 Version:          2.1.2       
 Release:          109%{?dist}
 Summary:          ECManaged  Agent - Monitoring and deployment agent
@@ -37,7 +37,10 @@ Requires:         rpm-python
 Requires:         python-crypto
 Requires:         python-httplib2
 
-BuildRequires:    systemd
+Requires(post):   chkconfig
+Requires(preun):  chkconfig
+# This is for /sbin/service
+Requires(preun):  initscripts
 
 Provides:         ecmanaged-ecagent
 
@@ -62,22 +65,21 @@ mkdir -p %{buildroot}%{_unitdir}/
 
 rsync -av --exclude '*build*' %{_builddir}/%{name}/* %{buildroot}/opt/ecmanaged/ecagent/
 
-cp %{_builddir}/%{name}/build/redhat/etc/systemd/system/ecagentd.service %{buildroot}%{_unitdir}/
+install -m 750 %{_builddir}/%{name}/build/redhat/etc/init.d/%{ename} %{buildroot}/etc/rc.d/init.d
+install -m 644 %{_builddir}/%{name}/build/redhat/etc/cron.d/ecmanaged-ecagent %{buildroot}/etc/cron.d
 
 %clean
 rm -rf %{_buildroot}%{name}
 rm -rf %{_source_path}%{name}
 
 %post
-systemctl daemon-reload
-systemctl enable ecagentd.service
-systemctl daemon-reload
-systemctl start ecagentd.service >/dev/null 2>&1
+chkconfig --add %{ename}
+chkconfig --level 2345 %{ename} on
+service %{ename} start >/dev/null 2>&1
 
 %preun
-systemctl stop ecagentd.service >/dev/null 2>&1
-systemctl disable ecagentd.service
-systemctl daemon-reload
+service %{ename} stop >/dev/null 2>&1
+chkconfig --del %{ename}
 
 %files
 %defattr(755,root,root,-)
@@ -86,7 +88,8 @@ systemctl daemon-reload
 %doc /opt/ecmanaged/ecagent/LICENSE
 %doc /opt/ecmanaged/ecagent/README.md
 
-%attr(750,root,root) /usr/lib/systemd/system/ecagentd.service
+%attr(750,root,root) /etc/rc.d/init.d/ecagentd
+%attr(750,root,root) /etc/cron.d/ecmanaged-ecagent
 
 %dir /opt/ecmanaged/ecagent/
 /opt/ecmanaged/ecagent/ecagent/*.py
