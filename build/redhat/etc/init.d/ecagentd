@@ -88,9 +88,12 @@ killagent() {
 
 zombies() {     
     PID=$(getpid)
-    for i in $(ps axo ppid,state,etimes|grep -w Z|awk '{if ($3 >= 300) print $1 }'); do
+    for i in $(ps aux | awk '"[Zz]" ~ $8 { printf("%d\n", $2); }'); do
         if [ $i -eq ${PID} ]; then
-             restart
+            if [ $(ps --pid $PID -o etime= | sed 's/:\|-/ /g;' | awk '{print $4" "$3" "$2" "$1}' | \
+                  awk '{print $1+$2*60+$3*3600+$4*86400}') > 300 ]; then
+                restart
+            fi
         fi
     done
 }
