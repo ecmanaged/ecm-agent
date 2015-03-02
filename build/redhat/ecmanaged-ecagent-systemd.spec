@@ -37,9 +37,8 @@ Requires:         rpm-python
 Requires:         python-crypto
 Requires:         python-httplib2
 
-Requires(post):   systemd
-Requires(preun):  systemd
-Requires(postun): systemd
+Requires:         systemd
+
 
 Provides:         ecmanaged-ecagent
 
