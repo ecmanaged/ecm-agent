@@ -37,7 +37,9 @@ Requires:         rpm-python
 Requires:         python-crypto
 Requires:         python-httplib2
 
-BuildRequires:    systemd
+Requires(post):   systemd
+Requires(preun):  systemd
+Requires(postun): systemd
 
 Provides:         ecmanaged-ecagent
 
@@ -78,13 +80,6 @@ systemctl daemon-reload
 
 %files
 %defattr(755,root,root,-)
-
-%doc LICENSE README.md
-%doc /opt/ecmanaged/ecagent/LICENSE
-%doc /opt/ecmanaged/ecagent/README.md
-
-%attr(750,root,root) /usr/lib/systemd/system/ecagentd.service
-
 %dir /opt/ecmanaged/ecagent/
 /opt/ecmanaged/ecagent/ecagent/*.py
 /opt/ecmanaged/ecagent/configure.py
@@ -94,6 +89,12 @@ systemctl daemon-reload
 /opt/ecmanaged/ecagent/examples/*.py
 /opt/ecmanaged/ecagent/monitor/*
 /opt/ecmanaged/ecagent/plugins/*.py
+
+%doc LICENSE README.md
+%doc /opt/ecmanaged/ecagent/LICENSE
+%doc /opt/ecmanaged/ecagent/README.md
+
+%attr(750,root,root) /usr/lib/systemd/system/ecagentd.service
 
 %dir %attr(700,root,root) %config /opt/ecmanaged/ecagent/config
 %attr(400,root,root) %config /opt/ecmanaged/ecagent/config/ecagent.init.cfg
