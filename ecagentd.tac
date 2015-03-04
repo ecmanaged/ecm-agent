@@ -67,10 +67,9 @@ try:
     if configure_uuid:
         # Write static configuration and continue
         import random
-        from uuid import getnode
         config['XMPP']['user'] = '%s@%s' % (configure_uuid, config['XMPP']['host'])
         config['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
-        config['XMPP']['mac'] = str(getnode())
+        config['XMPP']['unique_id'] = config._get_unique_id()
         config['XMPP']['manual'] = True
         config.write()
 

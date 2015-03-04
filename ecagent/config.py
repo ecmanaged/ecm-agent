@@ -2,7 +2,7 @@
 
 # Copyright (C) 2012 Juan Carlos Moreno <juancarlos.moreno at ecmanaged.com>
 #
-#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
 #    a copy of the License at
 #
@@ -29,7 +29,11 @@ from twisted.web.client import getPage
 import ecagent.twlogging as log
 
 _URL_METADATA_TIMEOUT = 2
-_URL_METADATA_INSTANCE_ID = 'http://169.254.169.254/latest/meta-data/instance-id'
+_URL_METADATA_INSTANCE_ID = {
+    'aws': 'http://169.254.169.254/latest/meta-data/instance-id',
+    'google': 'http://metadata/computeMetadata/v1/instance/id',
+    'openstack': 'curl http://169.254.169.254/2009-04-04/meta-data/instance-id'
+}
 
 _ECMANAGED_AUTH_URL = 'https://app.ecmanaged.com/agent/meta-data/uuid'
 _ECMANAGED_AUTH_URL_ALT = 'https://app.ecmanaged.com/agent/meta-data/uuid'
@@ -37,23 +41,24 @@ _ECMANAGED_AUTH_URL_ALT = 'https://app.ecmanaged.com/agent/meta-data/uuid'
 
 class SMConfigObj(ConfigObj):
     """
-    A simple wrapper for ConfigObj that will check the MAC and try to
+    A simple wrapper for ConfigObj that will check the UNIQUE_ID and try to
     reconfigure if it has changed before launching the agent.
     """
+
     def __init__(self, filename):
         ConfigObj.__init__(self, filename)
 
     @inlineCallbacks
     def check_uuid(self):
-        mac = self._get_mac()
+        unique_id = self._get_unique_id()
 
         # Always generate a new password if not is set
         if not self['XMPP']['password']:
             self['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
 
-        if mac:
-            if str(mac) == str(self._get_stored_mac()):
-                log.debug("MAC has not changed. Skip UUID check")
+        if unique_id:
+            if str(unique_id) == str(self._get_stored_unique_id()):
+                log.debug("UNIQUE ID has not changed. Skip UUID check")
 
             else:
                 # Try to get uuid (one hour and a half loop: 360x15)
@@ -74,19 +79,19 @@ class SMConfigObj(ConfigObj):
 
                 if str(uuid) == str(self._get_stored_uuid()):
                     log.debug("UUID has not changed.")
-                    self['XMPP']['mac'] = mac
+                    self['XMPP']['unique_id'] = unique_id
                     self.write()
 
                 else:
                     log.info("UUID has changed, reconfiguring XMPP user/pass")
                     self['XMPP']['user'] = '@'.join((uuid, self['XMPP']['host']))
-                    self['XMPP']['mac'] = mac
+                    self['XMPP']['unique_id'] = unique_id
                     self.write()
 
             returnValue(True)
 
         else:
-            log.error("ERROR: Could not obtain MAC. please set up XMPP manually in %s" % self.filename)
+            log.error("ERROR: Could not obtain UNIQUE_ID. please set up XMPP manually in %s" % self.filename)
             raise Exception('Could not obtain UUID')
 
     def _get_uuid(self):
@@ -110,16 +115,17 @@ class SMConfigObj(ConfigObj):
     def _get_uuid_via_web(self):
         hostname = ''
         address = ''
-        mac = ''
+        unique_id = ''
         try:
             hostname = self._get_hostname()
             address = self._get_ip()
-            mac = self._get_mac()
+            unique_id = self._get_unique_id()
         except Exception:
             pass
 
-        auth_url = _ECMANAGED_AUTH_URL + "/?ipaddress=%s&hostname=%s&mac=%s" % (address, hostname, mac)
-        auth_url_alt = _ECMANAGED_AUTH_URL_ALT + "/?ipaddress=%s&hostname=%s&mac=%s" % (address, hostname, mac)
+        auth_url = _ECMANAGED_AUTH_URL + "/?ipaddress=%s&hostname=%s&unique_id=%s" % (address, hostname, unique_id)
+        auth_url_alt = _ECMANAGED_AUTH_URL_ALT + "/?ipaddress=%s&hostname=%s&unique_id=%s" % (
+            address, hostname, unique_id)
 
         auth_content = yield getPage(auth_url)
 
@@ -133,10 +139,10 @@ class SMConfigObj(ConfigObj):
         returnValue('')
 
     def _get_stored_uuid(self):
-        return self['XMPP']['user'].split('@')[0]
+        return self['XMPP'].get('user', '').split('@')[0]
 
-    def _get_stored_mac(self):
-        return self['XMPP']['mac']
+    def _get_stored_unique_id(self):
+        return self['XMPP'].get('unique_id', '')
 
     @staticmethod
     def _get_uuid_pre_configured():
@@ -166,31 +172,49 @@ class SMConfigObj(ConfigObj):
         return node()
 
     @staticmethod
-    def _get_mac():
+    def _get_unique_id():
         """
-        Try to get a unique identified, Some providers may change mac on stop/start
+        Try to get a unique identified, Some providers may change UNIQUE_ID on stop/start
         Use a low timeout to speed up agent start when no meta-data url
         """
         uuid = None
+
         try:
-            import urllib
             # Get info from meta-data
+            import urllib2
             socket.setdefaulttimeout(_URL_METADATA_TIMEOUT)
-            urlopen = urllib.urlopen(_URL_METADATA_INSTANCE_ID)
-            socket.setdefaulttimeout(10)
 
-            for line in urlopen.readlines():
-                if "i-" in line:
-                    uuid = hex(line)
-            urlopen.close()
+            for metadata_type in _URL_METADATA_INSTANCE_ID:
+                instance_id = None
+                try:
+                    request = urllib2.Request(_URL_METADATA_INSTANCE_ID[metadata_type])
 
-        except Exception:
+                    # Google needs header
+                    request.add_header('Metadata-Flavor', 'Google')
+
+                    response = urllib2.urlopen(request)
+                    instance_id = response.readlines()[0]
+                    response.close()
+
+                except urllib2.URLError, e:
+                    continue
+
+                if instance_id:
+                    uuid = metadata_type + '::' + instance_id
+                    break
+
+        except:
             pass
+        finally:
+            # Set default timeout again
+            socket.setdefaulttimeout(10)
 
         if not uuid:
             # Use network mac address
             from uuid import getnode
             from re import findall
-            uuid = ':'.join(findall('..', '%012x' % getnode()))
+
+            uuid = 'mac::' + ':'.join(findall('..', '%012x' % getnode()))
 
         return uuid
+
