@@ -31,8 +31,8 @@ import ecagent.twlogging as log
 _URL_METADATA_TIMEOUT = 2
 _URL_METADATA_INSTANCE_ID = {
     'aws': 'http://169.254.169.254/latest/meta-data/instance-id',
-    'google': 'http://metadata/computeMetadata/v1/instance/id',
-    'openstack': 'curl http://169.254.169.254/2009-04-04/meta-data/instance-id'
+    'gce': 'http://metadata/computeMetadata/v1/instance/id',
+    'do': 'http://169.254.169.254/metadata/v1/id'
 }
 
 _ECMANAGED_AUTH_URL = 'https://app.ecmanaged.com/agent/meta-data/uuid'
