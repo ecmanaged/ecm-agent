@@ -17,7 +17,7 @@
 
 Name:             %{name}
 Version:          %{version}       
-Release:          109%{?dist}
+Release:          109.systemd
 Summary:          ECManaged  Agent - Monitoring and deployment agent
 Group:            Applications/System
 License:          GPLv3+
