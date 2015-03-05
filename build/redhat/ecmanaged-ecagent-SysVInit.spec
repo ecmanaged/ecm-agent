@@ -69,8 +69,7 @@ install -m 750 %{_builddir}/%{name}-%{version}/build/redhat/etc/init.d/%{ename} 
 install -m 644 %{_builddir}/%{name}-%{version}/build/redhat/etc/cron.d/ecmanaged-ecagent %{buildroot}/etc/cron.d
 
 %clean
-rm -rf %{_buildroot}%{name}
-rm -rf %{_source_path}%{name}
+rm -rf %{buildroot}
 
 %post
 chkconfig --add %{ename}
