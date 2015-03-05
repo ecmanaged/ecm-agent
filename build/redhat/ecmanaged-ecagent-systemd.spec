@@ -1,10 +1,10 @@
 #===============================================================================
 # Copyright 2014 ACKSTORM S.L.
-# Name: ecmanaged-ecagent.spec 
+# Name: ecmanaged-ecagent-systemd.spec 
 #-------------------------------------------------------------------------------
-# $Id: ecmanaged-ecagent.spec,v 0.9 2014/02/20 11:10:00 $
+# $Id: ecmanaged-ecagent-systemd.spec,v 0.9 2014/02/20 11:10:00 $
 #-------------------------------------------------------------------------------
-# Purpose: RPM Spec file for ecagent 
+# Purpose: RPM Spec file for ecagent on systemd systems
 #===============================================================================
 
 # No debuginfo:
@@ -40,7 +40,6 @@ Requires:         python-httplib2
 
 Requires:         systemd
 
-
 Provides:         ecmanaged-ecagent
 
 %description
@@ -51,22 +50,15 @@ ECManaged  Agent - Monitoring and deployment agent
 
 %build
 
-
 %install
-
 rm -rf %{buildroot}
-
 mkdir -p %{buildroot}/opt/ecmanaged/ecagent
-#mkdir -p %{buildroot}%{_unitdir}/
 mkdir -p %{buildroot}/usr/lib/systemd/system
-
 rsync -av --exclude '*build*' %{_builddir}/%{name}-%{version}/* %{buildroot}/opt/ecmanaged/ecagent/
-
-#cp %{_builddir}/%{name}-%{version}/build/redhat/etc/systemd/system/ecagentd.service %{buildroot}%{_unitdir}/
 cp %{_builddir}/%{name}-%{version}/build/redhat/etc/systemd/system/ecagentd.service %{buildroot}/usr/lib/systemd/system/
+
 %clean
-rm -rf %{_buildroot}%{name}
-rm -rf %{_source_path}%{name}
+rm -rf %{buildroot}
 
 %post
 systemctl daemon-reload
