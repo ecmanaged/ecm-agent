@@ -53,18 +53,13 @@ ECManaged  Agent - Monitoring and deployment agent
 
 %build
 
-
 %install
-
 rm -rf %{buildroot}
-
 mkdir -p %{buildroot}/opt/ecmanaged/ecagent
 mkdir -p %{buildroot}/etc
 mkdir -p %{buildroot}/etc/rc.d/init.d
 mkdir -p %{buildroot}/etc/cron.d
-
 rsync -av --exclude '*build*' %{_builddir}/%{name}-%{version}/* %{buildroot}/opt/ecmanaged/ecagent/
-
 install -m 750 %{_builddir}/%{name}-%{version}/build/redhat/etc/init.d/%{ename} %{buildroot}/etc/rc.d/init.d
 install -m 644 %{_builddir}/%{name}-%{version}/build/redhat/etc/cron.d/ecmanaged-ecagent %{buildroot}/etc/cron.d
 
