@@ -52,10 +52,6 @@ class SMConfigObj(ConfigObj):
     def check_uuid(self):
         unique_id = self._get_unique_id()
 
-        # Always generate a new password if not is set
-        if not self['XMPP']['password']:
-            self['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
-
         if unique_id:
             if str(unique_id) == str(self._get_stored_unique_id()):
                 log.debug("UNIQUE ID has not changed. Skip UUID check")
@@ -71,6 +67,7 @@ class SMConfigObj(ConfigObj):
 
                     except Exception:
                         pass
+
                     sleep(15)
 
                 if not uuid:

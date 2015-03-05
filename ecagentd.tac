@@ -36,7 +36,6 @@ from ecagent.config import SMConfigObj
 from ecagent.agent import SMAgent
 import ecagent.twlogging as log
 
-
 # Read pre-configuration
 configure_uuid = None
 try:
@@ -68,7 +67,6 @@ try:
         # Write static configuration and continue
         import random
         config['XMPP']['user'] = '%s@%s' % (configure_uuid, config['XMPP']['host'])
-        config['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
         config['XMPP']['unique_id'] = config._get_unique_id()
         config['XMPP']['manual'] = True
         config.write()
@@ -77,6 +75,12 @@ except Exception:
     print 'Unable to read the config file at %s' % config_file
     print 'Agent will now quit'
     sys.exit(-1)
+
+# Generate a new password if not set and write it asap
+# Avoids problem when starting at same time two agents not configured (fedora??)
+if not config['XMPP']['password']:
+    config['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
+    config.write()
 
 # Start agent and setup logging
 application = Application("ecagent")

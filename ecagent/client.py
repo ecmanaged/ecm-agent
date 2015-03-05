@@ -41,22 +41,16 @@ class Client(BasicClient):
 
         self._online_contacts = set()
 
+        max_concurrent = 10
         if 'max_concurrent_messages' in config:
             max_concurrent = config.as_int('max_concurrent_messages')
 
-        else:
-            max_concurrent = 10
-
-        self._concurrency_semaphore = DeferredSemaphore(max_concurrent)
-
+        max_delay = 60
         if 'max_delay' in config:
             max_delay = self.cfg.as_int('max_delay')
 
-        else:
-            max_delay = 60
-
+        self._concurrency_semaphore = DeferredSemaphore(max_concurrent)
         self._my_full_jid = '/'.join((config['user'], resource))
-
         BasicClient.__init__(self,
                              config['user'],
                              config['password'],
