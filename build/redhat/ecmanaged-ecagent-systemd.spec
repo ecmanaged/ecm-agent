@@ -59,9 +59,9 @@ rm -rf %{buildroot}
 mkdir -p %{buildroot}/opt/ecmanaged/ecagent
 mkdir -p %{buildroot}%{_unitdir}/
 
-rsync -av --exclude '*build*' %{_builddir}/%{name}/* %{buildroot}/opt/ecmanaged/ecagent/
+rsync -av --exclude '*build*' %{_builddir}/%{name}-%{version}/* %{buildroot}/opt/ecmanaged/ecagent/
 
-cp %{_builddir}/%{name}/build/redhat/etc/systemd/system/ecagentd.service %{buildroot}%{_unitdir}/
+cp %{_builddir}/%{name}-%{version}/build/redhat/etc/systemd/system/ecagentd.service %{buildroot}%{_unitdir}/
 
 %clean
 rm -rf %{_buildroot}%{name}
