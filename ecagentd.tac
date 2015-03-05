@@ -53,16 +53,16 @@ except:
     pass
 
 # Parse config file or end execution
-config_filename = join(dirname(__file__), './config/ecagent.cfg')
+config_file = join(dirname(__file__), './config/ecagent.cfg')
+config_file_init = join(dirname(__file__), './config/ecagent.init.cfg')
 
 # Is inital config (move init to cfg)
-if not exists(config_filename):
-    config_filename_init = join(dirname(__file__), './config/ecagent.init.cfg')
-    if exists(config_filename_init):
-        rename(config_filename_init, config_filename)
+if not exists(config_file) and exists(config_file_init):
+    rename(config_file_init, config_file)
 
+# Read config and start
 try:
-    config = SMConfigObj(config_filename)
+    config = SMConfigObj(config_file)
 
     if configure_uuid:
         # Write static configuration and continue
@@ -74,7 +74,7 @@ try:
         config.write()
 
 except Exception:
-    print 'Unable to read the config file at %s' % config_filename
+    print 'Unable to read the config file at %s' % config_file
     print 'Agent will now quit'
     sys.exit(-1)
 
