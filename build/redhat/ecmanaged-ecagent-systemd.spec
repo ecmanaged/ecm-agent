@@ -57,12 +57,13 @@ ECManaged  Agent - Monitoring and deployment agent
 rm -rf %{buildroot}
 
 mkdir -p %{buildroot}/opt/ecmanaged/ecagent
-mkdir -p %{buildroot}%{_unitdir}/
+#mkdir -p %{buildroot}%{_unitdir}/
+mkdir -p %{buildroot}/usr/lib/systemd/system
 
 rsync -av --exclude '*build*' %{_builddir}/%{name}-%{version}/* %{buildroot}/opt/ecmanaged/ecagent/
 
-cp %{_builddir}/%{name}-%{version}/build/redhat/etc/systemd/system/ecagentd.service %{buildroot}%{_unitdir}/
-
+#cp %{_builddir}/%{name}-%{version}/build/redhat/etc/systemd/system/ecagentd.service %{buildroot}%{_unitdir}/
+cp %{_builddir}/%{name}-%{version}/build/redhat/etc/systemd/system/ecagentd.service %{buildroot}/usr/lib/systemd/system/
 %clean
 rm -rf %{_buildroot}%{name}
 rm -rf %{_source_path}%{name}
