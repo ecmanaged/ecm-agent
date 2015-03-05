@@ -15,7 +15,7 @@
 #    under the License.
 
 # Chmod to current path
-from os import chdir, remove, rename
+from os import chdir, remove, rename, getpid
 from os.path import dirname, abspath, join, exists
 import gc
 
@@ -70,17 +70,32 @@ try:
         config['XMPP']['manual'] = True
         config.write()
 
+    # Generate a new password if not set and write it asap
+    # Avoids problem when starting at same time two agents not configured (fedora??)
+    if not config['XMPP'].get('password'):
+        import random
+        config['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
+        config.write()
+
 except Exception:
     print 'Unable to read the config file at %s' % config_file
     print 'Agent will now quit'
     sys.exit(-1)
 
-# Generate a new password if not set and write it asap
-# Avoids problem when starting at same time two agents not configured (fedora??)
-if not config['XMPP']['password']:
-    import random
-    config['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
-    config.write()
+# Check for other processes running
+pid_file = join(dirname(__file__), './twistd.pid')
+
+if exists(pid_file):
+    from psutil import pid_exists
+
+    pid = open(pid_file).read()
+    if pid and pid_exists(int(pid)):
+        print 'Sorry, found another agent running'
+        print 'Agent will now quit'
+        sys.exit(-1)
+
+# Write my pid
+open(pid_file, 'w').write(str(getpid()))
 
 # Start agent and setup logging
 application = Application("ecagent")
