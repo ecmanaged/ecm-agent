@@ -47,7 +47,7 @@ Provides:         ecmanaged-ecagent
 ECManaged  Agent - Monitoring and deployment agent
 
 %prep
-%setup -qn %{name}
+%setup -qn %{name}-%{version}
 
 %build
 
