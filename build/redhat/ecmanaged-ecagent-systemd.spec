@@ -13,15 +13,16 @@
 %define name      ecmanaged-ecagent
 %define ename     ecagentd
 %define pname     ecmanaged
+%define version   2.1.2
 
-Name:		  %{name}
-Version:          2.1.2       
+Name:             %{name}
+Version:          %{version}       
 Release:          109%{?dist}
 Summary:          ECManaged  Agent - Monitoring and deployment agent
 Group:            Applications/System
 License:          GPLv3+
 URL:              www.ecmanaged.com
-Source0:          ecmanaged-ecagent.tar.gz
+Source0:          %{name}-%{version}.tar.gz
 BuildArch:        noarch
 
 Requires:         python2
