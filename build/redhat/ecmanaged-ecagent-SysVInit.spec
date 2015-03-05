@@ -1,10 +1,10 @@
 #===============================================================================
 # Copyright 2014 ACKSTORM S.L.
-# Name: ecmanaged-ecagent.spec 
+# Name: ecmanaged-ecagent-SysVInit.spec 
 #-------------------------------------------------------------------------------
-# $Id: ecmanaged-ecagent.spec,v 0.9 2014/02/20 11:10:00 $
+# $Id: ecmanaged-ecagent-SysVInit.spec,v 0.9 2014/02/20 11:10:00 $
 #-------------------------------------------------------------------------------
-# Purpose: RPM Spec file for ecagent 
+# Purpose: RPM Spec file for ecagent on sysv init systems
 #===============================================================================
 
 # No debuginfo:
@@ -13,15 +13,16 @@
 %define name      ecmanaged-ecagent
 %define ename     ecagentd
 %define pname     ecmanaged
+%define version   2.1.2
 
 Name:		          %{name}
-Version:          2.1.2       
-Release:          109%{?dist}
+Version:          %{version}       
+Release:          109.sysvinit
 Summary:          ECManaged  Agent - Monitoring and deployment agent
 Group:            Applications/System
 License:          GPLv3+
 URL:              www.ecmanaged.com
-Source0:          ecmanaged-ecagent.tar.gz
+Source0:          %{name}-%{version}.tar.gz
 BuildArch:        noarch
 
 Requires:         python2
@@ -48,7 +49,7 @@ Provides:         ecmanaged-ecagent
 ECManaged  Agent - Monitoring and deployment agent
 
 %prep
-%setup -qn %{name}
+%setup -qn %{name}-%{version}
 
 %build
 
@@ -62,10 +63,10 @@ mkdir -p %{buildroot}/etc
 mkdir -p %{buildroot}/etc/rc.d/init.d
 mkdir -p %{buildroot}/etc/cron.d
 
-rsync -av --exclude '*build*' %{_builddir}/%{name}/* %{buildroot}/opt/ecmanaged/ecagent/
+rsync -av --exclude '*build*' %{_builddir}/%{name}-%{version}/* %{buildroot}/opt/ecmanaged/ecagent/
 
-install -m 750 %{_builddir}/%{name}/build/redhat/etc/init.d/%{ename} %{buildroot}/etc/rc.d/init.d
-install -m 644 %{_builddir}/%{name}/build/redhat/etc/cron.d/ecmanaged-ecagent %{buildroot}/etc/cron.d
+install -m 750 %{_builddir}/%{name}-%{version}/build/redhat/etc/init.d/%{ename} %{buildroot}/etc/rc.d/init.d
+install -m 644 %{_builddir}/%{name}-%{version}/build/redhat/etc/cron.d/ecmanaged-ecagent %{buildroot}/etc/cron.d
 
 %clean
 rm -rf %{_buildroot}%{name}
