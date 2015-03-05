@@ -65,7 +65,6 @@ try:
 
     if configure_uuid:
         # Write static configuration and continue
-        import random
         config['XMPP']['user'] = '%s@%s' % (configure_uuid, config['XMPP']['host'])
         config['XMPP']['unique_id'] = config._get_unique_id()
         config['XMPP']['manual'] = True
@@ -79,6 +78,7 @@ except Exception:
 # Generate a new password if not set and write it asap
 # Avoids problem when starting at same time two agents not configured (fedora??)
 if not config['XMPP']['password']:
+    import random
     config['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
     config.write()
 
