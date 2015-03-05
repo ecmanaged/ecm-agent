@@ -105,17 +105,6 @@ chkconfig --del %{ename}
 %attr(400,root,root) %config /opt/ecmanaged/ecagent/config/ecagent.init.cfg
 %attr(400,root,root) %config /opt/ecmanaged/ecagent/config/xmpp_cert.pub
 
-%exclude /opt/ecmanaged/ecagent/plugins/*.pyc
-%exclude /opt/ecmanaged/ecagent/plugins/*.pyo
-%exclude /opt/ecmanaged/ecagent/examples/*.pyc
-%exclude /opt/ecmanaged/ecagent/examples/*.pyo
-%exclude /opt/ecmanaged/ecagent/ecagent/*.pyc
-%exclude /opt/ecmanaged/ecagent/ecagent/*.pyo
-%exclude /opt/ecmanaged/ecagent/ecagent/*.pyc
-%exclude /opt/ecmanaged/ecagent/ecagent/*.pyo
-%exclude /opt/ecmanaged/ecagent/configure.pyc
-%exclude /opt/ecmanaged/ecagent/configure.pyo
-
 %changelog
 * Wed Feb 25 2015 Arindam Choudhury <arindam@live.com> - 2.1.2-109
 - updated for better systemd integration
