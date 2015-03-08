@@ -86,8 +86,9 @@ class MPlugin:
         # Get name from config or filename
         self.name = str(self.data.get('name', basename(sys.argv[0])))
         
-        # Get last execution time
-        self.real_interval = self._get_real_interval()
+        # To calculate precise interval
+        self.time_start = time()
+        self.time_interval = None
 
     def write_config(self, config=None):
         if not config or not self._is_dict(config):
@@ -124,6 +125,9 @@ class MPlugin:
             
         # Write counters
         self._counters_write()
+
+        # Write interval file
+        self._interval_write(self.time_start)
         
         print str(
             self._to_json({
@@ -131,7 +135,8 @@ class MPlugin:
                 'name': self._to_utf8(self.name),
                 'message': self._to_utf8(message),
                 'data': self._to_utf8(data),
-                'metrics': self._to_utf8(metrics)
+                'metrics': self._to_utf8(metrics),
+                'interval': self._get_time_interval()
             }).encode('utf-8')
         )
         
@@ -210,23 +215,27 @@ class MPlugin:
         if self._counters:
             counters_file = join(self.path, COUNTER_FILE_NAME)
             self._file_write(counters_file, self._to_json(self._counters))
+
+    def _interval_write(self, time):
+        touch_file = join(self.path, TOUCH_FILE_NAME)
+        with open(touch_file, 'a'):
+            utime(touch_file, (time, time))
             
-    def _get_real_interval(self):
-        retval = 1
-        
+    def _get_time_interval(self):
+        if self.time_interval:
+            return self.time_interval
+
         touch_file = join(self.path,TOUCH_FILE_NAME)
-        
+
         # Read mtime from touch file
+        retval = 1
         if exists(touch_file):
             tmp = int(time() - getmtime(touch_file))
             retval = tmp if tmp > 0 else 1
-            
-        # touch file
-        with open(touch_file, 'a'):
-            utime(touch_file, None)
-            
+
+        self.time_interval = retval
         return retval
-        
+
     # Helper functions
     def _sanitize(self, obj, recursion=0):
         if not self._is_dict(obj):
@@ -253,7 +262,7 @@ class MPlugin:
 
             else:
                 obj[idx] = str(obj[idx])
-                
+
         return obj
 
     def gauge(self, value):
@@ -262,8 +271,8 @@ class MPlugin:
         """
         if not self._is_number(value):
             return value
-        
-        return value / self.real_interval
+
+        return value / self._get_time_interval()
 
     def counter(self, value, index, gauge=True):
         """
