@@ -1,10 +1,10 @@
 #===============================================================================
 # Copyright 2014 ACKSTORM S.L.
-# Name: ecmanaged-ecagent.spec 
+# Name: ecmanaged-ecagent-systemd.spec 
 #-------------------------------------------------------------------------------
-# $Id: ecmanaged-ecagent.spec,v 0.9 2014/02/20 11:10:00 $
+# $Id: ecmanaged-ecagent-systemd.spec,v 0.9 2014/02/20 11:10:00 $
 #-------------------------------------------------------------------------------
-# Purpose: RPM Spec file for ecagent 
+# Purpose: RPM Spec file for ecagent on systemd systems
 #===============================================================================
 
 # No debuginfo:
@@ -17,7 +17,7 @@
 
 Name:             %{name}
 Version:          %{version}       
-Release:          109%{?dist}
+Release:          109.systemd
 Summary:          ECManaged  Agent - Monitoring and deployment agent
 Group:            Applications/System
 License:          GPLv3+
@@ -40,32 +40,25 @@ Requires:         python-httplib2
 
 Requires:         systemd
 
-
 Provides:         ecmanaged-ecagent
 
 %description
 ECManaged  Agent - Monitoring and deployment agent
 
 %prep
-%setup -qn %{name}
+%setup -qn %{name}-%{version}
 
 %build
 
-
 %install
-
 rm -rf %{buildroot}
-
 mkdir -p %{buildroot}/opt/ecmanaged/ecagent
-mkdir -p %{buildroot}%{_unitdir}/
-
-rsync -av --exclude '*build*' %{_builddir}/%{name}/* %{buildroot}/opt/ecmanaged/ecagent/
-
-cp %{_builddir}/%{name}/build/redhat/etc/systemd/system/ecagentd.service %{buildroot}%{_unitdir}/
+mkdir -p %{buildroot}/usr/lib/systemd/system
+rsync -av --exclude '*build*' %{_builddir}/%{name}-%{version}/* %{buildroot}/opt/ecmanaged/ecagent/
+cp %{_builddir}/%{name}-%{version}/build/redhat/etc/systemd/system/ecagentd.service %{buildroot}/usr/lib/systemd/system/
 
 %clean
-rm -rf %{_buildroot}%{name}
-rm -rf %{_source_path}%{name}
+rm -rf %{buildroot}
 
 %post
 systemctl daemon-reload
@@ -99,17 +92,6 @@ systemctl daemon-reload
 %dir %attr(700,root,root) %config /opt/ecmanaged/ecagent/config
 %attr(400,root,root) %config /opt/ecmanaged/ecagent/config/ecagent.init.cfg
 %attr(400,root,root) %config /opt/ecmanaged/ecagent/config/xmpp_cert.pub
-
-%exclude /opt/ecmanaged/ecagent/plugins/*.pyc
-%exclude /opt/ecmanaged/ecagent/plugins/*.pyo
-%exclude /opt/ecmanaged/ecagent/examples/*.pyc
-%exclude /opt/ecmanaged/ecagent/examples/*.pyo
-%exclude /opt/ecmanaged/ecagent/ecagent/*.pyc
-%exclude /opt/ecmanaged/ecagent/ecagent/*.pyo
-%exclude /opt/ecmanaged/ecagent/ecagent/*.pyc
-%exclude /opt/ecmanaged/ecagent/ecagent/*.pyo
-%exclude /opt/ecmanaged/ecagent/configure.pyc
-%exclude /opt/ecmanaged/ecagent/configure.pyo
 
 %changelog
 * Wed Feb 25 2015 Arindam Choudhury <arindam@live.com> - 2.1.2-109
