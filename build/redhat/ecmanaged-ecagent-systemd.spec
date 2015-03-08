@@ -17,10 +17,10 @@
 
 Name:             %{name}
 Version:          %{version}       
-Release:          109.systemd
-Summary:          ECManaged  Agent - Monitoring and deployment agent
+Release:          110.systemd
+Summary:          ECManaged  Agent - Monitoring and deployment agent (systemd)
 Group:            Applications/System
-License:          GPLv3+
+License:          Apache v2
 URL:              www.ecmanaged.com
 Source0:          %{name}-%{version}.tar.gz
 BuildArch:        noarch

@@ -15,12 +15,12 @@
 %define pname     ecmanaged
 %define version   2.1.2
 
-Name:		          %{name}
+Name:		      %{name}
 Version:          %{version}       
-Release:          109.sysvinit
-Summary:          ECManaged  Agent - Monitoring and deployment agent
+Release:          110.sysvinit
+Summary:          ECManaged  Agent - Monitoring and deployment agent (sysvinit)
 Group:            Applications/System
-License:          GPLv3+
+License:          Apache v2
 URL:              www.ecmanaged.com
 Source0:          %{name}-%{version}.tar.gz
 BuildArch:        noarch
