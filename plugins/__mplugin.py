@@ -85,9 +85,9 @@ class MPlugin:
         # Get name from config or filename
         self.name = str(self.data.get('name', basename(sys.argv[0])))
         
-        # To calculate precise interval
-        self.time_start = time()
-        self.time_interval = None
+        # Initialize variables for counters and intervals
+        self._time_start = time()
+        self._time_interval = None
         self._counters = None
 
     def write_config(self, config=None):
@@ -97,7 +97,6 @@ class MPlugin:
         # Same config?
         json_config = self._to_json(config)
         if self.data.get('.raw', '') == json_config:
-            log.debug('No need to update config')
             return
 
         # Read from configfile
@@ -123,11 +122,9 @@ class MPlugin:
         data = self._sanitize(data)
         metrics = self._sanitize(metrics)
             
-        # Write counters
+        # Write counters and interval
         self._counters_write()
-
-        # Write interval file
-        self._interval_write(self.time_start)
+        self._interval_write()
         
         print str(
             self._to_json({
@@ -216,16 +213,16 @@ class MPlugin:
             counters_file = join(self.path, COUNTER_FILE_NAME)
             self._file_write(counters_file, self._to_json(self._counters))
 
-    def _interval_write(self, start_time):
+    def _interval_write(self):
         touch_file = join(self.path, TOUCH_FILE_NAME)
         with open(touch_file, 'a'):
-            utime(touch_file, (start_time, start_time))
+            utime(touch_file, (self._time_start, self._time_start))
             
     def _get_time_interval(self):
-        if self.time_interval:
-            return self.time_interval
+        if self._time_interval:
+            return self._time_interval
 
-        touch_file = join(self.path,TOUCH_FILE_NAME)
+        touch_file = join(self.path, TOUCH_FILE_NAME)
 
         # Read mtime from touch file
         retval = 1
@@ -233,7 +230,7 @@ class MPlugin:
             tmp = int(time() - getmtime(touch_file))
             retval = tmp if tmp > 0 else 1
 
-        self.time_interval = retval
+        self._time_interval = retval
         return retval
 
     # Helper functions
@@ -285,7 +282,7 @@ class MPlugin:
             return value
 
         # Read counters
-        if self.counters is None:
+        if self._counters is None:
             self._counters = self._counters_read()
             
         # Get interval
@@ -307,7 +304,7 @@ class MPlugin:
         """
 
         # Read counters
-        if self.counters is None:
+        if self._counters is None:
             self._counters = self._counters_read()
 
         if not self._counters.get(index):
@@ -377,7 +374,7 @@ class MPlugin:
         interval = self._get_time_interval()
 
         # Read counters
-        if self.counters is None:
+        if self._counters is None:
             self._counters = self._counters_read()
 
         if self._counters.get(INTERVAL_INDEX):
