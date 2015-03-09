@@ -17,7 +17,7 @@
 
 Name:             %{name}
 Version:          %{version}       
-Release:          111.sysvinit
+Release:          112.sysvinit
 Summary:          ECManaged  Agent - Monitoring and deployment agent (sysvinit)
 Group:            Applications/System
 License:          Apache v2
