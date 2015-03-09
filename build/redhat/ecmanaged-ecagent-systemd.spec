@@ -17,7 +17,7 @@
 
 Name:             %{name}
 Version:          %{version}       
-Release:          112.systemd
+Release:          113.systemd
 Summary:          ECManaged  Agent - Monitoring and deployment agent (systemd)
 Group:            Applications/System
 License:          Apache v2
@@ -79,7 +79,6 @@ if [[ $1 -eq 0 ]]; then
   systemctl disable ecagentd.service
   systemctl daemon-reload
 fi
-exit 0
 
 
 %files
