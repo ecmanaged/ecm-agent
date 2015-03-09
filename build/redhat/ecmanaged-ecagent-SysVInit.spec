@@ -83,7 +83,6 @@ if [[ $1 -eq 0 ]]; then
   service %{ename} stop >/dev/null 2>&1
   chkconfig --del %{ename}
 fi
-exit 0
 
 %files
 %defattr(755,root,root,-)
