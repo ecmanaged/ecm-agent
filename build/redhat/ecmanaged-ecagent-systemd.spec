@@ -84,6 +84,10 @@ fi
 %files
 %defattr(755,root,root,-)
 %dir /opt/ecmanaged/ecagent/
+%dir /opt/ecmanaged/ecagent/ecagent
+%dir /opt/ecmanaged/ecagent/monitor
+%dir /opt/ecmanaged/ecagent/plugins
+%dir /opt/ecmanaged/ecagent/examples
 /opt/ecmanaged/ecagent/ecagent/*.py
 /opt/ecmanaged/ecagent/configure.py
 /opt/ecmanaged/ecagent/ecagent.bat
