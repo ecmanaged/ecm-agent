@@ -66,14 +66,24 @@ install -m 644 %{_builddir}/%{name}-%{version}/build/redhat/etc/cron.d/ecmanaged
 %clean
 rm -rf %{buildroot}
 
+%pre
+if [[ $1 == 2 ]]; then
+  # Stop the service if we're upgrading
+  service %{ename} stop >/dev/null 2>&1
+fi
+
 %post
 chkconfig --add %{ename}
 chkconfig --level 2345 %{ename} on
 service %{ename} start >/dev/null 2>&1
 
 %preun
-service %{ename} stop >/dev/null 2>&1
-chkconfig --del %{ename}
+if [[ $1 -eq 0 ]]; then
+  # Stop and remove service on uninstall
+  service %{ename} stop >/dev/null 2>&1
+  chkconfig --del %{ename}
+fi
+exit 0
 
 %files
 %defattr(755,root,root,-)
