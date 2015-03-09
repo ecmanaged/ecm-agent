@@ -60,6 +60,12 @@ cp %{_builddir}/%{name}-%{version}/build/redhat/etc/systemd/system/ecagentd.serv
 %clean
 rm -rf %{buildroot}
 
+%pre
+if [[ $1 == 2 ]]; then
+  # Stop the service if we're upgrading
+  systemctl stop ecagentd.service >/dev/null 2>&1
+fi
+
 %post
 systemctl daemon-reload
 systemctl enable ecagentd.service
@@ -67,9 +73,14 @@ systemctl daemon-reload
 systemctl start ecagentd.service >/dev/null 2>&1
 
 %preun
-systemctl stop ecagentd.service >/dev/null 2>&1
-systemctl disable ecagentd.service
-systemctl daemon-reload
+if [[ $1 -eq 0 ]]; then
+  # Stop and remove service on uninstall
+  systemctl stop ecagentd.service >/dev/null 2>&1
+  systemctl disable ecagentd.service
+  systemctl daemon-reload
+fi
+exit 0
+
 
 %files
 %defattr(755,root,root,-)
