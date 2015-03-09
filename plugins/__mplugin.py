@@ -219,12 +219,18 @@ class MPlugin:
             utime(touch_file, (self._time_start, self._time_start))
             
     def _get_time_interval(self):
+        """
+        Read modification time from touch file and calculate
+        interval from last run time
+
+        @return: interval
+        """
         if self._time_interval:
             return self._time_interval
 
         touch_file = join(self.path, TOUCH_FILE_NAME)
 
-        # Read mtime from touch file
+
         retval = 1
         if exists(touch_file):
             tmp = int(time() - getmtime(touch_file))
@@ -390,6 +396,21 @@ class MPlugin:
     def to_mb(self, n):
         return self._convert_bytes(n, 'M')
 
+    def _to_utf8(self, elm):
+        # FIXME: Do it recursive
+        from codecs import decode
+        if self._is_dict(elm):
+            for key in elm.keys():
+                if self._is_dict(elm[key]):
+                    for key2 in elm[key].keys():
+                        if self._is_string(elm[key][key2]):
+                            elm[key][key2] = decode(elm[key][key2], 'utf-8', 'ignore')
+
+                if self._is_string(elm[key]):
+                    elm[key] = decode(elm[key], 'utf-8', 'ignore')
+
+        return elm
+
     @staticmethod
     def _state_to_str(state):
         states = {
@@ -416,23 +437,8 @@ class MPlugin:
 
         return retval
         
-    def _to_utf8(self, elm):
-        # FIXME: Do it recursive
-        from codecs import decode
-        if self._is_dict(elm):
-            for key in elm.keys():
-                if self._is_dict(elm[key]):
-                    for key2 in elm[key].keys():
-                        if self._is_string(elm[key][key2]):
-                            elm[key][key2] = decode(elm[key][key2], 'utf-8', 'ignore')
-                        
-                if self._is_string(elm[key]):
-                    elm[key] = decode(elm[key], 'utf-8', 'ignore')
-                
-        return elm
-        
-
-    def _to_json(self, elm):
+    @staticmethod
+    def _to_json(elm):
         import simplejson as json
 
         retval = ''
