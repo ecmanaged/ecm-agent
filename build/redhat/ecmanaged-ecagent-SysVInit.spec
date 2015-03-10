@@ -61,7 +61,7 @@ mkdir -p %{buildroot}/etc/rc.d/init.d
 mkdir -p %{buildroot}/etc/cron.d
 rsync -av --exclude '*build*' %{_builddir}/%{name}-%{version}/* %{buildroot}/opt/ecmanaged/ecagent/
 install -m 750 %{_builddir}/%{name}-%{version}/build/redhat/etc/init.d/%{ename} %{buildroot}/etc/rc.d/init.d
-install -m 644 %{_builddir}/%{name}-%{version}/build/redhat/etc/cron.d/ecmanaged-ecagent %{buildroot}/etc/cron.d
+install -m 644 %{_builddir}/%{name}-%{version}/build/redhat/etc/cron.d/ecmanaged-ecagent-SysVinit %{buildroot}/etc/cron.d/ecmanaged-ecagent
 
 %clean
 rm -rf %{buildroot}
