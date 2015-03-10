@@ -17,7 +17,7 @@
 
 Name:             %{name}
 Version:          %{version}       
-Release:          113.sysvinit
+Release:          114.sysvinit
 Summary:          ECManaged  Agent - Monitoring and deployment agent (sysvinit)
 Group:            Applications/System
 License:          Apache v2
@@ -92,7 +92,7 @@ fi
 %doc /opt/ecmanaged/ecagent/README.md
 
 %attr(750,root,root) /etc/rc.d/init.d/ecagentd
-%attr(750,root,root) /etc/cron.d/ecmanaged-ecagent
+%attr(640,root,root) /etc/cron.d/ecmanaged-ecagent
 
 %dir /opt/ecmanaged/ecagent/
 %dir /opt/ecmanaged/ecagent/ecagent
