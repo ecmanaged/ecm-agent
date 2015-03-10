@@ -1,0 +1,1 @@
+*/5 * * * root  service ecagentd status || service ecagentd start
