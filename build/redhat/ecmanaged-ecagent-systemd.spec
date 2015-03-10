@@ -17,7 +17,7 @@
 
 Name:             %{name}
 Version:          %{version}       
-Release:          113.systemd
+Release:          115.systemd
 Summary:          ECManaged  Agent - Monitoring and deployment agent (systemd)
 Group:            Applications/System
 License:          Apache v2
@@ -56,6 +56,7 @@ mkdir -p %{buildroot}/opt/ecmanaged/ecagent
 mkdir -p %{buildroot}/usr/lib/systemd/system
 rsync -av --exclude '*build*' %{_builddir}/%{name}-%{version}/* %{buildroot}/opt/ecmanaged/ecagent/
 cp %{_builddir}/%{name}-%{version}/build/redhat/etc/systemd/system/ecagentd.service %{buildroot}/usr/lib/systemd/system/
+cp %{_builddir}/%{name}-%{version}/build/redhat/etc/cron.d/ecmanaged-ecagent-systemd %{buildroot}/etc/cron.d/ecmanaged-ecagent
 
 %clean
 rm -rf %{buildroot}
@@ -102,6 +103,7 @@ fi
 %doc /opt/ecmanaged/ecagent/README.md
 
 %attr(750,root,root) /usr/lib/systemd/system/ecagentd.service
+%attr(640,root,root) /etc/cron.d/ecmanaged-ecagent
 
 %dir %attr(700,root,root) %config /opt/ecmanaged/ecagent/config
 %attr(400,root,root) %config /opt/ecmanaged/ecagent/config/ecagent.init.cfg
