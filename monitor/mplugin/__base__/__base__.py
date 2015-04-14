@@ -268,6 +268,8 @@ class BaseMPlugin(MPlugin):
             if p.dict['username']:
                 username = p.dict['username'][:8]
 
+            status = str(p.dict['status'])
+
             retval.append((p.pid,
                            username,
                            self.to_mb(getattr(p.dict['memory_info'], 'vms', 0)),
@@ -275,6 +277,7 @@ class BaseMPlugin(MPlugin):
                            p.dict['cpu_percent'],
                            p.dict['memory_percent'],
                            p.dict['name'] or '',
+                           status
             ))
         return retval
 
