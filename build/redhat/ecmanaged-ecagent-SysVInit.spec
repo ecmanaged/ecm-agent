@@ -15,9 +15,9 @@
 %define pname     ecmanaged
 %define version   2.1.2
 
-Name:		      %{name}
+Name:             %{name}
 Version:          %{version}       
-Release:          110.sysvinit
+Release:          115.sysvinit
 Summary:          ECManaged  Agent - Monitoring and deployment agent (sysvinit)
 Group:            Applications/System
 License:          Apache v2
@@ -61,10 +61,16 @@ mkdir -p %{buildroot}/etc/rc.d/init.d
 mkdir -p %{buildroot}/etc/cron.d
 rsync -av --exclude '*build*' %{_builddir}/%{name}-%{version}/* %{buildroot}/opt/ecmanaged/ecagent/
 install -m 750 %{_builddir}/%{name}-%{version}/build/redhat/etc/init.d/%{ename} %{buildroot}/etc/rc.d/init.d
-install -m 644 %{_builddir}/%{name}-%{version}/build/redhat/etc/cron.d/ecmanaged-ecagent %{buildroot}/etc/cron.d
+install -m 644 %{_builddir}/%{name}-%{version}/build/redhat/etc/cron.d/ecmanaged-ecagent-SysVinit %{buildroot}/etc/cron.d/ecmanaged-ecagent
 
 %clean
 rm -rf %{buildroot}
+
+%pre
+if [[ $1 == 2 ]]; then
+  # Stop the service if we're upgrading
+  service %{ename} stop >/dev/null 2>&1
+fi
 
 %post
 chkconfig --add %{ename}
@@ -72,8 +78,11 @@ chkconfig --level 2345 %{ename} on
 service %{ename} start >/dev/null 2>&1
 
 %preun
-service %{ename} stop >/dev/null 2>&1
-chkconfig --del %{ename}
+if [[ $1 -eq 0 ]]; then
+  # Stop and remove service on uninstall
+  service %{ename} stop >/dev/null 2>&1
+  chkconfig --del %{ename}
+fi
 
 %files
 %defattr(755,root,root,-)
@@ -83,9 +92,13 @@ chkconfig --del %{ename}
 %doc /opt/ecmanaged/ecagent/README.md
 
 %attr(750,root,root) /etc/rc.d/init.d/ecagentd
-%attr(750,root,root) /etc/cron.d/ecmanaged-ecagent
+%attr(640,root,root) /etc/cron.d/ecmanaged-ecagent
 
 %dir /opt/ecmanaged/ecagent/
+%dir /opt/ecmanaged/ecagent/ecagent
+%dir /opt/ecmanaged/ecagent/monitor
+%dir /opt/ecmanaged/ecagent/plugins
+%dir /opt/ecmanaged/ecagent/examples
 /opt/ecmanaged/ecagent/ecagent/*.py
 /opt/ecmanaged/ecagent/configure.py
 /opt/ecmanaged/ecagent/ecagent.bat

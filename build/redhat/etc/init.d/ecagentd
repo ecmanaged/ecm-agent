@@ -59,7 +59,6 @@ cd $DIR
 ##[ -n "$INIT_VERSION" ] && ECAGENT_OPTS="${ECAGENT_OPTS} --fullrun"
 
 start() {
-    check_disk
     if [ -f ${PID_FILE} ]; then
         PID=$(getpid)
         if [ -e /proc/${PID} -a /proc/${PID}/exe ]; then
@@ -118,15 +117,6 @@ check() {
         0) zombies; echo 'OK' ;;
         *) echo 'KO'; stop; start ;;
     esac
-}
-
-check_disk() {
-    USED_SPACE=`df -H -k $DIR | grep -vE '^Filesystem|tmpfs|cdrom' | awk '{ print $3 }'`
-    FREE_SPACE=`df -H -k $DIR | grep -vE '^Filesystem|tmpfs|cdrom' | awk '{ print $4 }'`
-    if [ ${USED_SPACE} -gt 1 ] && [ ${FREE_SPACE} -lt ${MIN_DISK} ]; then
-        echo " Not starting, sorry. No enough free space on ${DIR}"
-        exit 1
-    fi
 }
 
 restart() {

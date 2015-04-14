@@ -17,7 +17,7 @@
 
 Name:             %{name}
 Version:          %{version}       
-Release:          110.systemd
+Release:          115.systemd
 Summary:          ECManaged  Agent - Monitoring and deployment agent (systemd)
 Group:            Applications/System
 License:          Apache v2
@@ -54,11 +54,19 @@ ECManaged  Agent - Monitoring and deployment agent
 rm -rf %{buildroot}
 mkdir -p %{buildroot}/opt/ecmanaged/ecagent
 mkdir -p %{buildroot}/usr/lib/systemd/system
+mkdir -p %{buildroot}/etc/cron.d
 rsync -av --exclude '*build*' %{_builddir}/%{name}-%{version}/* %{buildroot}/opt/ecmanaged/ecagent/
 cp %{_builddir}/%{name}-%{version}/build/redhat/etc/systemd/system/ecagentd.service %{buildroot}/usr/lib/systemd/system/
+cp %{_builddir}/%{name}-%{version}/build/redhat/etc/cron.d/ecmanaged-ecagent-systemd %{buildroot}/etc/cron.d/ecmanaged-ecagent
 
 %clean
 rm -rf %{buildroot}
+
+%pre
+if [[ $1 == 2 ]]; then
+  # Stop the service if we're upgrading
+  systemctl stop ecagentd.service >/dev/null 2>&1
+fi
 
 %post
 systemctl daemon-reload
@@ -67,13 +75,21 @@ systemctl daemon-reload
 systemctl start ecagentd.service >/dev/null 2>&1
 
 %preun
-systemctl stop ecagentd.service >/dev/null 2>&1
-systemctl disable ecagentd.service
-systemctl daemon-reload
+if [[ $1 -eq 0 ]]; then
+  # Stop and remove service on uninstall
+  systemctl stop ecagentd.service >/dev/null 2>&1
+  systemctl disable ecagentd.service
+  systemctl daemon-reload
+fi
+
 
 %files
 %defattr(755,root,root,-)
 %dir /opt/ecmanaged/ecagent/
+%dir /opt/ecmanaged/ecagent/ecagent
+%dir /opt/ecmanaged/ecagent/monitor
+%dir /opt/ecmanaged/ecagent/plugins
+%dir /opt/ecmanaged/ecagent/examples
 /opt/ecmanaged/ecagent/ecagent/*.py
 /opt/ecmanaged/ecagent/configure.py
 /opt/ecmanaged/ecagent/ecagent.bat
@@ -88,6 +104,7 @@ systemctl daemon-reload
 %doc /opt/ecmanaged/ecagent/README.md
 
 %attr(750,root,root) /usr/lib/systemd/system/ecagentd.service
+%attr(640,root,root) /etc/cron.d/ecmanaged-ecagent
 
 %dir %attr(700,root,root) %config /opt/ecmanaged/ecagent/config
 %attr(400,root,root) %config /opt/ecmanaged/ecagent/config/ecagent.init.cfg
