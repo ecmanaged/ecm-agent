@@ -31,7 +31,7 @@ from __mplugin import OK, CRITICAL
 import psutil
 
 from os import getloadavg
-from time import time
+from time import time, sleep
 
 
 class BaseMPlugin(MPlugin):
@@ -158,12 +158,12 @@ class BaseMPlugin(MPlugin):
 
         try:
             data = psutil.cpu_percent(interval=2, percpu=True)
-            sum = 0
+            total = 0
             for cpu in data:
-                sum += cpu
+                total += cpu
 
             retval = {
-                'percent': int(sum / len(data)),
+                'percent': int(total / len(data)),
                 'number': len(data),
                 'cpus': data
             }
@@ -225,6 +225,20 @@ class BaseMPlugin(MPlugin):
 
     def _get_processes(self):
         procs = []
+
+        # Ask CPU counters
+        try:
+            for p in psutil.process_iter():
+                if psutil.version_info[:2] >= (2, 0):
+                    p.as_dict(['cpu_percent'])
+                else:
+                    p.as_dict(['get_cpu_percent'])
+        except:
+            pass
+
+        # Wait to get correct cpu data
+        sleep(2)
+
         for p in psutil.process_iter():
             try:
                 if psutil.version_info[:2] >= (2, 0):
@@ -242,9 +256,16 @@ class BaseMPlugin(MPlugin):
 
         return self._process_parser(procs)
 
-    def _process_parser(self, procs):
+    def _process_parser(self, processes):
         retval = []
-        for p in procs:
+
+        # Get CPU count
+        cpu_count = 1
+        data = psutil.cpu_percent(interval=0, percpu=True)
+        if data:
+            cpu_count = len(data)
+
+        for p in processes:
             # Translate
             if 'get_memory_info' in p.dict:
                 p.dict['memory_info'] = p.dict['get_memory_info']
@@ -260,9 +281,11 @@ class BaseMPlugin(MPlugin):
                 
             else:
                 p.dict['memory_percent'] = ''
-                
-            if p.dict['cpu_percent'] is None:
-                p.dict['cpu_percent'] = ''
+
+            if not p.dict['cpu_percent']:
+                p.dict['cpu_percent'] = 0
+            else:
+                p.dict['cpu_percent'] /= cpu_count
 
             username = ''
             if p.dict['username']:
