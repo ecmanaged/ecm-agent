@@ -17,7 +17,7 @@
 
 Name:             %{name}
 Version:          %{version}       
-Release:          115.systemd
+Release:          116.systemd
 Summary:          ECManaged  Agent - Monitoring and deployment agent (systemd)
 Group:            Applications/System
 License:          Apache v2
