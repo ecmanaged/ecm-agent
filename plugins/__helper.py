@@ -42,7 +42,7 @@ _DEFAULT_GROUP_WINDOWS = 'Administrators'
 
 _FLUSH_WORKER_SLEEP_TIME = 0.2
 
-AGENT_VERSION = 2
+AGENT_VERSION = 2.2
 
 
 def is_windows():

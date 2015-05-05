@@ -13,11 +13,11 @@
 %define name      ecmanaged-ecagent
 %define ename     ecagentd
 %define pname     ecmanaged
-%define version   2.1.2
+%define version   2.2
 
 Name:             %{name}
 Version:          %{version}       
-Release:          116.systemd
+Release:          1.systemd
 Summary:          ECManaged  Agent - Monitoring and deployment agent (systemd)
 Group:            Applications/System
 License:          Apache v2

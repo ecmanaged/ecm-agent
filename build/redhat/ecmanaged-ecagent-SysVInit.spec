@@ -13,11 +13,11 @@
 %define name      ecmanaged-ecagent
 %define ename     ecagentd
 %define pname     ecmanaged
-%define version   2.1.2
+%define version   2.2
 
 Name:             %{name}
 Version:          %{version}       
-Release:          116.sysvinit
+Release:          1.sysvinit
 Summary:          ECManaged  Agent - Monitoring and deployment agent (sysvinit)
 Group:            Applications/System
 License:          Apache v2

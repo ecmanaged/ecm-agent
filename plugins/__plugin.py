@@ -26,7 +26,6 @@ PROTECTED_FILES = [
     '/etc/shadow',
 ]
 
-
 import sys
 sys.stdout.flush()
 sys.stderr.flush()

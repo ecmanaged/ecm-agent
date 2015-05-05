@@ -34,6 +34,7 @@ COMMAND_INTERVAL = 60
 GLUE = ':::'
 
 MY_PATH = os.path.dirname(os.path.abspath(__file__))
+
 MPLUGIN_PATH = os.path.join(MY_PATH, '../monitor/mplugin')
 CPLUGIN_PATH = os.path.join(MY_PATH, '../monitor/custom')
 
@@ -181,6 +182,7 @@ class ECMMonitor(ECMPlugin):
             'runas': runas,
             'name': plugin.get('name'),
             'interval': plugin.get('interval'),
+            'version': plugin.get('version'),
             'config': arg_config
         }
         
