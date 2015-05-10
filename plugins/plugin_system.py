@@ -52,20 +52,6 @@ class ECMSystem(ECMPlugin):
 
         raise Exception('Unable to write environment file')
 
-    def cmd_system_hostname(self, *argv, **kwargs):
-        import platform
-        return platform.node()
-
-    def cmd_system_load(self, *argv, **kwargs):
-        import os
-        load_average = ' '.join([str(x) for x in os.getloadavg()])
-        return load_average
-
-    def cmd_system_uname(self, *argv, **kwargs):
-        #system,node,release,version,machine,processor
-        import platform
-        return platform.uname()
-
     def cmd_system_info(self, *argv, **kwargs):
         """Syntax: system_info"""
         import platform
@@ -80,114 +66,6 @@ class ECMSystem(ECMPlugin):
         (retval['os_distrib'], retval['os_version']) = ecm.get_distribution()
 
         return retval
-
-    def cmd_system_cpu_usage(self, *argv, **kwargs):
-        """Syntax: load"""
-
-        # Get param interval
-        interval = kwargs.get('interval', _DEFAULT_CPU_INTERVAL)
-
-        try:
-            return psutil.cpu_percent(interval=interval, percpu=True)
-
-        except:
-            raise Exception("Unable to get info from psutil")
-
-    def cmd_system_network_usage(self, *argv, **kwargs):
-        """Syntax: system.network.usage[iface=eth0]"""
-
-        iface = kwargs.get('iface', None)
-        retval = {}
-
-        try:
-            network = psutil.network_io_counters(pernic=True)
-            if iface and network[iface]:
-                if hasattr(network[iface], 'bytes_sent'):
-                    retval['bytes_sent'] = network[iface].bytes_sent
-                if hasattr(network[iface], 'bytes_recv'):
-                    retval['bytes_recv'] = network[iface].bytes_recv
-            else:
-                # Return all interfaces
-                retval = network
-
-        except:
-            pass
-
-        return retval
-
-    def cmd_system_disk_partitions(self, *argv, **kwargs):
-        try:
-            retval = []
-            for part in psutil.disk_partitions(all=False):
-                strpart = {}
-                if hasattr(part, 'mountpoint'):
-                    strpart['mountpoint'] = part.mountpoint
-                if hasattr(part, 'device'):
-                    strpart['device'] = part.device
-                if hasattr(part, 'fstype'):
-                    strpart['fstype'] = part.fstype
-                retval.append(strpart)
-
-            return retval
-
-        except:
-            raise Exception("Unable to get info from psutil")
-
-    def cmd_system_disk_usage(self, *argv, **kwargs):
-
-        try:
-            retval = []
-            for part in psutil.disk_partitions(all=False):
-                # Ignore error on specific devices (CD-ROM)
-                try:
-                    usage = psutil.disk_usage(part.mountpoint)
-                    strpart = {}
-                    if hasattr(part, 'mountpoint'):
-                        strpart['mountpoint'] = part.mountpoint
-                    if hasattr(part, 'device'):
-                        strpart['device'] = part.device
-                    if hasattr(usage, 'total'):
-                        strpart['total'] = self.aux_convert_bytes(usage.total)
-                    if hasattr(usage, 'used'):
-                        strpart['used'] = self.aux_convert_bytes(usage.used)
-                    if hasattr(usage, 'free'):
-                        strpart['free'] = self.aux_convert_bytes(usage.free)
-                    if hasattr(usage, 'percent'):
-                        strpart['percent'] = usage.percent
-                    retval.append(strpart)
-
-                except:
-                    pass
-
-            return retval
-
-        except:
-            raise Exception("Unable to get info from psutil")
-
-    def cmd_system_mem_usage(self, *argv, **kwargs):
-        try:
-            phymem = psutil.phymem_usage()
-            return {
-                'total': phymem.total,
-                'used': phymem.used,
-                'free': phymem.free,
-                'percent': phymem.percent
-            }
-
-        except:
-            raise Exception("Unable to get info from psutil")
-
-    def cmd_system_capacity(self, *argv, **kwargs):
-        try:
-            return {
-                'system.mem.usage': self.cmd_system_mem_usage(*argv, **kwargs),
-                'system.disk.usage': self.cmd_system_disk_usage(*argv, **kwargs),
-                'system.cpu.usage': self.cmd_system_cpu_usage(*argv, **kwargs),
-                'system.net.usage': self.cmd_system_network_usage(*argv, **kwargs)
-            }
-
-        except:
-            raise Exception("Unable to get info from psutil")
 
     def _boot_time(self):
         """ Returns server boot time """

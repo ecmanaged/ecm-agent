@@ -16,20 +16,20 @@ class ECMConfigfile(ECMPlugin):
         Deploy a file
         Syntax: configfile.run[configfile,file,chown_user,chown_group,chmod,rotate,command,runas]
         """
-        code_base64     = kwargs.get('configfile', None)
-        filename        = kwargs.get('path', None)
-        chown_user      = kwargs.get('chown_user', None)
-        chown_group     = kwargs.get('chown_group', None)
-        chmod           = kwargs.get('chmod', None)
-        rotate          = kwargs.get('rotate', False)
+        code_base64 = kwargs.get('configfile', None)
+        filename = kwargs.get('path', None)
+        chown_user = kwargs.get('chown_user', None)
+        chown_group = kwargs.get('chown_group', None)
+        chmod = kwargs.get('chmod', None)
+        rotate = kwargs.get('rotate', False)
 
-        command         = kwargs.get('command', None)
-        runas           = kwargs.get('command_runas', None)
+        command = kwargs.get('command', None)
+        runas = kwargs.get('command_runas', None)
 
         if not code_base64 or not filename:
             raise ecm.InvalidParameters(self.cmd_configfile_run.__doc__)
 
-        ret = {'out': 0,'stdout': '','stderr': ''}
+        ret = {'out': 0, 'stdout': '', 'stderr': ''}
         try:
             if rotate and os.path.isfile(filename):
                 new_file = filename + '_rotated_' + ecm.utime()

@@ -45,7 +45,6 @@ class ECMScript(ECMPlugin):
             tmp_dir = mkdtemp()
             tmp_file = tmp_dir + '/script' + script_extension
             ecm.file_write(tmp_file, b64decode(script_b64))
-
         except:
             raise ecm.InvalidParameters("Unable to decode b64")
 
@@ -82,7 +81,6 @@ class ECMScript(ECMPlugin):
 
         try:
             code = b64decode(code_b64)
-
         except:
             raise ecm.InvalidParameters("Unable to decode b64")
 
