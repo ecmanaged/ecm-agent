@@ -17,6 +17,7 @@
 import os
 import re
 import urllib
+import socket
 
 from sys import platform
 from time import sleep, time
@@ -155,8 +156,10 @@ def download_file(url, filename=None, user=None, passwd=None):
     return filename
 
 
-def get_url(url):
+def get_url(url, timeout=10):
+    socket.setdefaulttimeout(timeout)
     urlopen = urllib.urlopen(url)
+
     retval = ''.join(urlopen.readlines())
     urlopen.close()
 
