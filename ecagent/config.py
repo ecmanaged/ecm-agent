@@ -159,8 +159,6 @@ class SMConfigObj(ConfigObj):
             
         return retval
 
-        return None
-
     @staticmethod
     def _get_ip():
         """Create dummy socket to get address"""
