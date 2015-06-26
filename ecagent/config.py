@@ -145,15 +145,19 @@ class SMConfigObj(ConfigObj):
     def _get_uuid_pre_configured():
         from os import remove
         from os.path import dirname, abspath, join, exists
+        
+        retval = None
 
         uuid_file = join(dirname(__file__), './config/_uuid.cfg')
         if exists(uuid_file):
             f = open(uuid_file, 'r')
             for line in f:
                 if line.startswith('uuid:'):
-                    return line.split(':')[1]
+                    retval = line.split(':')[1]
             f.close()
             remove(uuid_file)
+            
+        return retval
 
         return None
 
