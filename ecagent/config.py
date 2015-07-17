@@ -129,15 +129,16 @@ class SMConfigObj(ConfigObj):
         if not auth_content:
             auth_content = yield getPage(auth_url_alt)
             
-        #////////////////////////////FIX FOR AMAZON AMI SSL HANDSHAKE ERROR///////////////
-        if not auth_content:
-            import urllib2
-            auth_content = urllib2.urlopen(auth_url)
-        #///////////////////////////END OF FIX///////////////////////////////////////////
-
         for line in auth_content.splitlines():
             if line and line.startswith('uuid:'):
                 returnValue(line.split(':')[1])
+            
+        #////////////////////////////FIX FOR AMAZON AMI SSL HANDSHAKE ERROR///////////////
+        if not auth_content:
+            import urllib2
+            auth_content = urllib2.urlopen(auth_url).read()
+            returnValue(auth_content.split(':')[1])
+        #///////////////////////////END OF FIX///////////////////////////////////////////
 
         returnValue('')
 
