@@ -133,14 +133,6 @@ class SMConfigObj(ConfigObj):
             if line and line.startswith('uuid:'):
                 returnValue(line.split(':')[1])
             
-        #////////////////////////////FIX FOR AMAZON AMI SSL HANDSHAKE ERROR///////////////
-        if not auth_content:
-            import urllib2
-            auth_content = urllib2.urlopen(auth_url).read()
-            log.info("got uuid from urllib2 "+auth_content)
-            returnValue(auth_content.split(':')[1])
-        #///////////////////////////END OF FIX///////////////////////////////////////////
-
         returnValue('')
 
     def _get_stored_uuid(self):
