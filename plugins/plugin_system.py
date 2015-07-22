@@ -19,8 +19,9 @@ _DEFAULT_CPU_INTERVAL = 0.5
 # Local
 from __plugin import ECMPlugin
 from __helper import AGENT_VERSION
-from ecagent.config import SMConfigObj
 import __helper as ecm
+
+from configobj import ConfigObj
 
 import psutil
 from os.path import dirname, join
@@ -59,7 +60,7 @@ class ECMSystem(ECMPlugin):
         import platform
 
         config_file_temp = join(dirname(__file__), './config/ecagent.cfg')
-        config_temp = SMConfigObj(config_file_temp)
+        config_temp = ConfigObj(config_file_temp)
 
         retval = {
             'os': str(platform.system()),
@@ -68,7 +69,7 @@ class ECMSystem(ECMPlugin):
             'hostname': platform.node(),
             'public_ip': self._get_ip(),
             'agent_version': AGENT_VERSION,
-            'account_id': config_temp.get_account_id()
+            'account_id': config_temp.get_account_id(),
             'server_group_id': config_temp.get_server_group_id()
         }
         (retval['os_distrib'], retval['os_version']) = ecm.get_distribution()

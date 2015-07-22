@@ -56,25 +56,25 @@ class SMConfigObj(ConfigObj):
         if not self.isUniqueIDSame(unique_id):
 
             # Try to get uuid (one hour and a half loop: 360x15)
-            uuid = None
+
             for i in range(360):
                 uuid = self._get_uuid()
                 if uuid:
                    break
                 sleep(15)
 
-        if str(uuid) == str(self._get_stored_uuid()):
-            log.debug("UUID has not changed.")
-            self['XMPP']['unique_id'] = unique_id
-            self.write()
+                if str(uuid) == str(self._get_stored_uuid()):
+                    log.debug("UUID has not changed.")
+                    self['XMPP']['unique_id'] = unique_id
+                    self.write()
 
-        else:
-            log.info("UUID has changed, reconfiguring XMPP user/pass")
-            self['XMPP']['user'] = '@'.join((uuid, self['XMPP']['host']))
-            self['XMPP']['unique_id'] = unique_id
-            self.write()
+                else:
+                    log.info("UUID has changed, reconfiguring XMPP user/pass")
+                    self['XMPP']['user'] = '@'.join((uuid, self['XMPP']['host']))
+                    self['XMPP']['unique_id'] = unique_id
+                    self.write()
 
-        return True
+
 
     def checkConfig(self):
 
