@@ -47,13 +47,12 @@ try:
         for line in f:
             if line.startswith('uuid:'):
                 configure_uuid = line.split(':')[1]
-            if line.startswith('client_id:'):
-                configure_client_id = line.split(':')[1]
+            if line.startswith('account_id:'):
+                configure_account_id = line.split(':')[1]
             if line.startswith('server_group_id:'):
                 configure_server_group_id = line.split(':')[1]
         f.close()
         remove(configure_uuid_file)
-
 except:
     pass
 
@@ -72,20 +71,24 @@ try:
     if configure_uuid:
         # Write static configuration and continue
         config['XMPP']['user'] = '%s@%s' % (configure_uuid, config['XMPP']['host'])
-        config['XMPP']['unique_id'] = config._get_unique_id()
-    if configure_client_id:
-        config['XMPP']['client_id'] = configure_client_id
-    if configure_server_group_id:
-        config['XMPP']['unique_id'] = configure_server_group_id
         config['XMPP']['manual'] = True
-        config.write()
+        config['XMPP']['unique_id'] = config._get_unique_id()
+    else:
+        uuid = config._get_uuid()
+        if uuid != config._get_stored_unique_id():
+            config['XMPP']['user'] = '%s@%s' % (uuid, config['XMPP']['host'])
+
+    if configure_client_id:
+        config['XMPP']['account_id'] = configure_account_id
+    if configure_server_group_id:
+        config['XMPP']['server_group_id'] = configure_server_group_id
 
     # Generate a new password if not set and write it asap
     # Avoids problem when starting at same time two agents not configured (fedora??)
     if not config['XMPP'].get('password'):
         import random
         config['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
-        config.write()
+    config.write()
 
 except Exception:
     print 'Unable to read the config file at %s' % config_file
@@ -110,5 +113,10 @@ open(pid_file, 'w').write(str(getpid()))
 # Start agent and setup logging
 application = Application("ecagent")
 
-log.setup(application, config['Log'])
-agent = SMAgent(config)
+if (config.check_uuid()):
+    log.setup(application, config['Log'])
+    agent = SMAgent(config)
+else:
+    print 'Error in configuration'
+    print 'Agent will now quit'
+    sys.exit(-1)
