@@ -16,26 +16,31 @@
 
 #In windows . is not on python path.
 import sys
+import getopt
+
 sys.path.append(".")
 
 from os.path import join, dirname, exists
 
-if len(sys.argv) == 4:
-    uuid = sys.argv[1]
-    client_id = sys.argv[2]
-    server_group_id = sys.argv[3]
-else:
-    print "Usage: "
-    print "%s XXXX-XXXX-XXX-XXX" % sys.argv[0]
-    print "where XXXX-XXXX-XXX-XXX is the manualy set up UUID for the agent."
-    sys.exit(1)
+optlist, args = getopt.getopt(sys.argv[1:], 'u:a:s:', ["uuid=", "account-id=", "server-group-id="])
+
+for option, value in optlist:
+    if option in ("-u", "--uuid"):
+        uuid = value
+    elif option in ("-a", "--account-id"):
+        account_id = value
+    elif option in ("-s", "--server-group-id"):
+        server_group_id = value
+    else:
+        raise Exception('unhandled option')
+
 
 # Just write uuid file and ecagentd.tac will do the rest
 config_uuid = join(dirname(__file__), './config/_uuid.cfg')
 if not exists(config_uuid):
     f = open(config_uuid, 'w')
     f.write('uuid:' + uuid)
-    f.write('client_id:'+client_id)
+    f.write('client_id:'+account_id)
     f.write('server_group_id:'+server_group_id)
     f.close()
 
