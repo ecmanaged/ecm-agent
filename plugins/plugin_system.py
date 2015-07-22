@@ -24,7 +24,7 @@ import __helper as ecm
 from configobj import ConfigObj
 
 import psutil
-from os.path import dirname, join
+import os
 
 
 class ECMSystem(ECMPlugin):
@@ -59,7 +59,7 @@ class ECMSystem(ECMPlugin):
         """Syntax: system_info"""
         import platform
 
-        config_file_temp = join(dirname(__file__), './config/ecagent.cfg')
+        config_file_temp = os.path.join(os.path.sep, 'opt','ecmanaged','ecagent', 'config', 'ecagent.cfg')
         config_temp = ConfigObj(config_file_temp)
 
         retval = {

@@ -17,12 +17,11 @@
 #In windows . is not on python path.
 import sys
 import getopt
-from os import rename
+import os
 from ecagent.config import SMConfigObj
 
 sys.path.append(".")
 
-from os.path import join, dirname, exists, isfile
 
 optlist, args = getopt.getopt(sys.argv[1:], 'u:a:s:', ["uuid=", "account-id=", "server-group-id="])
 
@@ -37,15 +36,15 @@ for option, value in optlist:
         raise Exception('unhandled option')
 
 # Parse config file or end execution
-config_file = join(dirname(__file__), './config/ecagent.cfg')
-config_file_init = join(dirname(__file__), './config/ecagent.init.cfg')
+config_file = os.path.join(os.path.sep, 'opt','ecmanaged','ecagent', 'config', 'ecagent.cfg')
+config_file_init = os.path.join(os.path.sep, 'opt','ecmanaged','ecagent', 'config', 'ecagent.init.cfg')
 
 # Is inital config (move init to cfg)
-if not exists(config_file) and exists(config_file_init):
-    rename(config_file_init, config_file)
+if not os.path.exists(config_file) and os.path.exists(config_file_init):
+    os.rename(config_file_init, config_file)
 
 # manipulate configuration file
-if not isfile(config_file):
+if not os.path.isfile(config_file):
     print 'Unable to read the config file at %s' % config_file
     print 'Agent will now quit'
     sys.exit(-1)

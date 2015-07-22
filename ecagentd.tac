@@ -22,7 +22,7 @@ import gc
 # Enable automatic garbage collection.
 gc.enable()
 
-chdir(dirname(abspath(__file__)))
+chdir(dirname(abspath(sys.path[0])))
 
 #In windows . is not on python path.
 import sys
