@@ -38,6 +38,8 @@ import ecagent.twlogging as log
 
 # Read pre-configuration
 configure_uuid = None
+configure_client_id = None
+configure_server_group_id = None
 try:
     configure_uuid_file = join(dirname(__file__), './config/_uuid.cfg')
     if exists(configure_uuid_file):
@@ -45,6 +47,10 @@ try:
         for line in f:
             if line.startswith('uuid:'):
                 configure_uuid = line.split(':')[1]
+            if line.startswith('client_id:'):
+                configure_client_id = line.split(':')[1]
+            if line.startswith('server_group_id:'):
+                configure_server_group_id = line.split(':')[1]
         f.close()
         remove(configure_uuid_file)
 
@@ -67,6 +73,10 @@ try:
         # Write static configuration and continue
         config['XMPP']['user'] = '%s@%s' % (configure_uuid, config['XMPP']['host'])
         config['XMPP']['unique_id'] = config._get_unique_id()
+    if configure_client_id:
+        config['XMPP']['client_id'] = configure_client_id
+    if configure_server_group_id:
+        config['XMPP']['unique_id'] = configure_server_group_id
         config['XMPP']['manual'] = True
         config.write()
 

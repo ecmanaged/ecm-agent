@@ -117,12 +117,15 @@ class SMConfigObj(ConfigObj):
             hostname = self._get_hostname()
             address = self._get_ip()
             unique_id = self._get_unique_id()
+            client_id = self.get_client_id()
+            server_group_id = self.get_server_group_id()
         except Exception:
             pass
 
-        auth_url = _ECMANAGED_AUTH_URL + "/?ipaddress=%s&hostname=%s&unique_id=%s" % (address, hostname, unique_id)
-        auth_url_alt = _ECMANAGED_AUTH_URL_ALT + "/?ipaddress=%s&hostname=%s&unique_id=%s" % (
-            address, hostname, unique_id)
+        auth_url = _ECMANAGED_AUTH_URL + "/?ipaddress=%s&hostname=%s&unique_id=%s&client_id=%s&server_group_id=%s" \
+                                         % (address, hostname, unique_id, client_id, server_group_id)
+        auth_url_alt = _ECMANAGED_AUTH_URL_ALT + "/?ipaddress=%s&hostname=%s&unique_id=%s&client_id=%s&server_group_id=%s" \
+                                         % (address, hostname, unique_id, client_id, server_group_id)
 
         auth_content = yield getPage(auth_url)
 
@@ -140,6 +143,12 @@ class SMConfigObj(ConfigObj):
 
     def _get_stored_unique_id(self):
         return self['XMPP'].get('unique_id', '')
+
+    def get_client_id(self):
+        return self['XMPP'].get('client_id', '')
+
+    def get_server_group_id(self):
+        return self['XMPP'].get('server_group_id', '')
 
     @staticmethod
     def _get_uuid_pre_configured():
@@ -216,4 +225,3 @@ class SMConfigObj(ConfigObj):
             uuid = 'mac::' + ':'.join(findall('..', '%012x' % getnode()))
 
         return uuid
-

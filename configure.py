@@ -20,8 +20,10 @@ sys.path.append(".")
 
 from os.path import join, dirname, exists
 
-if len(sys.argv) == 2:
+if len(sys.argv) == 4:
     uuid = sys.argv[1]
+    client_id = sys.argv[2]
+    server_group_id = sys.argv[3]
 else:
     print "Usage: "
     print "%s XXXX-XXXX-XXX-XXX" % sys.argv[0]
@@ -33,6 +35,8 @@ config_uuid = join(dirname(__file__), './config/_uuid.cfg')
 if not exists(config_uuid):
     f = open(config_uuid, 'w')
     f.write('uuid:' + uuid)
+    f.write('client_id:'+client_id)
+    f.write('server_group_id:'+server_group_id)
     f.close()
 
 print 'Manual configuration override succeeded.'
