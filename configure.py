@@ -17,31 +17,62 @@
 #In windows . is not on python path.
 import sys
 import getopt
+from os import rename
+from ecagent.config import SMConfigObj
 
 sys.path.append(".")
 
-from os.path import join, dirname, exists
+from os.path import join, dirname, exists, isfile
 
 optlist, args = getopt.getopt(sys.argv[1:], 'u:a:s:', ["uuid=", "account-id=", "server-group-id="])
 
 for option, value in optlist:
     if option in ("-u", "--uuid"):
-        uuid = value
+        configure_uuid = value
     elif option in ("-a", "--account-id"):
-        account_id = value
+        configure_account_id = value
     elif option in ("-s", "--server-group-id"):
-        server_group_id = value
+        configure_server_group_id = value
     else:
         raise Exception('unhandled option')
 
+# Parse config file or end execution
+config_file = join(dirname(__file__), './config/ecagent.cfg')
+config_file_init = join(dirname(__file__), './config/ecagent.init.cfg')
 
-# Just write uuid file and ecagentd.tac will do the rest
-config_uuid = join(dirname(__file__), './config/_uuid.cfg')
-if not exists(config_uuid):
-    f = open(config_uuid, 'w')
-    f.write('uuid:' + uuid)
-    f.write('client_id:'+account_id)
-    f.write('server_group_id:'+server_group_id)
-    f.close()
+# Is inital config (move init to cfg)
+if not exists(config_file) and exists(config_file_init):
+    rename(config_file_init, config_file)
+
+# manipulate configuration file
+if not isfile(config_file):
+    print 'Unable to read the config file at %s' % config_file
+    print 'Agent will now quit'
+    sys.exit(-1)
+
+config = SMConfigObj(config_file)
+
+if configure_uuid:
+    # Write static configuration and continue
+    config['XMPP']['user'] = '%s@%s' % (configure_uuid, config['XMPP']['host'])
+    config['XMPP']['manual'] = True
+    config['XMPP']['unique_id'] = config._get_unique_id()
+else:
+    uuid = config._get_uuid()
+    if uuid != config._get_stored_unique_id():
+        config['XMPP']['user'] = '%s@%s' % (uuid, config['XMPP']['host'])
+
+if configure_account_id:
+    config['XMPP']['account_id'] = configure_account_id
+if configure_server_group_id:
+    config['XMPP']['server_group_id'] = configure_server_group_id
+
+# Generate a new password if not set and write it asap
+# Avoids problem when starting at same time two agents not configured (fedora??)
+if not config['XMPP'].get('password'):
+    import random
+    config['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
+config.write()
+
 
 print 'Manual configuration override succeeded.'

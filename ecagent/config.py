@@ -54,8 +54,8 @@ class SMConfigObj(ConfigObj):
         unique_id = self._get_unique_id()
 
         if not self.isUniqueIDSame(unique_id):
-            # Try to get uuid (one hour and a half loop: 360x15)
 
+            # Try to get uuid (one hour and a half loop: 360x15)
             uuid = None
             for i in range(360):
                 uuid = self._get_uuid()
@@ -76,7 +76,15 @@ class SMConfigObj(ConfigObj):
 
         return True
 
+    def checkConfig(self):
 
+        self.check_uuid()
+
+        for item in self.keys():
+            for key in self[item].keys():
+                if not self[item].get(key):
+                    return False
+        return True
 
     def isUniqueIDSame(self,unique_id):
 

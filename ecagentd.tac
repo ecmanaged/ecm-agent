@@ -15,8 +15,8 @@
 #    under the License.
 
 # Chmod to current path
-from os import chdir, remove, rename, getpid
-from os.path import dirname, abspath, join, exists
+from os import chdir, getpid
+from os.path import dirname, abspath, join, exists, isfile
 import gc
 
 # Enable automatic garbage collection.
@@ -33,67 +33,8 @@ from twisted.application.service import Application
 
 # Local
 from ecagent.config import SMConfigObj
-from ecagent.agent import SMAgent
+from ecagent.agent import SMAgentXMPP
 import ecagent.twlogging as log
-
-# Read pre-configuration
-configure_uuid = None
-configure_client_id = None
-configure_server_group_id = None
-try:
-    configure_uuid_file = join(dirname(__file__), './config/_uuid.cfg')
-    if exists(configure_uuid_file):
-        f = open(configure_uuid_file, 'r')
-        for line in f:
-            if line.startswith('uuid:'):
-                configure_uuid = line.split(':')[1]
-            if line.startswith('account_id:'):
-                configure_account_id = line.split(':')[1]
-            if line.startswith('server_group_id:'):
-                configure_server_group_id = line.split(':')[1]
-        f.close()
-        remove(configure_uuid_file)
-except:
-    pass
-
-# Parse config file or end execution
-config_file = join(dirname(__file__), './config/ecagent.cfg')
-config_file_init = join(dirname(__file__), './config/ecagent.init.cfg')
-
-# Is inital config (move init to cfg)
-if not exists(config_file) and exists(config_file_init):
-    rename(config_file_init, config_file)
-
-# Read config and start
-try:
-    config = SMConfigObj(config_file)
-
-    if configure_uuid:
-        # Write static configuration and continue
-        config['XMPP']['user'] = '%s@%s' % (configure_uuid, config['XMPP']['host'])
-        config['XMPP']['manual'] = True
-        config['XMPP']['unique_id'] = config._get_unique_id()
-    else:
-        uuid = config._get_uuid()
-        if uuid != config._get_stored_unique_id():
-            config['XMPP']['user'] = '%s@%s' % (uuid, config['XMPP']['host'])
-
-    if configure_client_id:
-        config['XMPP']['account_id'] = configure_account_id
-    if configure_server_group_id:
-        config['XMPP']['server_group_id'] = configure_server_group_id
-
-    # Generate a new password if not set and write it asap
-    # Avoids problem when starting at same time two agents not configured (fedora??)
-    if not config['XMPP'].get('password'):
-        import random
-        config['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
-    config.write()
-
-except Exception:
-    print 'Unable to read the config file at %s' % config_file
-    print 'Agent will now quit'
-    sys.exit(-1)
 
 # Check for other processes running
 pid_file = join(dirname(__file__), './twistd.pid')
@@ -111,11 +52,19 @@ if exists(pid_file):
 open(pid_file, 'w').write(str(getpid()))
 
 # Start agent and setup logging
+config_file = join(dirname(__file__), './config/ecagent.cfg')
+
+if not isfile(config_file):
+    raise Exception("Config file not found: "+config_file)
+
+config = SMConfigObj(config_file)
+
 application = Application("ecagent")
 
-if (config.check_uuid()):
+if (config.checkConfig()):
     log.setup(application, config['Log'])
-    agent = SMAgent(config)
+    agent = SMAgentXMPP(config)
+
 else:
     print 'Error in configuration'
     print 'Agent will now quit'

@@ -68,7 +68,7 @@ class ECMSystem(ECMPlugin):
             'hostname': platform.node(),
             'public_ip': self._get_ip(),
             'agent_version': AGENT_VERSION,
-            'client_id': config_temp.get_client_id(),
+            'account_id': config_temp.get_account_id()
             'server_group_id': config_temp.get_server_group_id()
         }
         (retval['os_distrib'], retval['os_version']) = ecm.get_distribution()
