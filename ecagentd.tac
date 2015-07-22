@@ -15,17 +15,17 @@
 #    under the License.
 
 # Chmod to current path
-from os import chdir, getpid
-from os.path import dirname, abspath, join, exists, isfile
+import os
 import gc
+import sys
 
 # Enable automatic garbage collection.
 gc.enable()
 
-chdir(dirname(abspath(sys.path[0])))
+os.chdir(os.path.join(os.path.sep, 'opt','ecmanaged','ecagent'))
 
 #In windows . is not on python path.
-import sys
+
 sys.path.append(".")
 
 #Twisted
@@ -37,9 +37,9 @@ from ecagent.agent import SMAgentXMPP
 import ecagent.twlogging as log
 
 # Check for other processes running
-pid_file = join(dirname(__file__), './twistd.pid')
+pid_file = os.path.join(os.path.sep, 'opt','ecmanaged','ecagent', 'twistd.pid')
 
-if exists(pid_file):
+if os.path.exists(pid_file):
     from psutil import pid_exists
 
     pid = open(pid_file).read()
@@ -49,12 +49,12 @@ if exists(pid_file):
         sys.exit(-1)
 
 # Write my pid
-open(pid_file, 'w').write(str(getpid()))
+open(pid_file, 'w').write(str(os.getpid()))
 
 # Start agent and setup logging
-config_file = join(dirname(__file__), './config/ecagent.cfg')
+config_file = os.path.join(os.path.sep, 'opt','ecmanaged','ecagent', 'config', 'ecagent.cfg')
 
-if not isfile(config_file):
+if not os.path.isfile(config_file):
     raise Exception("Config file not found: "+config_file)
 
 config = SMConfigObj(config_file)
