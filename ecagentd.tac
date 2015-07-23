@@ -22,7 +22,11 @@ import sys
 # Enable automatic garbage collection.
 gc.enable()
 
-os.chdir(os.path.join(os.path.sep, 'opt','ecmanaged','ecagent'))
+root_dir = os.path.join(os.path.sep, 'opt','ecmanaged','ecagent')
+os.chdir(root_dir)
+
+if root_dir not in sys.path:
+    sys.path.append(root_dir)
 
 #In windows . is not on python path.
 
