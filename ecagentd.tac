@@ -29,8 +29,8 @@ if root_dir not in sys.path:
     sys.path.append(root_dir)
 
 #In windows . is not on python path.
-
-sys.path.append(".")
+if "." not in sys.path:
+    sys.path.append(".")
 
 #Twisted
 from twisted.application.service import Application
