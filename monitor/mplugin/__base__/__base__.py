@@ -21,12 +21,8 @@
 TIMEOUT_DEFAULT = 55
 VERSION = 1
 
-import sys
-
-sys.path.append('../../../plugins')
-
-from __mplugin import MPlugin
-from __mplugin import OK, CRITICAL
+from plugins.__mplugin import MPlugin
+from plugins.__mplugin import OK, CRITICAL
 
 import psutil
 

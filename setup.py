@@ -15,3 +15,11 @@
 #    under the License.
 
 from distutils.core import setup
+setup(name='ecmanaged-ecagent',
+      version='2.2',
+      description='ECManaged  Agent - Monitoring and deployment agent',
+      author='Arindam Choudhury',
+      author_email='arindam@live.com',
+      url='www.ecmanaged.com',
+      packages=['distutils', 'distutils.command'],
+     )
