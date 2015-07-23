@@ -15,11 +15,15 @@
 #    under the License.
 
 from distutils.core import setup
+
 setup(name='ecmanaged-ecagent',
       version='2.2',
       description='ECManaged  Agent - Monitoring and deployment agent',
       author='Arindam Choudhury',
       author_email='arindam@live.com',
       url='www.ecmanaged.com',
-      packages=['distutils', 'distutils.command'],
+      packages=['ecagent', 'plugins'],
+      data_files=[('config', ['config/ecagent.init.cfg', 'config/xmpp_cert.pub']),
+                  ('/usr/share/doc', 'build/redhat/usr/share/doc/ecmanaged-ecagent/copyright'),
+                  ('/usr/lib/systemd/system', 'build/redhat/etc/systemd/system/ecagentd.service'),]
      )
