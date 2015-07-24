@@ -35,9 +35,18 @@ for option, value in optlist:
     else:
         raise Exception('unhandled option')
 
+root_dir = os.path.dirname(os.path.realpath(__file__))
+
+print root_dir
+
+os.chdir(root_dir)
+
 # Parse config file or end execution
-config_file = os.path.join(os.path.sep, 'opt','ecmanaged','ecagent', 'config', 'ecagent.cfg')
-config_file_init = os.path.join(os.path.sep, 'opt','ecmanaged','ecagent', 'config', 'ecagent.init.cfg')
+config_file = os.path.join(os.path.sep, root_dir , 'config', 'ecagent.cfg')
+config_file_init = os.path.join(os.path.sep, root_dir , 'config', 'ecagent.init.cfg')
+
+print config_file
+print config_file_init
 
 # Is inital config (move init to cfg)
 if not os.path.exists(config_file) and os.path.exists(config_file_init):

@@ -19,10 +19,20 @@ import os
 import gc
 import sys
 
+#Twisted
+from twisted.application.service import Application
+
+# Local
+from ecagent.config import SMConfigObj
+from ecagent.agent import SMAgentXMPP
+import ecagent.twlogging as log
+
+
 # Enable automatic garbage collection.
 gc.enable()
 
-root_dir = os.path.join(os.path.sep, 'opt','ecmanaged','ecagent')
+
+root_dir = os.path.dirname(os.path.realpath(__file__))
 os.chdir(root_dir)
 
 if root_dir not in sys.path:
@@ -32,16 +42,8 @@ if root_dir not in sys.path:
 if "." not in sys.path:
     sys.path.append(".")
 
-#Twisted
-from twisted.application.service import Application
-
-# Local
-from ecagent.config import SMConfigObj
-from ecagent.agent import SMAgentXMPP
-import ecagent.twlogging as log
-
 # Check for other processes running
-pid_file = os.path.join(os.path.sep, 'opt','ecmanaged','ecagent', 'twistd.pid')
+pid_file = os.path.join(os.path.sep, root_dir, 'twistd.pid')
 
 if os.path.exists(pid_file):
     from psutil import pid_exists
@@ -56,7 +58,7 @@ if os.path.exists(pid_file):
 open(pid_file, 'w').write(str(os.getpid()))
 
 # Start agent and setup logging
-config_file = os.path.join(os.path.sep, 'opt','ecmanaged','ecagent', 'config', 'ecagent.cfg')
+config_file = os.path.join(os.path.sep, root_dir, 'config', 'ecagent.cfg')
 
 if not os.path.isfile(config_file):
     raise Exception("Config file not found: "+config_file)
