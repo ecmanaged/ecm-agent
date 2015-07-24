@@ -22,7 +22,7 @@ setup(name='ecmanaged-ecagent',
       author='Arindam Choudhury',
       author_email='arindam@live.com',
       url='www.ecmanaged.com',
-      packages=['ecagent', 'plugins','monitor'],
+      packages=['ecagent', 'plugins','monitor.mplugin.__base__'],
       data_files=[('config', ['config/ecagent.init.cfg', 'config/xmpp_cert.pub']),
                   ('/usr/share/doc', 'build/redhat/usr/share/doc/ecmanaged-ecagent/copyright'),
                   ('/usr/lib/systemd/system', 'build/redhat/etc/systemd/system/ecagentd.service'),]
