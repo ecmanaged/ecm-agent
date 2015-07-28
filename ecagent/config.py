@@ -22,10 +22,6 @@ from time import sleep
 from platform import node
 from configobj import ConfigObj
 
-
-# Local
-import ecagent.twlogging as log
-
 _URL_METADATA_TIMEOUT = 2
 _URL_METADATA_INSTANCE_ID = {
     'aws': 'http://169.254.169.254/latest/meta-data/instance-id',
@@ -53,12 +49,12 @@ class SMConfigObj(ConfigObj):
         if not self.isUniqueIDSame(unique_id):
 
             if str(uuid) == str(self._get_stored_uuid()):
-                log.debug("UUID has not changed.")
+                #print "UUID has not changed."
                 self['XMPP']['unique_id'] = unique_id
                 self.write()
 
             else:
-                log.info("UUID has changed, reconfiguring XMPP user/pass")
+                #print "UUID has changed, reconfiguring XMPP user/pass"
                 self['XMPP']['user'] = '@'.join((uuid, self['XMPP']['host']))
                 self['XMPP']['unique_id'] = unique_id
                 self.write()
@@ -100,7 +96,7 @@ class SMConfigObj(ConfigObj):
                 sleep(15)
 
         if not uuid:
-            log.error("ERROR: Could not obtain UUID. please set up XMPP manually in %s" % self.filename)
+            #print "ERROR: Could not obtain UUID. please set up XMPP manually in " +self.filename
             raise Exception('Could not obtain UUID')
 
     def _get_uuid_via_web(self):
@@ -127,17 +123,17 @@ class SMConfigObj(ConfigObj):
         auth_content = None
 
         try:
-            log.info("trying to get uuid from: "+auth_url)
             auth_content = urllib2.urlopen(auth_url).read()
         except ValueError:
-            log.error("can not open: "+auth_url)
+            pass
+            #print "can not open: "+auth_url
 
         if not auth_content:
             try:
-                log.info("trying to get uuid from: "+auth_url_alt)
                 auth_content = urllib2.urlopen(auth_url_alt).read()
             except ValueError:
-                log.error("can not open: "+auth_url_alt)
+                pass
+                #print "can not open: "+auth_url_alt
             
         for line in auth_content.splitlines():
             if line and line.startswith('uuid:'):
@@ -168,7 +164,7 @@ class SMConfigObj(ConfigObj):
         try:
             s.connect(('app.ecmanaged.com', 0))
         except:
-            log.error("ERROR: Could not obtain IP ADDRESS")
+            #print "ERROR: Could not obtain IP ADDRESS"
             raise Exception('Could not obtain IP ADDRESS')
 
         return s.getsockname()[0]
@@ -224,7 +220,7 @@ class SMConfigObj(ConfigObj):
             unique_id = 'mac::' + ':'.join(findall('..', '%012x' % getnode()))
 
         if not unique_id:
-            log.error("ERROR: Could not obtain UNIQUE_ID. please set up XMPP manually in %s" % self.filename)
+            #print "ERROR: Could not obtain UNIQUE_ID. please set up XMPP manually in: " +self.filename
             raise Exception('Could not obtain UNIQUE_ID')
 
         return unique_id

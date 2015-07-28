@@ -66,9 +66,9 @@ if not os.path.isfile(config_file):
 config = SMConfigObj(config_file)
 
 application = Application("ecagent")
+log.setup(application, config['Log'])
 
-if (config.checkConfig()):
-    log.setup(application, config['Log'])
+if config.checkConfig():
     agent = SMAgentXMPP(config)
 
 else:
