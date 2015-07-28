@@ -19,7 +19,7 @@ import os
 import gc
 import sys
 
-#Twisted
+# Twisted
 from twisted.application.service import Application
 
 # Local
@@ -31,14 +31,13 @@ import ecagent.twlogging as log
 # Enable automatic garbage collection.
 gc.enable()
 
-
 root_dir = os.path.dirname(os.path.realpath(__file__))
 os.chdir(root_dir)
 
 if root_dir not in sys.path:
     sys.path.append(root_dir)
 
-#In windows . is not on python path.
+# In windows . is not on python path.
 if "." not in sys.path:
     sys.path.append(".")
 
@@ -61,7 +60,7 @@ open(pid_file, 'w').write(str(os.getpid()))
 config_file = os.path.join(os.path.sep, root_dir, 'config', 'ecagent.cfg')
 
 if not os.path.isfile(config_file):
-    raise Exception("Config file not found: "+config_file)
+    raise Exception("Config file not found: " + config_file)
 
 config = SMConfigObj(config_file)
 
