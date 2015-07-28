@@ -22,6 +22,9 @@ from ecagent.config import SMConfigObj
 
 sys.path.append(".")
 
+configure_uuid = None
+configure_account_id = None
+configure_server_group_id = None
 
 optlist, args = getopt.getopt(sys.argv[1:], 'uas:', ["uuid=", "account-id=", "server-group-id="])
 
@@ -65,15 +68,13 @@ if configure_uuid:
     config['XMPP']['user'] = '%s@%s' % (configure_uuid, config['XMPP']['host'])
     config['XMPP']['manual'] = True
     config['XMPP']['unique_id'] = config._get_unique_id()
-else:
-    uuid = config._get_uuid()
-    if uuid != config._get_stored_unique_id():
-        config['XMPP']['user'] = '%s@%s' % (uuid, config['XMPP']['host'])
 
 if configure_account_id:
     config['XMPP']['account_id'] = configure_account_id
 if configure_server_group_id:
     config['XMPP']['server_group_id'] = configure_server_group_id
+
+
 
 # Generate a new password if not set and write it asap
 # Avoids problem when starting at same time two agents not configured (fedora??)

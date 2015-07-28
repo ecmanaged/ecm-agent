@@ -78,18 +78,31 @@ class SMConfigObj(ConfigObj):
 
     def checkConfig(self):
 
+        if not self._get_stored_unique_id():
+            unique_id = self._get_unique_id()
+            self['XMPP']['unique_id'] = unique_id
+
+        if not self._get_stored_uuid():
+            uuid = self._get_uuid()
+            self['XMPP']['user'] = '@'.join((uuid, self['XMPP']['host']))
+
+        if not self['XMPP'].get('password'):
+            import random
+            self['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
+
+        if not self.get_account_id():
+            pass
+
+        if not self.get_server_group_id():
+            print "server group id not set"
+
         self.check_uuid()
 
-        for item in self.keys():
-            for key in self[item].keys():
-                if not self[item].get(key):
-                    return False
         return True
 
     def isUniqueIDSame(self,unique_id):
 
        return str(unique_id) == str(self._get_stored_unique_id())
-
 
     def _get_uuid(self):
 
@@ -101,7 +114,6 @@ class SMConfigObj(ConfigObj):
 
         return uuid
 
-
     def _get_uuid_via_web(self):
 
         uuid = None
@@ -109,13 +121,20 @@ class SMConfigObj(ConfigObj):
         hostname = self._get_hostname()
         address = self._get_ip()
         unique_id = self._get_unique_id()
-        client_id = self.get_client_id()
+        account_id = self.get_account_id()
         server_group_id = self.get_server_group_id()
 
-        auth_url = _ECMANAGED_AUTH_URL + "/?ipaddress=%s&hostname=%s&unique_id=%s&client_id=%s&server_group_id=%s" \
-                                         % (address, hostname, unique_id, client_id, server_group_id)
-        auth_url_alt = _ECMANAGED_AUTH_URL_ALT + "/?ipaddress=%s&hostname=%s&unique_id=%s&client_id=%s&server_group_id=%s" \
-                                         % (address, hostname, unique_id, client_id, server_group_id)
+        auth_url = _ECMANAGED_AUTH_URL + "/?ipaddress=%s&hostname=%s&unique_id=%s" \
+                                         % (address, hostname, unique_id)
+        auth_url_alt = _ECMANAGED_AUTH_URL_ALT + "/?ipaddress=%s&hostname=%s&unique_id=%" \
+                                         % (address, hostname, unique_id)
+
+        if account_id:
+            auth_url = auth_url + "&account_id=%s" % (account_id)
+            auth_url_alt = auth_url_alt + "&account_id=%s" % (account_id)
+        if server_group_id:
+            auth_url = auth_url + "&server_group_id=%s" % (server_group_id)
+            auth_url_alt = auth_url_alt + "&server_group_id=%s" % (server_group_id)
 
         auth_content = urllib2.urlopen(auth_url).read()
 
@@ -132,23 +151,15 @@ class SMConfigObj(ConfigObj):
     def _get_stored_uuid(self):
         uuid = self['XMPP'].get('user', '').split('@')[0]
 
-        if not uuid:
-            log.error("ERROR: Could not obtain UUID from config file: " % self.filename)
-            raise Exception('Could not obtain UUID from config file')
-
         return uuid
 
     def _get_stored_unique_id(self):
         unique_id = self['XMPP'].get('unique_id', '')
 
-        if not unique_id:
-            log.error("ERROR: Could not obtain UNIQUE_ID from config file: " % self.filename)
-            raise Exception('Could not obtain UNIQUE_ID from config file')
-
         return unique_id
 
     def get_account_id(self):
-        return self['XMPP'].get('client_id', '')
+        return self['XMPP'].get('account_id', '')
 
     def get_server_group_id(self):
         return self['XMPP'].get('server_group_id', '')
