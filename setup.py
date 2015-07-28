@@ -31,7 +31,7 @@ setup(name='ecmanaged-ecagent',
 
       install_requires = ['python2','python-twisted-core','python-twisted-web','python-protocols','python-configobj',
                           'python-twisted-words','python-psutil','libxml2-python','python-simplejson','rpm-python',
-                          'python-crypto','python-httplib2'],
+                          'python-crypto','python-httplib2', 'psutil', 'configobj'],
 
       #provides='ecmanaged-ecagent'],
 

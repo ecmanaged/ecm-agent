@@ -15,12 +15,21 @@
 #    under the License.
 
 #In windows . is not on python path.
+import random
 import sys
 import getopt
 import os
 from ecagent.config import SMConfigObj
 
-sys.path.append(".")
+root_dir = os.path.dirname(os.path.realpath(__file__))
+os.chdir(root_dir)
+
+if root_dir not in sys.path:
+    sys.path.append(root_dir)
+
+#In windows . is not on python path.
+if "." not in sys.path:
+    sys.path.append(".")
 
 configure_uuid = None
 configure_account_id = None
@@ -40,16 +49,11 @@ for option, value in optlist:
 
 root_dir = os.path.dirname(os.path.realpath(__file__))
 
-print root_dir
-
 os.chdir(root_dir)
 
 # Parse config file or end execution
 config_file = os.path.join(os.path.sep, root_dir , 'config', 'ecagent.cfg')
 config_file_init = os.path.join(os.path.sep, root_dir , 'config', 'ecagent.init.cfg')
-
-print config_file
-print config_file_init
 
 # Is inital config (move init to cfg)
 if not os.path.exists(config_file) and os.path.exists(config_file_init):
@@ -74,14 +78,10 @@ if configure_account_id:
 if configure_server_group_id:
     config['XMPP']['server_group_id'] = configure_server_group_id
 
-
-
 # Generate a new password if not set and write it asap
 # Avoids problem when starting at same time two agents not configured (fedora??)
 if not config['XMPP'].get('password'):
-    import random
     config['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
 config.write()
-
 
 print 'Manual configuration override succeeded.'

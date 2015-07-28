@@ -22,9 +22,6 @@ from time import sleep
 from platform import node
 from configobj import ConfigObj
 
-# Twisted imports
-from twisted.internet.defer import inlineCallbacks, returnValue
-from twisted.web.client import getPage
 
 # Local
 import ecagent.twlogging as log
@@ -50,34 +47,23 @@ class SMConfigObj(ConfigObj):
         ConfigObj.__init__(self, filename)
 
     def check_uuid(self):
-
         unique_id = self._get_unique_id()
+        uuid = self._get_uuid()
 
         if not self.isUniqueIDSame(unique_id):
 
-            # Try to get uuid (one hour and a half loop: 360x15)
+            if str(uuid) == str(self._get_stored_uuid()):
+                log.debug("UUID has not changed.")
+                self['XMPP']['unique_id'] = unique_id
+                self.write()
 
-            for i in range(360):
-                uuid = self._get_uuid()
-                if uuid:
-                   break
-                sleep(15)
-
-                if str(uuid) == str(self._get_stored_uuid()):
-                    log.debug("UUID has not changed.")
-                    self['XMPP']['unique_id'] = unique_id
-                    self.write()
-
-                else:
-                    log.info("UUID has changed, reconfiguring XMPP user/pass")
-                    self['XMPP']['user'] = '@'.join((uuid, self['XMPP']['host']))
-                    self['XMPP']['unique_id'] = unique_id
-                    self.write()
-
-
+            else:
+                log.info("UUID has changed, reconfiguring XMPP user/pass")
+                self['XMPP']['user'] = '@'.join((uuid, self['XMPP']['host']))
+                self['XMPP']['unique_id'] = unique_id
+                self.write()
 
     def checkConfig(self):
-
         if not self._get_stored_unique_id():
             unique_id = self._get_unique_id()
             self['XMPP']['unique_id'] = unique_id
@@ -87,59 +73,69 @@ class SMConfigObj(ConfigObj):
             self['XMPP']['user'] = '@'.join((uuid, self['XMPP']['host']))
 
         if not self['XMPP'].get('password'):
-            import random
             self['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
 
-        if not self.get_account_id():
+        self.write()
+
+        if not self.get_stored_account_id():
             pass
 
-        if not self.get_server_group_id():
-            print "server group id not set"
+        if not self.get_stored_server_group_id():
+            pass
 
         self.check_uuid()
 
         return True
 
     def isUniqueIDSame(self,unique_id):
-
        return str(unique_id) == str(self._get_stored_unique_id())
 
     def _get_uuid(self):
-
-        uuid = self._get_uuid_via_web()
+        uuid = None
+        for i in range(360):
+            uuid = self._get_uuid_via_web()
+            if uuid:
+                return uuid
+            else:
+                sleep(15)
 
         if not uuid:
             log.error("ERROR: Could not obtain UUID. please set up XMPP manually in %s" % self.filename)
             raise Exception('Could not obtain UUID')
 
-        return uuid
-
     def _get_uuid_via_web(self):
-
         uuid = None
 
         hostname = self._get_hostname()
         address = self._get_ip()
         unique_id = self._get_unique_id()
-        account_id = self.get_account_id()
-        server_group_id = self.get_server_group_id()
+        account_id = self.get_stored_account_id()
+        server_group_id = self.get_stored_server_group_id()
 
         auth_url = _ECMANAGED_AUTH_URL + "/?ipaddress=%s&hostname=%s&unique_id=%s" \
                                          % (address, hostname, unique_id)
-        auth_url_alt = _ECMANAGED_AUTH_URL_ALT + "/?ipaddress=%s&hostname=%s&unique_id=%" \
+        auth_url_alt = _ECMANAGED_AUTH_URL_ALT + "/?ipaddress=%s&hostname=%s&unique_id=%s" \
                                          % (address, hostname, unique_id)
 
         if account_id:
-            auth_url = auth_url + "&account_id=%s" % (account_id)
-            auth_url_alt = auth_url_alt + "&account_id=%s" % (account_id)
+            auth_url += "&account_id=%s" % (account_id)
+            auth_url_alt += "&account_id=%s" % (account_id)
         if server_group_id:
-            auth_url = auth_url + "&server_group_id=%s" % (server_group_id)
-            auth_url_alt = auth_url_alt + "&server_group_id=%s" % (server_group_id)
+            auth_url += "&server_group_id=%s" % (server_group_id)
+            auth_url_alt += "&server_group_id=%s" % (server_group_id)
 
-        auth_content = urllib2.urlopen(auth_url).read()
+        auth_content = None
+
+        try:
+            auth_content = urllib2.urlopen(auth_url).read()
+        except ValueError:
+            log.error("can not open: "+auth_url)
 
         if not auth_content:
-            auth_content = urllib2.urlopen(auth_url_alt).read()
+            try:
+                auth_content = urllib2.urlopen(auth_url_alt).read()
+            except ValueError:
+                log.error("can not open: "+auth_url_alt)
             
         for line in auth_content.splitlines():
             if line and line.startswith('uuid:'):
@@ -150,23 +146,20 @@ class SMConfigObj(ConfigObj):
 
     def _get_stored_uuid(self):
         uuid = self['XMPP'].get('user', '').split('@')[0]
-
         return uuid
 
     def _get_stored_unique_id(self):
         unique_id = self['XMPP'].get('unique_id', '')
-
         return unique_id
 
-    def get_account_id(self):
+    def get_stored_account_id(self):
         return self['XMPP'].get('account_id', '')
 
-    def get_server_group_id(self):
+    def get_stored_server_group_id(self):
         return self['XMPP'].get('server_group_id', '')
 
     @staticmethod
     def _get_ip():
-
         """Create dummy socket to get address"""
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
