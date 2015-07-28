@@ -43,25 +43,25 @@ class SMConfigObj(ConfigObj):
         ConfigObj.__init__(self, filename)
 
     def check_uuid(self):
-        unique_id = self._get_unique_id()
+        unique_id = self.get_unique_id()
         uuid = self._get_uuid()
 
         if not self.isUniqueIDSame(unique_id):
 
             if str(uuid) == str(self._get_stored_uuid()):
-                #print "UUID has not changed."
+                # print "UUID has not changed."
                 self['XMPP']['unique_id'] = unique_id
                 self.write()
 
             else:
-                #print "UUID has changed, reconfiguring XMPP user/pass"
+                # print "UUID has changed, reconfiguring XMPP user/pass"
                 self['XMPP']['user'] = '@'.join((uuid, self['XMPP']['host']))
                 self['XMPP']['unique_id'] = unique_id
                 self.write()
 
     def checkConfig(self):
         if not self._get_stored_unique_id():
-            unique_id = self._get_unique_id()
+            unique_id = self.get_unique_id()
             self['XMPP']['unique_id'] = unique_id
 
         if not self._get_stored_uuid():
@@ -83,8 +83,8 @@ class SMConfigObj(ConfigObj):
 
         return True
 
-    def isUniqueIDSame(self,unique_id):
-       return str(unique_id) == str(self._get_stored_unique_id())
+    def isUniqueIDSame(self, unique_id):
+        return str(unique_id) == str(self._get_stored_unique_id())
 
     def _get_uuid(self):
         uuid = None
@@ -96,7 +96,7 @@ class SMConfigObj(ConfigObj):
                 sleep(15)
 
         if not uuid:
-            #print "ERROR: Could not obtain UUID. please set up XMPP manually in " +self.filename
+            # print "ERROR: Could not obtain UUID. please set up XMPP manually in " +self.filename
             raise Exception('Could not obtain UUID')
 
     def _get_uuid_via_web(self):
@@ -104,21 +104,21 @@ class SMConfigObj(ConfigObj):
 
         hostname = self._get_hostname()
         address = self._get_ip()
-        unique_id = self._get_unique_id()
+        unique_id = self.get_unique_id()
         account_id = self.get_stored_account_id()
         server_group_id = self.get_stored_server_group_id()
 
         auth_url = _ECMANAGED_AUTH_URL + "/?ipaddress=%s&hostname=%s&unique_id=%s" \
                                          % (address, hostname, unique_id)
         auth_url_alt = _ECMANAGED_AUTH_URL_ALT + "/?ipaddress=%s&hostname=%s&unique_id=%s" \
-                                         % (address, hostname, unique_id)
+                                                 % (address, hostname, unique_id)
 
         if account_id:
-            auth_url += "&account_id=%s" % (account_id)
-            auth_url_alt += "&account_id=%s" % (account_id)
+            auth_url += "&account_id=%s" % account_id
+            auth_url_alt += "&account_id=%s" % account_id
         if server_group_id:
-            auth_url += "&server_group_id=%s" % (server_group_id)
-            auth_url_alt += "&server_group_id=%s" % (server_group_id)
+            auth_url += "&server_group_id=%s" % server_group_id
+            auth_url_alt += "&server_group_id=%s" % server_group_id
 
         auth_content = None
 
@@ -126,21 +126,20 @@ class SMConfigObj(ConfigObj):
             auth_content = urllib2.urlopen(auth_url).read()
         except ValueError:
             pass
-            #print "can not open: "+auth_url
+            # print "can not open: "+auth_url
 
         if not auth_content:
             try:
                 auth_content = urllib2.urlopen(auth_url_alt).read()
             except ValueError:
                 pass
-                #print "can not open: "+auth_url_alt
-            
+                # print "can not open: "+auth_url_alt
+
         for line in auth_content.splitlines():
             if line and line.startswith('uuid:'):
                 uuid = line.split(':')[1]
 
         return uuid
-
 
     def _get_stored_uuid(self):
         uuid = self['XMPP'].get('user', '').split('@')[0]
@@ -164,17 +163,17 @@ class SMConfigObj(ConfigObj):
         try:
             s.connect(('app.ecmanaged.com', 0))
         except:
-            #print "ERROR: Could not obtain IP ADDRESS"
+            # print "ERROR: Could not obtain IP ADDRESS"
             raise Exception('Could not obtain IP ADDRESS')
 
         return s.getsockname()[0]
-
 
     @staticmethod
     def _get_hostname():
         return node()
 
-    def _get_unique_id(self):
+    @staticmethod
+    def get_unique_id():
         """
         Try to get a unique identified, Some providers may change UNIQUE_ID on stop/start
         Use a low timeout to speed up agent start when no meta-data url
@@ -187,19 +186,18 @@ class SMConfigObj(ConfigObj):
 
             for metadata_type in _URL_METADATA_INSTANCE_ID.keys():
 
-                instance_id = None
                 try:
                     request = urllib2.Request(_URL_METADATA_INSTANCE_ID[metadata_type])
 
                     # Google needs header
-                    if(metadata_type == 'gce'):
+                    if metadata_type == 'gce':
                         request.add_header('Metadata-Flavor', 'Google')
 
                     response = urllib2.urlopen(request)
                     instance_id = response.readlines()[0]
                     response.close()
 
-                except urllib2.URLError, e:
+                except urllib2.URLError:
                     continue
 
                 if instance_id:
@@ -220,7 +218,7 @@ class SMConfigObj(ConfigObj):
             unique_id = 'mac::' + ':'.join(findall('..', '%012x' % getnode()))
 
         if not unique_id:
-            #print "ERROR: Could not obtain UNIQUE_ID. please set up XMPP manually in: " +self.filename
+            # print "ERROR: Could not obtain UNIQUE_ID. please set up XMPP manually in: " +self.filename
             raise Exception('Could not obtain UNIQUE_ID')
 
         return unique_id
