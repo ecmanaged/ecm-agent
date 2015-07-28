@@ -127,12 +127,14 @@ class SMConfigObj(ConfigObj):
         auth_content = None
 
         try:
+            log.info("trying to get uuid from: "+auth_url)
             auth_content = urllib2.urlopen(auth_url).read()
         except ValueError:
             log.error("can not open: "+auth_url)
 
         if not auth_content:
             try:
+                log.info("trying to get uuid from: "+auth_url_alt)
                 auth_content = urllib2.urlopen(auth_url_alt).read()
             except ValueError:
                 log.error("can not open: "+auth_url_alt)
