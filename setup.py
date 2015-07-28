@@ -14,7 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from distutils.core import setup
+from setuptools import setup
 
 setup(name='ecmanaged-ecagent',
       version='2.2',

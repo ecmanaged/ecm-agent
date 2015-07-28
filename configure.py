@@ -23,7 +23,7 @@ from ecagent.config import SMConfigObj
 sys.path.append(".")
 
 
-optlist, args = getopt.getopt(sys.argv[1:], 'u:a:s:', ["uuid=", "account-id=", "server-group-id="])
+optlist, args = getopt.getopt(sys.argv[1:], 'uas:', ["uuid=", "account-id=", "server-group-id="])
 
 for option, value in optlist:
     if option in ("-u", "--uuid"):
