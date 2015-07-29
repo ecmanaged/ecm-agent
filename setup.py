@@ -18,8 +18,6 @@ from distutils.core import setup
 
 setup(name='ecmanaged-ecagent',
       version='2.2',
-      release='1',
-      group='Applications/System',
 
       license='Apache v2',
       long_description='ECManaged  Agent - Monitoring and deployment agent',
@@ -27,18 +25,14 @@ setup(name='ecmanaged-ecagent',
       author='Juan Carlos Moreno',
       author_email='juancarlos.moreno@ecmanaged.com',
 
+
       url='www.ecmanaged.com',
-
-      install_requires = ['python2','python-twisted-core','python-twisted-web','python-protocols','python-configobj',
-                          'python-twisted-words','python-psutil','libxml2-python','python-simplejson','rpm-python',
-                          'python-crypto','python-httplib2', 'psutil', 'configobj', 'twisted'],
-
-      #provides='ecmanaged-ecagent'],
 
       packages=['ecagent', 'plugins','monitor.mplugin.__base__'],
 
       data_files=[('config', ['config/ecagent.init.cfg', 'config/xmpp_cert.pub']),
                   ('/usr/share/doc', ['copyright']),
                   ('/usr/lib/systemd/system', ['ecagentd.service'])],
+
       scripts=['configure.py','ecagent.bat', 'ecagent.sh', 'ecagentd.tac']
      )
