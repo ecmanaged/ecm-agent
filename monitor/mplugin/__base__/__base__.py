@@ -17,9 +17,15 @@
 #    under the License.
 
 # Base monitor for agent please do not modify it
+import os
+import sys
 
 TIMEOUT_DEFAULT = 55
 VERSION = 1
+
+root_dir = os.path.join(os.path.sep, 'opt','ecmanaged','ecagent')
+if root_dir not in sys.path:
+    sys.path.append(root_dir)
 
 from plugins.__mplugin import MPlugin
 from plugins.__mplugin import OK, CRITICAL
