@@ -13,6 +13,8 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+import sys
+import os
 
 _DEFAULT_CPU_INTERVAL = 0.5
 
@@ -21,10 +23,16 @@ from __plugin import ECMPlugin
 from __helper import AGENT_VERSION
 import __helper as ecm
 
+root_dir = os.path.join(os.path.sep, 'opt','ecmanaged','ecagent')
+if root_dir not in sys.path:
+    sys.path.append(root_dir)
+
+print sys.path
+
 from ecagent.config import SMConfigObj
 
 import psutil
-import os
+
 
 
 class ECMSystem(ECMPlugin):
