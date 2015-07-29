@@ -98,6 +98,7 @@ class ECMMonitor(ECMPlugin):
                         
                     runas = mplugin.data.get('runas', None)
                     interval = mplugin.data.get('interval', interval)
+
                     script = os.path.join(plugin_path, p_path, mplugin.id)
                         
                     if not os.path.exists(script):

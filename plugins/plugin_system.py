@@ -27,8 +27,6 @@ root_dir = os.path.join(os.path.sep, 'opt','ecmanaged','ecagent')
 if root_dir not in sys.path:
     sys.path.append(root_dir)
 
-print sys.path
-
 from ecagent.config import SMConfigObj
 
 import psutil
