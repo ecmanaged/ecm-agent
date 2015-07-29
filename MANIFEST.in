@@ -1,2 +1,2 @@
-include copyright ecagent.bat ecagent.sh ecagentd.service ecagentd.tac README.txt
-recursive-include config/* monitor/mplugin/__base__/data.json
+include copyright ecagent.bat ecagent.sh ecagentd.service ecagentd.tac README.txt monitor/mplugin/__base__/data.json
+recursive-include config/*
