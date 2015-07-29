@@ -31,8 +31,6 @@ setup(name='ecmanaged-ecagent',
 
       url='www.ecmanaged.com',
 
-      license= str(open("LICENSE", "r").readlines()),
-
       platforms=['All'],
 
       packages=['ecagent', 'plugins','monitor.mplugin.__base__'],
