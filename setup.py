@@ -25,8 +25,15 @@ setup(name='ecmanaged-ecagent',
       author='Juan Carlos Moreno',
       author_email='juancarlos.moreno@ecmanaged.com',
 
+      maintainer = 'Arindam Choudhury',
+      maintainer_email = 'arindam@live.com',
+
 
       url='www.ecmanaged.com',
+
+      license= str(open("LICENSE", "r").readlines()),
+
+      platforms=['All'],
 
       packages=['ecagent', 'plugins','monitor.mplugin.__base__'],
 
