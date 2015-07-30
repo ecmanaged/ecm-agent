@@ -40,5 +40,6 @@ setup(name='ecmanaged-ecagent',
                   ('/usr/lib/systemd/system', ['ecagentd.service']),
                   ('monitor/mplugin/__base__', ['monitor/mplugin/__base__/data.json'])],
 
-      scripts=['configure.py','ecagent.bat', 'ecagent.sh', 'ecagentd.tac']
+      scripts=['configure.py','ecagent.bat', 'ecagent.sh', 'ecagentd.tac'],
+      requires=['psutil', 'simplejson']
      )

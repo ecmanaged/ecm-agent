@@ -1,0 +1,13 @@
+Source: ecmanaged-ecagent
+Maintainer: Arindam Choudhury <arindam@live.com>
+Section: admin
+Priority: optional
+Build-Depends: dh-python, python-all (>= 2.6.6-3), debhelper (>= 9)
+Standards-Version: 3.9.6
+Homepage: http://www.ecmanaged.com
+
+Package: ecmanaged-ecagent
+Architecture: all
+Depends: ${misc:Depends}, lsb-base (>= 3.2-13), python, python-crypto, debconf, python-twisted-core, python-protocols, python-twisted-web, python-configobj, python-twisted-words, python-psutil, python-libxml2, python-simplejson, python-apt, python-httplib2
+Description: ECM Agent - ECMANAGED Monitor and deploy agent
+ Deploy and monitor agent for ECmanaged cloud management tool, based on XMPP protocol.

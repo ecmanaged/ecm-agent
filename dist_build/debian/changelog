@@ -1,0 +1,11 @@
+ecmanaged-ecagent (2.2-2) UNRELEASED; urgency=medium
+
+  * Support for systemd
+
+ -- Arindam Choudhury <arindam@live.com>  Thu, 30 Jul 2015 09:06:14 +0000
+
+ecmanaged-ecagent (2.2-1) unstable; urgency=low
+
+  * source package automatically created by stdeb 0.8.2
+
+ -- Arindam Choudhury <arindam@live.com>  Thu, 30 Jul 2015 08:59:04 +0000
