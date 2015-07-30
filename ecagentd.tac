@@ -15,77 +15,36 @@
 #    under the License.
 
 # Chmod to current path
-from os import chdir, remove, rename, getpid
-from os.path import dirname, abspath, join, exists
+import os
 import gc
-
-# Enable automatic garbage collection.
-gc.enable()
-
-chdir(dirname(abspath(__file__)))
-
-#In windows . is not on python path.
 import sys
-sys.path.append(".")
 
-#Twisted
+# Twisted
 from twisted.application.service import Application
 
 # Local
 from ecagent.config import SMConfigObj
-from ecagent.agent import SMAgent
+from ecagent.agent import SMAgentXMPP
 import ecagent.twlogging as log
 
-# Read pre-configuration
-configure_uuid = None
-try:
-    configure_uuid_file = join(dirname(__file__), './config/_uuid.cfg')
-    if exists(configure_uuid_file):
-        f = open(configure_uuid_file, 'r')
-        for line in f:
-            if line.startswith('uuid:'):
-                configure_uuid = line.split(':')[1]
-        f.close()
-        remove(configure_uuid_file)
 
-except:
-    pass
+# Enable automatic garbage collection.
+gc.enable()
 
-# Parse config file or end execution
-config_file = join(dirname(__file__), './config/ecagent.cfg')
-config_file_init = join(dirname(__file__), './config/ecagent.init.cfg')
+root_dir = os.path.dirname(os.path.realpath(__file__))
+os.chdir(root_dir)
 
-# Is inital config (move init to cfg)
-if not exists(config_file) and exists(config_file_init):
-    rename(config_file_init, config_file)
+if root_dir not in sys.path:
+    sys.path.append(root_dir)
 
-# Read config and start
-try:
-    config = SMConfigObj(config_file)
-
-    if configure_uuid:
-        # Write static configuration and continue
-        config['XMPP']['user'] = '%s@%s' % (configure_uuid, config['XMPP']['host'])
-        config['XMPP']['unique_id'] = config._get_unique_id()
-        config['XMPP']['manual'] = True
-        config.write()
-
-    # Generate a new password if not set and write it asap
-    # Avoids problem when starting at same time two agents not configured (fedora??)
-    if not config['XMPP'].get('password'):
-        import random
-        config['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
-        config.write()
-
-except Exception:
-    print 'Unable to read the config file at %s' % config_file
-    print 'Agent will now quit'
-    sys.exit(-1)
+# In windows . is not on python path.
+if "." not in sys.path:
+    sys.path.append(".")
 
 # Check for other processes running
-pid_file = join(dirname(__file__), './twistd.pid')
+pid_file = os.path.join(os.path.sep, root_dir, 'twistd.pid')
 
-if exists(pid_file):
+if os.path.exists(pid_file):
     from psutil import pid_exists
 
     pid = open(pid_file).read()
@@ -95,10 +54,23 @@ if exists(pid_file):
         sys.exit(-1)
 
 # Write my pid
-open(pid_file, 'w').write(str(getpid()))
+open(pid_file, 'w').write(str(os.getpid()))
 
 # Start agent and setup logging
-application = Application("ecagent")
+config_file = os.path.join(os.path.sep, root_dir, 'config', 'ecagent.cfg')
 
+if not os.path.isfile(config_file):
+    raise Exception("Config file not found: " + config_file)
+
+config = SMConfigObj(config_file)
+
+application = Application("ecagent")
 log.setup(application, config['Log'])
-agent = SMAgent(config)
+
+if config.checkConfig():
+    agent = SMAgentXMPP(config)
+
+else:
+    print 'Error in configuration'
+    print 'Agent will now quit'
+    sys.exit(-1)

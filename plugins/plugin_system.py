@@ -13,6 +13,8 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+import sys
+import os
 
 _DEFAULT_CPU_INTERVAL = 0.5
 
@@ -21,7 +23,14 @@ from __plugin import ECMPlugin
 from __helper import AGENT_VERSION
 import __helper as ecm
 
+root_dir = os.path.join(os.path.sep, 'opt','ecmanaged','ecagent')
+if root_dir not in sys.path:
+    sys.path.append(root_dir)
+
+from ecagent.config import SMConfigObj
+
 import psutil
+
 
 
 class ECMSystem(ECMPlugin):
@@ -55,13 +64,19 @@ class ECMSystem(ECMPlugin):
     def cmd_system_info(self, *argv, **kwargs):
         """Syntax: system_info"""
         import platform
+
+        config_file_temp = os.path.join(os.path.sep, 'opt','ecmanaged','ecagent', 'config', 'ecagent.cfg')
+        config_temp = SMConfigObj(config_file_temp)
+
         retval = {
             'os': str(platform.system()),
             'machine': str(platform.machine()),
             'uptime': self._boot_time(),
             'hostname': platform.node(),
             'public_ip': self._get_ip(),
-            'agent_version': AGENT_VERSION
+            'agent_version': AGENT_VERSION,
+            'account_id': config_temp.get_stored_account_id(),
+            'server_group_id': config_temp.get_stored_server_group_id()
         }
         (retval['os_distrib'], retval['os_version']) = ecm.get_distribution()
 

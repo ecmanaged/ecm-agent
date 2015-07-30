@@ -1,0 +1,2 @@
+include copyright ecagent.bat ecagent.sh ecagentd.service ecagentd.tac README.txt monitor/mplugin/__base__/data.json config/ecagent.init.cfg config/xmpp_cert.pub
+

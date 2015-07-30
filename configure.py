@@ -14,25 +14,74 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-#In windows . is not on python path.
+# In windows . is not on python path.
+import random
 import sys
-sys.path.append(".")
+import getopt
+import os
+from ecagent.config import SMConfigObj
 
-from os.path import join, dirname, exists
+root_dir = os.path.dirname(os.path.realpath(__file__))
+os.chdir(root_dir)
 
-if len(sys.argv) == 2:
-    uuid = sys.argv[1]
-else:
-    print "Usage: "
-    print "%s XXXX-XXXX-XXX-XXX" % sys.argv[0]
-    print "where XXXX-XXXX-XXX-XXX is the manualy set up UUID for the agent."
-    sys.exit(1)
+if root_dir not in sys.path:
+    sys.path.append(root_dir)
 
-# Just write uuid file and ecagentd.tac will do the rest
-config_uuid = join(dirname(__file__), './config/_uuid.cfg')
-if not exists(config_uuid):
-    f = open(config_uuid, 'w')
-    f.write('uuid:' + uuid)
-    f.close()
+# In windows . is not on python path.
+if "." not in sys.path:
+    sys.path.append(".")
+
+configure_uuid = None
+configure_account_id = None
+configure_server_group_id = None
+
+optlist, args = getopt.getopt(sys.argv[1:], 'uas:', ["uuid=", "account-id=", "server-group-id="])
+
+for option, value in optlist:
+    if option in ("-u", "--uuid"):
+        configure_uuid = value
+    elif option in ("-a", "--account-id"):
+        configure_account_id = value
+    elif option in ("-s", "--server-group-id"):
+        configure_server_group_id = value
+    else:
+        raise Exception('unhandled option')
+
+root_dir = os.path.dirname(os.path.realpath(__file__))
+
+os.chdir(root_dir)
+
+# Parse config file or end execution
+config_file = os.path.join(os.path.sep, root_dir, 'config', 'ecagent.cfg')
+config_file_init = os.path.join(os.path.sep, root_dir, 'config', 'ecagent.init.cfg')
+
+# Is initial config (move init to cfg)
+if not os.path.exists(config_file) and os.path.exists(config_file_init):
+    os.rename(config_file_init, config_file)
+
+# manipulate configuration file
+if not os.path.isfile(config_file):
+    print 'Unable to read the config file at %s' % config_file
+    print 'Agent will now quit'
+    sys.exit(-1)
+
+config = SMConfigObj(config_file)
+
+if configure_uuid:
+    # Write static configuration and continue
+    config['XMPP']['user'] = '%s@%s' % (configure_uuid, config['XMPP']['host'])
+    config['XMPP']['manual'] = True
+    config['XMPP']['unique_id'] = config.get_unique_id()
+
+if configure_account_id:
+    config['XMPP']['account_id'] = configure_account_id
+if configure_server_group_id:
+    config['XMPP']['server_group_id'] = configure_server_group_id
+
+# Generate a new password if not set and write it asap
+# Avoids problem when starting at same time two agents not configured (fedora??)
+if not config['XMPP'].get('password'):
+    config['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
+config.write()
 
 print 'Manual configuration override succeeded.'
