@@ -118,7 +118,3 @@ class ECVerify():
             log.error('[RSA CHECK: Error] ps length too short')
             return
         return '\x00\x01' + ps + '\x00' + T
-
-
-
-
