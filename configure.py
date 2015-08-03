@@ -35,7 +35,7 @@ configure_uuid = None
 configure_account_id = None
 configure_server_group_id = None
 
-optlist, args = getopt.getopt(sys.argv[1:], 'uas:', ["uuid=", "account-id=", "server-group-id="])
+optlist, args = getopt.getopt(sys.argv[1:], 'uasp:', ["uuid=", "account-id=", "server-group-id=", "password="])
 
 for option, value in optlist:
     if option in ("-u", "--uuid"):
@@ -44,6 +44,8 @@ for option, value in optlist:
         configure_account_id = value
     elif option in ("-s", "--server-group-id"):
         configure_server_group_id = value
+    elif option in ("-p", "--password"):
+        configure_password = value
     else:
         raise Exception('unhandled option')
 
@@ -80,6 +82,9 @@ if configure_server_group_id:
 
 # Generate a new password if not set and write it asap
 # Avoids problem when starting at same time two agents not configured (fedora??)
+if configure_password:
+    config['XMPP']['password'] = configure_password
+
 if not config['XMPP'].get('password'):
     config['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
 config.write()
