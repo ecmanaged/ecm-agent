@@ -38,7 +38,8 @@ setup(name='ecmanaged-ecagent',
       data_files=[('config', ['config/ecagent.init.cfg', 'config/xmpp_cert.pub']),
                   ('/usr/share/doc', ['copyright']),
                   ('/usr/lib/systemd/system', ['ecagentd.service']),
-                  ('monitor/mplugin/__base__', ['monitor/mplugin/__base__/data.json'])],
+                  ('monitor/mplugin/__base__', ['monitor/mplugin/__base__/data.json']),
+                  ('/etc/sudoers.d', ['ecmanaged'])],
 
       scripts=['configure.py','ecagent.bat', 'ecagent.sh', 'ecagentd.tac'],
       requires=['psutil', 'simplejson']

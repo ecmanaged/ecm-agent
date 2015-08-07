@@ -3,6 +3,8 @@ Description=ECManaged Agent for monitoring and deployment
 
 [Service]
 Type=simple
+User=ecmanaged
+Group=ecmanaged
 PIDFile=/opt/ecmanaged/ecagent/twistd.pid
 #ExecStart=/usr/bin/twistd -y /opt/ecmanaged/ecagent/ecagentd.tac
 ExecStart=\
