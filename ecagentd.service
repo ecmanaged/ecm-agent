@@ -8,7 +8,7 @@ Group=ecmanaged
 PIDFile=/opt/ecmanaged/ecagent/twistd.pid
 #ExecStart=/usr/bin/twistd -y /opt/ecmanaged/ecagent/ecagentd.tac
 ExecStart=\
-        /bin/twistd \
+        /usr/bin/env twistd \
         --nodaemon \
         --pidfile=/opt/ecmanaged/ecagent/twistd.pid \
         --no_save \
