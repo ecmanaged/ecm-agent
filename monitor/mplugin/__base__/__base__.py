@@ -30,6 +30,8 @@ if root_dir not in sys.path:
 from plugins.__mplugin import MPlugin
 from plugins.__mplugin import OK, CRITICAL
 
+from plugins.__helper import is_windows, get_distribution, NotSupported
+
 import psutil
 
 from os import getloadavg
@@ -415,6 +417,37 @@ class BaseMPlugin(MPlugin):
                 retval[name] = getattr(obj, name)
 
         return retval
+
+
+    def _check_update(self):
+        if is_windows():
+            return 1, '', NotSupported('Can\'t install packages on windows systems')
+
+        distribution, _version = get_distribution()
+
+        if distribution.lower() in ['debian', 'ubuntu']:
+            import apt_pkg, apt
+
+            upgrades = 0
+
+            apt_pkg.init()
+            apt_pkg.config.set("Dir::Cache::pkgcache","")
+
+            cache = apt_pkg.Cache(apt.progress.base.OpProgress())
+            depcache = apt_pkg.DepCache(cache)
+
+            depcache.read_pinfile()
+            depcache.init()
+
+            depcache.upgrade(True)
+            if depcache.del_count > 0:
+                depcache.init()
+            depcache.upgrade()
+
+            for pkg in cache.packages:
+                if not (depcache.marked_install(pkg) or depcache.marked_upgrade(pkg)):
+                    continue
+                upgrades += 1
 
 mplugin = BaseMPlugin()
 mplugin.run()
