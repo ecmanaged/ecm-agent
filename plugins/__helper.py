@@ -21,6 +21,7 @@ import urllib
 import socket
 import yum
 from yum import Errors
+import apt
 
 from sys import platform
 from time import sleep, time
@@ -246,6 +247,28 @@ def chown(path, user, group=None, recursive=False):
     return True
 
 
+def apt_install_package(package):
+    if type(package) is types.StringType:
+        apt_install_single_package(package)
+    elif type(package) is types.ListType:
+        for item in package:
+            apt_install_single_package(item)
+
+
+def apt_install_single_package(package):
+    cache = apt.Cache()
+    try:
+        pkg = cache[package]
+    except KeyError:
+        print "package not found"
+        return
+    if not pkg.is_installed:
+        pkg.mark_install()
+        pkg.commit()
+        cache.open()
+
+
+
 def yum_install_package(package):
     if type(package) is types.StringType:
         yum_install_single_package(package)
@@ -272,6 +295,7 @@ def yum_install_single_package(package):
         yb.install(**kwarg)
     except Errors.InstallError as e:
         print e
+        return
     yb.resolveDeps()
     yb.buildTransaction()
     yb.processTransaction()
@@ -410,7 +434,7 @@ def write_metadata_cloud(metadata=None, metadata_b64=None, metadata_json=None):
 
 def _write_metadata(metadata=None, json_file=None, info_file=None, env_file=None):
     import simplejson as json
-    
+
     if metadata and is_dict(metadata):
         hash_to_list = ''
         for key in sorted(metadata.keys()):
