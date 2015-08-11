@@ -32,6 +32,7 @@ from twisted.words.protocols.jabber.client import IQ
 import twlogging as log
 from functions import mem_clean
 
+
 # Add registerAccount to XMPPAuthenticator
 class FixedXMPPAuthenticator(client.XMPPAuthenticator):
     AUTH_FAILED_EVENT = "//event/client/xmpp/authfailed"
@@ -75,10 +76,10 @@ class BasicClient:
         @param resource: Resource to use when sending messages by default.
         """
 
-        #use_http = False
-        #url="http://xmpp.ecmanaged.net/http-bind")
-        #auth = XMPPAuthenticator(client_jid, secret)
-        #self._factory = HTTPBindingStreamFactory(auth)
+        # use_http = False
+        # url="http://xmpp.ecmanaged.net/http-bind")
+        # auth = XMPPAuthenticator(client_jid, secret)
+        # self._factory = HTTPBindingStreamFactory(auth)
 
         self.failed_count = 0
 
