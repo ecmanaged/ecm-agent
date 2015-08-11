@@ -421,7 +421,7 @@ class BaseMPlugin(MPlugin):
 
     def _check_update(self):
         if is_windows():
-            return 1, '', NotSupported('Can\'t install packages on windows systems')
+            return -1
 
         distribution, _version = get_distribution()
 
@@ -448,6 +448,19 @@ class BaseMPlugin(MPlugin):
                 if not (depcache.marked_install(pkg) or depcache.marked_upgrade(pkg)):
                     continue
                 upgrades += 1
+            return upgrades
+        elif distribution.lower() in ['centos', 'redhat', 'fedora', 'amazon']:
+            # TODO
+            pass
+        elif distribution.lower() in ['suse']:
+            # TODO
+            pass
+        elif distribution.lower() in ['arch']:
+            # TODO
+            pass
+        else:
+            # TODO
+            pass
 
 mplugin = BaseMPlugin()
 mplugin.run()
