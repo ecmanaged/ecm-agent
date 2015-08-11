@@ -33,6 +33,34 @@ SVC_TIMEOUT = 120
 
 # noinspection PyUnusedLocal,PyUnusedLocal,PyUnusedLocal
 class ECMLinux(ECMPlugin):
+
+    def systemd_service_control(self, *argv, **kwargs):
+        '''
+        Syntax: systemd.service.control servicefile.service action
+        '''
+
+        from pydbus import SystemBus
+        from gi.repository import Gio
+
+        bus = SystemBus()
+
+        systemd = bus.get(".systemd1")
+        manager = systemd[".Manager"]
+
+        unitfiles = [item[0] for item in [unit for unit in manager.ListUnits()[0]]]
+
+        servicefile = kwargs.get('servicefile', None)
+        action = kwargs.get('action', None)
+
+        if not (servicefile and action):
+            raise ecm.InvalidParameters(self.cmd_service_control.__doc__)
+
+        if servicefile not in unitfiles:
+            raise ecm.InvalidParameters(self.cmd_service_control.__doc__)
+        # TODO start stop and restart the process
+
+
+
     def cmd_service_control(self, *argv, **kwargs):
         """Syntax: service.control daemon action <force: 0/1>"""
 
