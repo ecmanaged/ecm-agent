@@ -42,5 +42,5 @@ setup(name='ecmanaged-ecagent',
                   ('/etc/sudoers.d', ['ecmanaged'])],
 
       scripts=['configure.py','ecagent.bat', 'ecagent.sh', 'ecagentd.tac'],
-      requires=['psutil', 'simplejson']
+      requires=['psutil', 'simplejson', 'twisted']
      )
