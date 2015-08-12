@@ -43,7 +43,8 @@ class ECMLinux(ECMPlugin):
         SYSTEMD_BUSNAME = 'org.freedesktop.systemd1'
         SYSTEMD_PATH = '/org/freedesktop/systemd1'
         SYSTEMD_MANAGER_INTERFACE = 'org.freedesktop.systemd1.Manager'
-        dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+
+        success = True
 
         bus = dbus.SystemBus()
         try:
@@ -57,12 +58,21 @@ class ECMLinux(ECMPlugin):
         action = kwargs.get('action', None)
 
         if action is 'start':
-            systemd_manager.StartUnit(servicefile, "replace")
+            try:
+                systemd_manager.StartUnit(servicefile, "replace")
+            except:
+                success = False
         elif action is 'stop':
-            systemd_manager.StopUnit(servicefile, "replace")
+            try:
+                systemd_manager.StopUnit(servicefile, "replace")
+            except:
+                success = False
         if action is 'restart':
-            systemd_manager.RestartUnit(servicefile, "replace")
-
+            try:
+                systemd_manager.RestartUnit(servicefile, "replace")
+            except:
+                success = False
+        return success
 
     def cmd_service_control(self, *argv, **kwargs):
         """Syntax: service.control daemon action <force: 0/1>"""
