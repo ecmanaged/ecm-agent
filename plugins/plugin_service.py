@@ -18,6 +18,8 @@ import time
 import sys
 import os
 import re
+import traceback
+import dbus
 
 # Local
 from __plugin import ECMPlugin
@@ -38,27 +40,28 @@ class ECMLinux(ECMPlugin):
         '''
         Syntax: systemd.service.control servicefile.service action
         '''
+        SYSTEMD_BUSNAME = 'org.freedesktop.systemd1'
+        SYSTEMD_PATH = '/org/freedesktop/systemd1'
+        SYSTEMD_MANAGER_INTERFACE = 'org.freedesktop.systemd1.Manager'
+        dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
 
-        from pydbus import SystemBus
-        from gi.repository import Gio
-
-        bus = SystemBus()
-
-        systemd = bus.get(".systemd1")
-        manager = systemd[".Manager"]
-
-        unitfiles = [item[0] for item in [unit for unit in manager.ListUnits()[0]]]
+        bus = dbus.SystemBus()
+        try:
+            systemd_object = bus.get_object(SYSTEMD_BUSNAME, SYSTEMD_PATH)
+            systemd_manager = dbus.Interface(systemd_object, SYSTEMD_MANAGER_INTERFACE)
+        except dbus.DBusException:
+            traceback.print_exc()
+            sys.exit(1)
 
         servicefile = kwargs.get('servicefile', None)
         action = kwargs.get('action', None)
 
-        if not (servicefile and action):
-            raise ecm.InvalidParameters(self.cmd_service_control.__doc__)
-
-        if servicefile not in unitfiles:
-            raise ecm.InvalidParameters(self.cmd_service_control.__doc__)
-        # TODO start stop and restart the process
-
+        if action is 'start':
+            systemd_manager.StartUnit(servicefile, "replace")
+        elif action is 'stop':
+            systemd_manager.StopUnit(servicefile, "replace")
+        if action is 'restart':
+            systemd_manager.RestartUnit(servicefile, "replace")
 
 
     def cmd_service_control(self, *argv, **kwargs):
