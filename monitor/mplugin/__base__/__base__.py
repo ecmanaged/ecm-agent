@@ -423,44 +423,24 @@ class BaseMPlugin(MPlugin):
         if is_windows():
             return -1
 
-        distribution, _version = get_distribution()
+        # check update using packagekit
+        from gi.repository import PackageKitGlib as pk
 
-        if distribution.lower() in ['debian', 'ubuntu']:
-            import apt_pkg, apt
+        client = pk.Client()
+        res = client.get_updates(pk.FilterEnum.NONE, None, lambda p, t, d: True, None)
+        updates = 0
+        security = 0
+        for pkg in res.get_package_array():
+            updates += 1
+            info = pkg.get_info()
+            if info == pk.InfoEnum.SECURITY:
+                security =+ 1
+        print "There are %s updates available totally" % updates
+        if security:
+            print "There are %s important security updates!" % security
+        return updates, security
 
-            upgrades = 0
 
-            apt_pkg.init()
-            apt_pkg.config.set("Dir::Cache::pkgcache","")
-
-            cache = apt_pkg.Cache(apt.progress.base.OpProgress())
-            depcache = apt_pkg.DepCache(cache)
-
-            depcache.read_pinfile()
-            depcache.init()
-
-            depcache.upgrade(True)
-            if depcache.del_count > 0:
-                depcache.init()
-            depcache.upgrade()
-
-            for pkg in cache.packages:
-                if not (depcache.marked_install(pkg) or depcache.marked_upgrade(pkg)):
-                    continue
-                upgrades += 1
-            return upgrades
-        elif distribution.lower() in ['centos', 'redhat', 'fedora', 'amazon']:
-            # TODO
-            pass
-        elif distribution.lower() in ['suse']:
-            # TODO
-            pass
-        elif distribution.lower() in ['arch']:
-            # TODO
-            pass
-        else:
-            # TODO
-            pass
 
 mplugin = BaseMPlugin()
 mplugin.run()
