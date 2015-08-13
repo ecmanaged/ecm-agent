@@ -18,7 +18,6 @@ import time
 import sys
 import os
 import re
-import traceback
 import dbus
 
 # Local
@@ -36,9 +35,7 @@ SVC_TIMEOUT = 120
 # noinspection PyUnusedLocal,PyUnusedLocal,PyUnusedLocal
 class ECMLinux(ECMPlugin):
     def systemd_service_control(self, *argv, **kwargs):
-        '''
-        Syntax: systemd.service.control servicefile.service action
-        '''
+        # Syntax: systemd.service.control servicefile.service action
         SYSTEMD_BUSNAME = 'org.freedesktop.systemd1'
         SYSTEMD_PATH = '/org/freedesktop/systemd1'
         SYSTEMD_MANAGER_INTERFACE = 'org.freedesktop.systemd1.Manager'
@@ -46,7 +43,16 @@ class ECMLinux(ECMPlugin):
         DBUS_PROPERTIES = 'org.freedesktop.DBus.Properties'
 
         servicefile = kwargs.get('servicefile', None)
+        if not servicefile:
+            return False, 'empty service file', 'NA'
+        if not servicefile.split('.')[-1] == 'service':
+            return False, 'provide service file in name.service format', 'NA'
+
         action = kwargs.get('action', None)
+        if not action:
+            return False, 'action not defined', 'NA'
+        if action not in ['start', 'stop', 'restart']:
+            return False, 'unsupported action', 'NA'
 
         bus = dbus.SystemBus()
 
@@ -54,7 +60,6 @@ class ECMLinux(ECMPlugin):
             systemd_object = bus.get_object(SYSTEMD_BUSNAME, SYSTEMD_PATH)
             systemd_manager = dbus.Interface(systemd_object, SYSTEMD_MANAGER_INTERFACE)
         except dbus.DBusException:
-            traceback.print_exc()
             return False, 'systemd dbus error', 'NA'
 
         try:
@@ -68,27 +73,23 @@ class ECMLinux(ECMPlugin):
             unit_interface = dbus.Interface(unit_object, SYSTEMD_UNIT_INTERFACE)
             prop_unit = dbus.Interface(unit_object, DBUS_PROPERTIES)
         except dbus.DBusException:
-            traceback.print_exc()
             return False, 'unit dbus error', 'NA'
 
         while list(systemd_manager.ListJobs()):
             time.sleep(2)
             print 'there are pending jobs, lets wait for them to finish.'
 
-        if action not in ['start', 'stop', 'restart']:
-            return False, 'unsupported action', 'NA'
-
-        if action is 'start':
+        if action == 'start':
             try:
                 job = unit_interface.Start("replace")
             except dbus.DBusException:
                 return False, 'error starting', 'NA'
-        if action is 'stop':
+        if action == 'stop':
             try:
                 job = unit_interface.Stop("replace")
             except dbus.DBusException:
                 return False, 'error stopping', 'NA'
-        if action is 'restart':
+        if action == 'restart':
             try:
                 job = unit_interface.Restart("replace")
             except dbus.DBusException:
@@ -103,7 +104,6 @@ class ECMLinux(ECMPlugin):
             active_state = prop_unit.Get(SYSTEMD_UNIT_INTERFACE, 'ActiveState')
             sub_state = prop_unit.Get(SYSTEMD_UNIT_INTERFACE, 'SubState')
         except dbus.DBusException:
-            traceback.print_exc()
             return False, 'error getting state', 'NA'
 
         return True, str(active_state), str(sub_state)
