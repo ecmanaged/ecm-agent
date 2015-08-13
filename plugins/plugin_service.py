@@ -35,7 +35,6 @@ SVC_TIMEOUT = 120
 
 # noinspection PyUnusedLocal,PyUnusedLocal,PyUnusedLocal
 class ECMLinux(ECMPlugin):
-
     def systemd_service_control(self, *argv, **kwargs):
         '''
         Syntax: systemd.service.control servicefile.service action
@@ -43,36 +42,71 @@ class ECMLinux(ECMPlugin):
         SYSTEMD_BUSNAME = 'org.freedesktop.systemd1'
         SYSTEMD_PATH = '/org/freedesktop/systemd1'
         SYSTEMD_MANAGER_INTERFACE = 'org.freedesktop.systemd1.Manager'
+        SYSTEMD_UNIT_INTERFACE = 'org.freedesktop.systemd1.Unit'
+        DBUS_PROPERTIES = 'org.freedesktop.DBus.Properties'
 
-        success = True
+        servicefile = kwargs.get('servicefile', None)
+        action = kwargs.get('action', None)
 
         bus = dbus.SystemBus()
+
         try:
             systemd_object = bus.get_object(SYSTEMD_BUSNAME, SYSTEMD_PATH)
             systemd_manager = dbus.Interface(systemd_object, SYSTEMD_MANAGER_INTERFACE)
         except dbus.DBusException:
             traceback.print_exc()
-            sys.exit(1)
+            return False, 'systemd dbus error', 'NA'
 
-        servicefile = kwargs.get('servicefile', None)
-        action = kwargs.get('action', None)
+        try:
+            unit = systemd_manager.GetUnit(servicefile)
+        except dbus.DBusException:
+            print 'can not find service file'
+            return False, 'cannot find service file', 'NA'
+
+        try:
+            unit_object = bus.get_object(SYSTEMD_BUSNAME, unit)
+            unit_interface = dbus.Interface(unit_object, SYSTEMD_UNIT_INTERFACE)
+            prop_unit = dbus.Interface(unit_object, DBUS_PROPERTIES)
+        except dbus.DBusException:
+            traceback.print_exc()
+            return False, 'unit dbus error', 'NA'
+
+        while list(systemd_manager.ListJobs()):
+            time.sleep(2)
+            print 'there are pending jobs, lets wait for them to finish.'
+
+        if action not in ['start', 'stop', 'restart']:
+            return False, 'unsupported action', 'NA'
 
         if action is 'start':
             try:
-                systemd_manager.StartUnit(servicefile, "replace")
-            except:
-                success = False
-        elif action is 'stop':
+                job = unit_interface.Start("replace")
+            except dbus.DBusException:
+                return False, 'error starting', 'NA'
+        if action is 'stop':
             try:
-                systemd_manager.StopUnit(servicefile, "replace")
-            except:
-                success = False
+                job = unit_interface.Stop("replace")
+            except dbus.DBusException:
+                return False, 'error stopping', 'NA'
         if action is 'restart':
             try:
-                systemd_manager.RestartUnit(servicefile, "replace")
-            except:
-                success = False
-        return success
+                job = unit_interface.Restart("replace")
+            except dbus.DBusException:
+                return False, 'error restarting', 'NA'
+
+        # wait for the job to finish
+        while list(systemd_manager.ListJobs()):
+            time.sleep(2)
+            print 'wait for job to finish.'
+
+        try:
+            active_state = prop_unit.Get(SYSTEMD_UNIT_INTERFACE, 'ActiveState')
+            sub_state = prop_unit.Get(SYSTEMD_UNIT_INTERFACE, 'SubState')
+        except dbus.DBusException:
+            traceback.print_exc()
+            return False, 'error getting state', 'NA'
+
+        return True, str(active_state), str(sub_state)
 
     def cmd_service_control(self, *argv, **kwargs):
         """Syntax: service.control daemon action <force: 0/1>"""
