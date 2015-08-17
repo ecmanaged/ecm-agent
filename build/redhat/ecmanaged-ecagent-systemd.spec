@@ -38,6 +38,8 @@ Requires:         rpm-python
 Requires:         python-crypto
 Requires:         python-httplib2
 
+Requires(pre):    shadow-utils
+
 Requires:         systemd
 
 Provides:         ecmanaged-ecagent
@@ -46,6 +48,10 @@ Provides:         ecmanaged-ecagent
 ECManaged  Agent - Monitoring and deployment agent
 
 %prep
+getent group ecmanaged >/dev/null || groupadd -r ecmanaged
+getent passwd ecmanaged >/dev/null || \
+    useradd -r -g ecmanaged -d /opt/ecmanaged -s /sbin/nologin \
+    -c "account for running ecagent" ecmanaged
 %setup -qn %{name}-%{version}
 
 %build
@@ -84,7 +90,7 @@ fi
 
 
 %files
-%defattr(755,root,root,-)
+%defattr(755,ecmanaged,ecmanaged,-)
 %dir /opt/ecmanaged/ecagent/
 %dir /opt/ecmanaged/ecagent/ecagent
 %dir /opt/ecmanaged/ecagent/monitor
@@ -103,12 +109,12 @@ fi
 %doc /opt/ecmanaged/ecagent/LICENSE
 %doc /opt/ecmanaged/ecagent/README.md
 
-%attr(750,root,root) /usr/lib/systemd/system/ecagentd.service
-%attr(640,root,root) /etc/cron.d/ecmanaged-ecagent
+%attr(750,ecmanaged,ecmanaged) /usr/lib/systemd/system/ecagentd.service
+%attr(640,ecmanaged,ecmanaged) /etc/cron.d/ecmanaged-ecagent
 
-%dir %attr(700,root,root) %config /opt/ecmanaged/ecagent/config
-%attr(400,root,root) %config /opt/ecmanaged/ecagent/config/ecagent.init.cfg
-%attr(400,root,root) %config /opt/ecmanaged/ecagent/config/xmpp_cert.pub
+%dir %attr(700,ecmanaged,ecmanaged) %config /opt/ecmanaged/ecagent/config
+%attr(600,ecmanaged,ecmanaged) %config /opt/ecmanaged/ecagent/config/ecagent.init.cfg
+%attr(600,ecmanaged,ecmanaged) %config /opt/ecmanaged/ecagent/config/xmpp_cert.pub
 
 %changelog
 * Wed Feb 25 2015 Arindam Choudhury <arindam@live.com> - 2.1.2-109
