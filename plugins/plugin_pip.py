@@ -21,14 +21,17 @@ from pip.req import InstallRequirement, RequirementSet
 from pkg_resources import safe_name
 from setuptools.package_index import distros_for_url
 from pip.download import PipSession
-from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled
+from pip.exceptions import DistributionNotFound, \
+                    BestVersionAlreadyInstalled, \
+                    InstallationError, \
+                    PreviousBuildDirError
 from packaging.version import parse
 from pip.locations import src_prefix, site_packages, user_dir
 
 logging.basicConfig()
 session = PipSession()
 
-pkg = 'google-api-python-client'
+pkg = 'anti'
 pkg_normalized = safe_name(pkg).lower()
 req = InstallRequirement.from_line(pkg, None)
 reqset = RequirementSet(build_dir=site_packages, src_dir=src_prefix, download_dir=None,session=session)
@@ -62,18 +65,20 @@ if req.check_if_exists():
         #reqset.install(install_options=[], global_options=[])
         #reqset.cleanup_files()
 
-
 else:
     print 'not installed'
 
     reqset.add_requirement(req)
     reqset.prepare_files(pf)
 
-    reqset.install(install_options=[], global_options=[])
+    try:
+        reqset.install(install_options=[], global_options=[])
+    except:
+        print 'Problem in installation.'
     reqset.cleanup_files()
 
-    print req.install_succeeded
-    if req.check_if_exists():
+    if req.install_succeeded:
+        req.check_if_exists()
         print 'installation done'
         print 'satisfied by: '+str(req.satisfied_by)
         print 'conflicts with:'+str(req.conflicts_with)
