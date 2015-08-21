@@ -22,7 +22,7 @@ import __helper as ecm
 class UpdateScript(ECMPlugin):
     def cmd__run(self, *argv, **kwargs):
         client = pk.Client()
-        client.refresh_cache(False, None, lambda p, t, d: True, None)
+        client.refresh_cache(True, None, lambda p, t, d: True, None)
         res = client.get_updates(pk.FilterEnum.NONE, None, lambda p, t, d: True, None)
         packages = []
         for pkg in res.get_package_array():
