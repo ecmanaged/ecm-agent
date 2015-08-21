@@ -427,6 +427,7 @@ class BaseMPlugin(MPlugin):
         from gi.repository import PackageKitGlib as pk
 
         client = pk.Client()
+        client.refresh_cache(True, None, lambda p, t, d: True, None)
         res = client.get_updates(pk.FilterEnum.NONE, None, lambda p, t, d: True, None)
         updates = 0
         security = 0
