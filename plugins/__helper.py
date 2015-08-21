@@ -246,6 +246,33 @@ def chown(path, user, group=None, recursive=False):
 
     return True
 
+def packagekit_install_package(packages):
+
+    if type(packages) is types.StringType:
+        packages = packages.split(' ')
+
+    for package in packages:
+        packagekit_install_single_package(package)
+
+
+def packagekit_install_single_package(package):
+    from gi.repository import PackageKitGlib
+
+    client = PackageKitGlib.Client()
+
+    client.refresh_cache(False, None, lambda p, t, d: True, None)
+
+    res = client.resolve(PackageKitGlib.FilterEnum.NONE, [package], None, lambda p, t, d: True, None)
+
+    if res.get_exit_code() == PackageKitGlib.ExitEnum.SUCCESS:
+        package_ids = res.get_package_array()
+        if len(package_ids) > 0:
+            package_id = package_ids[0].get_id()
+            if package_ids[0].get_info() != PackageKitGlib.InfoEnum.INSTALLED:
+                res = client.install_packages(False, [package_id], None, lambda p, t, d: True, None)
+                return res.get_exit_code() == PackageKitGlib.ExitEnum.SUCCESS
+
+    return False
 
 def apt_install_package(package):
     if type(package) is types.StringType:
