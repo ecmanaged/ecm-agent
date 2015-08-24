@@ -59,6 +59,9 @@ if [[ $1 -eq 0 ]]; then
   systemctl daemon-reload
 fi
 
+%postun
+tr '\n' '\0' < INSTALLED_FILES | | xargs -0 rm -f --
+
 %files -f INSTALLED_FILES
 %defattr(755,ecmanaged,ecmanaged,-)
 %dir /opt/ecmanaged/ecagent/
