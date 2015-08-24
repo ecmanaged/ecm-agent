@@ -42,6 +42,5 @@ setup(name='ecmanaged-ecagent',
                   ('monitor/mplugin/__base__', ['monitor/mplugin/__base__/data.json']),
                   ('/etc/sudoers.d', ['ecmanaged'])],
 
-      scripts=['configure.py','ecagent.bat', 'ecagent.sh', 'ecagentd.tac'],
-      requires=['psutil', 'simplejson', 'twisted']
+      scripts=['configure.py','ecagent.bat', 'ecagent.sh', 'ecagentd.tac']
      )
