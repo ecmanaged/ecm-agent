@@ -40,7 +40,6 @@ setup(name='ecmanaged-ecagent',
                   ('/usr/share/doc', ['copyright']),
                   ('/usr/lib/systemd/system', ['ecagentd.service']),
                   ('monitor/mplugin/__base__', ['monitor/mplugin/__base__/data.json']),
-                  ('/etc/sudoers.d', ['ecmanaged'])],
-
-      extra_files=['configure.py','ecagent.bat', 'ecagent.sh', 'ecagentd.tac']
+                  ('/etc/sudoers.d', ['ecmanaged']),
+                  ('',['configure.py','ecagent.bat', 'ecagent.sh', 'ecagentd.tac'])]
      )
