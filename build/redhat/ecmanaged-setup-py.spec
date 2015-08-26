@@ -61,7 +61,7 @@ if [[ $1 -eq 0 ]]; then
 fi
 
 %postun
-/usr/sbin/userdel myservice -f
+/usr/sbin/userdel ecmanaged -f
 
 %files -f INSTALLED_FILES
 %defattr(760,ecmanaged,ecmanaged,-)
