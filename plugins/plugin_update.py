@@ -17,7 +17,6 @@ from gi.repository import PackageKitGlib as pk
 
 # Local
 from __plugin import ECMPlugin
-import __helper as ecm
 
 class UpdateScript(ECMPlugin):
     def cmd__run(self, *argv, **kwargs):

@@ -19,9 +19,9 @@ import re
 import types
 import urllib
 import socket
-import yum
+#import yum
 from yum import Errors
-import apt
+#import apt
 
 from sys import platform
 from time import sleep, time
@@ -274,58 +274,58 @@ def packagekit_install_single_package(package):
 
     return False
 
-def apt_install_package(package):
-    if type(package) is types.StringType:
-        apt_install_single_package(package)
-    elif type(package) is types.ListType:
-        for item in package:
-            apt_install_single_package(item)
-
-
-def apt_install_single_package(package):
-    cache = apt.Cache()
-    try:
-        pkg = cache[package]
-    except KeyError:
-        print "package not found"
-        return
-    if not pkg.is_installed:
-        pkg.mark_install()
-        pkg.commit()
-        cache.open()
-
-
-
-def yum_install_package(package):
-    if type(package) is types.StringType:
-        yum_install_single_package(package)
-    elif type(package) is types.ListType:
-        for item in package:
-            yum_install_single_package(item)
-
-
-def yum_install_single_package(package):
-    yb=yum.YumBase()
-    inst = yb.rpmdb.returnPackages()
-    installed=[x.name for x in inst]
-
-    if package in installed:
-        print('{0} is already installed'.format(package))
-
-    else:
-        print('Installing {0}'.format(package))
-
-    kwarg = {
-        'name':package
-        }
-    try:
-        yb.install(**kwarg)
-    except Errors.InstallError as e:
-        print e
-        return
-    yb.resolveDeps()
-    yb.buildTransaction()
-    yb.processTransaction()
+# def apt_install_package(package):
+#     if type(package) is types.StringType:
+#         apt_install_single_package(package)
+#     elif type(package) is types.ListType:
+#         for item in package:
+#             apt_install_single_package(item)
+#
+#
+# def apt_install_single_package(package):
+#     cache = apt.Cache()
+#     try:
+#         pkg = cache[package]
+#     except KeyError:
+#         print "package not found"
+#         return
+#     if not pkg.is_installed:
+#         pkg.mark_install()
+#         pkg.commit()
+#         cache.open()
+#
+#
+#
+# def yum_install_package(package):
+#     if type(package) is types.StringType:
+#         yum_install_single_package(package)
+#     elif type(package) is types.ListType:
+#         for item in package:
+#             yum_install_single_package(item)
+#
+#
+# def yum_install_single_package(package):
+#     yb=yum.YumBase()
+#     inst = yb.rpmdb.returnPackages()
+#     installed=[x.name for x in inst]
+#
+#     if package in installed:
+#         print('{0} is already installed'.format(package))
+#
+#     else:
+#         print('Installing {0}'.format(package))
+#
+#     kwarg = {
+#         'name':package
+#         }
+#     try:
+#         yb.install(**kwarg)
+#     except Errors.InstallError as e:
+#         print e
+#         return
+#     yb.resolveDeps()
+#     yb.buildTransaction()
+#     yb.processTransaction()
 
 def install_package(packages, update=True):
     """
