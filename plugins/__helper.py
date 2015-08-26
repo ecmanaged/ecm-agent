@@ -20,7 +20,7 @@ import types
 import urllib
 import socket
 #import yum
-from yum import Errors
+#from yum import Errors
 #import apt
 
 from sys import platform
