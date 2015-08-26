@@ -1,3 +1,4 @@
+%define _unpackaged_files_terminate_build 0
 %define name ecmanaged-ecagent
 %define version 2.2
 %define unmangled_version 2.2
@@ -50,6 +51,11 @@ fi
 systemctl daemon-reload
 systemctl enable ecagentd.service
 systemctl daemon-reload
+
+chown -R ecmanaged:ecmanaged /opt/ecmanaged
+mkdir -p /etc/ecmanaged
+chown -R ecmanaged:ecmanaged /etc/ecmanaged
+
 systemctl start ecagentd.service >/dev/null 2>&1
 
 %preun
@@ -61,9 +67,7 @@ if [[ $1 -eq 0 ]]; then
 fi
 
 %postun
-/usr/sbin/userdel ecmanaged -f
+/usr/sbin/userdel ecmanaged -r
 
 %files -f INSTALLED_FILES
 %defattr(760,ecmanaged,ecmanaged,-)
-/opt/ecmanaged/ecagent/configure.pyc
-/opt/ecmanaged/ecagent/configure.pyo
