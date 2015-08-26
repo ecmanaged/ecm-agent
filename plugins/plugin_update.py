@@ -35,8 +35,8 @@ class UpdateScript(ECMPlugin):
             if res.get_exit_code() == pk.ExitEnum.SUCCESS:
                 success = True
 
-            return success, packages
+            return success
 
         else:
-            return True, packages
+            return True
 UpdateScript.run()
