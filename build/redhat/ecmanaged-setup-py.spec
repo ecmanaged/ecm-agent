@@ -61,7 +61,7 @@ if [[ $1 -eq 0 ]]; then
 fi
 
 %postun
-tr '\n' '\0' < INSTALLED_FILES | | xargs -0 rm -f --
+/usr/sbin/userdel myservice -f
 
 %files -f INSTALLED_FILES
 %defattr(755,ecmanaged,ecmanaged,-)
