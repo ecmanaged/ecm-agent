@@ -17,7 +17,7 @@ Vendor: Juan Carlos Moreno<juancarlos.moreno@ecmanaged.com>
 Packager: Arindam Choudhury<arindam@live.com>
 Provides: ecmanaged-ecagent
 Requires(pre): shadow-utils
-Requires: python2 python-devel python-twisted-core python-twisted-web python-protocols python-configobj python-twisted-words python-psutil libxml2-python python-simplejson rpm-python python-crypto python-httplib2 python-pip
+Requires: python2 python-devel pygobject3 PackageKit python-twisted-core python-twisted-web python-protocols python-configobj python-twisted-words python-psutil libxml2-python python-simplejson rpm-python python-crypto python-httplib2 python-pip
 Url: www.ecmanaged.com
 BuildRequires: systemd
 
@@ -64,4 +64,6 @@ fi
 /usr/sbin/userdel myservice -f
 
 %files -f INSTALLED_FILES
-%defattr(755,ecmanaged,ecmanaged,-)
+%defattr(760,ecmanaged,ecmanaged,-)
+/opt/ecmanaged/ecagent/configure.pyc
+/opt/ecmanaged/ecagent/configure.pyo
