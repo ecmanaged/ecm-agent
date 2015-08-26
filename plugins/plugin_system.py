@@ -23,15 +23,13 @@ from __plugin import ECMPlugin
 from __helper import AGENT_VERSION
 import __helper as ecm
 
-root_dir = os.path.join(os.path.sep, 'opt','ecmanaged','ecagent')
+root_dir = os.path.join(os.path.sep, 'opt', 'ecmanaged', 'ecagent')
 if root_dir not in sys.path:
     sys.path.append(root_dir)
 
 from ecagent.config import SMConfigObj
 
 import psutil
-
-
 
 class ECMSystem(ECMPlugin):
     def cmd_agent_ping(self, *argv, **kwargs):
