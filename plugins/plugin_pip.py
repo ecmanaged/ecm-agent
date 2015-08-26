@@ -22,7 +22,7 @@ from pkg_resources import safe_name
 from setuptools.package_index import distros_for_url
 from pip.download import PipSession
 from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled
-from packaging.version import parse
+from pip._vendor.packaging.version import parse
 from pip.locations import src_prefix, site_packages, user_site
 
 logging.basicConfig()
