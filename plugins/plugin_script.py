@@ -22,6 +22,7 @@ from shutil import rmtree
 from __plugin import ECMPlugin
 import __helper as ecm
 
+
 class ECMScript(ECMPlugin):
     def cmd_script_run(self, *argv, **kwargs):
         """
