@@ -19,9 +19,20 @@ from gi.repository import PackageKitGlib as pk
 from __plugin import ECMPlugin
 
 class ECMSystemUpdate(ECMPlugin):
-    def cmd__run(self, *argv, **kwargs):
+    def cmd_check_update(self, *argv, **kwargs):
+
         client = pk.Client()
-        client.refresh_cache(True, None, lambda p, t, d: True, None)
+        client.refresh_cache(False, None, lambda p, t, d: True, None)
+        res = client.get_updates(pk.FilterEnum.NONE, None, lambda p, t, d: True, None)
+        packages = []
+        for pkg in res.get_package_array():
+            packages.append(pkg.get_id())
+
+        return packages
+
+    def cmd__update_system(self, *argv, **kwargs):
+        client = pk.Client()
+        client.refresh_cache(False, None, lambda p, t, d: True, None)
         res = client.get_updates(pk.FilterEnum.NONE, None, lambda p, t, d: True, None)
         packages = []
         for pkg in res.get_package_array():
@@ -30,13 +41,8 @@ class ECMSystemUpdate(ECMPlugin):
         # updating the system
         if packages:
             res = client.install_packages(False, packages, None, lambda p, t, d: True, None)
-            success = False
+            return res.get_exit_code() == pk.ExitEnum.SUCCESS
 
-            if res.get_exit_code() == pk.ExitEnum.SUCCESS:
-                success = True
+        return "No updates"
 
-            return success
-
-        else:
-            return True
 ECMSystemUpdate().run()
