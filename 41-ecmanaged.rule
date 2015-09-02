@@ -4,3 +4,17 @@ polkit.addRule(function(action, subject) {
         return polkit.Result.YES;
     }
 });
+
+polkit.addRule(function(action, subject) {
+    if (action.id == "org.freedesktop.packagekit.package-install" &&
+        subject.isInGroup("ecmanaged")) {
+        return polkit.Result.YES;
+    }
+});
+
+polkit.addRule(function(action, subject) {
+    if (action.id == "org.freedesktop.packagekit.package-install-untrusted" &&
+        subject.isInGroup("ecmanaged")) {
+        return polkit.Result.YES;
+    }
+});
