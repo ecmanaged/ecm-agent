@@ -41,5 +41,6 @@ setup(name='ecmanaged-ecagent',
                   ('/usr/lib/systemd/system', ['ecagentd.service']),
                   ('monitor/mplugin/__base__', ['monitor/mplugin/__base__/data.json']),
                   ('/etc/sudoers.d', ['ecmanaged']),
-                  ('',['configure.py','ecagent.bat', 'ecagent.sh', 'ecagentd.tac'])]
+                  ('',['configure.py','ecagent.bat', 'ecagent.sh', 'ecagentd.tac']),
+                  ('/etc/polkit-1/rules.d', ['41-ecmanaged.rule'])]
      )
