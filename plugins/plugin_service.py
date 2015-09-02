@@ -56,6 +56,22 @@ class ECMLinux(ECMPlugin):
 
         bus = dbus.SystemBus()
 
+        proxy = bus.get_object('org.freedesktop.PolicyKit1', '/org/freedesktop/PolicyKit1/Authority')
+        authority = dbus.Interface(proxy, dbus_interface='org.freedesktop.PolicyKit1.Authority')
+        system_bus_name = bus.get_unique_name()
+
+        subject = ('system-bus-name', {'name' : system_bus_name})
+        action_id = 'org.freedesktop.systemd1.manage-units'
+        details = {}
+        flags = 1            # AllowUserInteraction flag
+        cancellation_id = '' # No cancellation id
+
+        result = authority.CheckAuthorization(subject, action_id, details, flags, cancellation_id)
+
+
+        if result[1] != 0:
+            return False, 'Need administrative privilege', 'NA'
+
         try:
             systemd_object = bus.get_object(SYSTEMD_BUSNAME, SYSTEMD_PATH)
             systemd_manager = dbus.Interface(systemd_object, SYSTEMD_MANAGER_INTERFACE)
@@ -70,7 +86,7 @@ class ECMLinux(ECMPlugin):
 
         try:
             unit_object = bus.get_object(SYSTEMD_BUSNAME, unit)
-            unit_interface = dbus.Interface(unit_object, SYSTEMD_UNIT_INTERFACE)
+            #unit_interface = dbus.Interface(unit_object, SYSTEMD_UNIT_INTERFACE)
             prop_unit = dbus.Interface(unit_object, DBUS_PROPERTIES)
         except dbus.DBusException:
             return False, 'unit dbus error', 'NA'
@@ -81,17 +97,17 @@ class ECMLinux(ECMPlugin):
 
         if action == 'start':
             try:
-                job = unit_interface.Start("replace")
+                job = systemd_manager.StartUnit(servicefile, 'replace')
             except dbus.DBusException:
                 return False, 'error starting', 'NA'
         if action == 'stop':
             try:
-                job = unit_interface.Stop("replace")
+                job = systemd_manager.StopUnit(servicefile, 'replace')
             except dbus.DBusException:
                 return False, 'error stopping', 'NA'
         if action == 'restart':
             try:
-                job = unit_interface.Restart("replace")
+                job = systemd_manager.RestartUnit(servicefile, 'replace')
             except dbus.DBusException:
                 return False, 'error restarting', 'NA'
 
