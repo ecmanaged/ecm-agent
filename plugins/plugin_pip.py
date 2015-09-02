@@ -32,6 +32,7 @@ import __helper as ecm
 from __plugin import ECMPlugin
 from __mplugin import MPlugin
 
+
 class ECMPip(ECMPlugin):
     def cmd_pip_install(self, *argv, **kwargs):
         session = PipSession()

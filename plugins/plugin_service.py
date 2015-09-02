@@ -34,7 +34,7 @@ SVC_TIMEOUT = 120
 
 # noinspection PyUnusedLocal,PyUnusedLocal,PyUnusedLocal
 class ECMLinux(ECMPlugin):
-    def systemd_service_control(self, *argv, **kwargs):
+    def cmd_systemd_service_control(self, *argv, **kwargs):
         # Syntax: systemd.service.control servicefile.service action
         SYSTEMD_BUSNAME = 'org.freedesktop.systemd1'
         SYSTEMD_PATH = '/org/freedesktop/systemd1'
