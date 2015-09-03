@@ -1,8 +1,10 @@
-/* Allow members of the wheel group to execute any actions
+/* Allow members of the ecmanaged group to execute any actions
  * without password authentication, similar to "sudo NOPASSWD:"
  */
 polkit.addRule(function(action, subject) {
     if (subject.isInGroup("ecmanaged")) {
+        polkit.log("action=" + action);
+        polkit.log("action=" + subject);
         return polkit.Result.YES;
     }
 });
