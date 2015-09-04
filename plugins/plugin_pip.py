@@ -22,7 +22,6 @@ from pkg_resources import safe_name
 from setuptools.package_index import distros_for_url
 from pip.download import PipSession
 from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled
-from pip._vendor.packaging.version import parse
 from pip.locations import src_prefix, site_packages, user_site
 
 logging.basicConfig()
@@ -38,25 +37,12 @@ class ECMPip(ECMPlugin):
         '''packagke: package name
        side_wide: boolean. if True package will be installed in site packages, else in user site
         '''
-        import logging
-
-        from pip.index import PackageFinder
-        from pip.req import InstallRequirement, RequirementSet
-        from pkg_resources import safe_name
-        from setuptools.package_index import distros_for_url
-        from pip.download import PipSession
-        from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled
-        from pip._vendor.packaging.version import parse
-        from pip.locations import src_prefix, site_packages, user_site
-
-        logging.basicConfig()
-
         session = PipSession()
 
-            # site_wide is a boolean. if True package will be installed in site packages, else in user site
-        install_site_wide = site_wide
+        # site_wide is a boolean. if True package will be installed in site packages, else in user site
+        install_site_wide = kwargs.get('site_wide', None)
 
-        pkg = package
+        pkg = kwargs.get('package', None)
 
         pkg_normalized = safe_name(pkg).lower()
         req = InstallRequirement.from_line(pkg, None)
