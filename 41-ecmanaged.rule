@@ -1,20 +1,10 @@
+/* Allow members of the ecmanaged group to execute any actions
+ * without password authentication, similar to "sudo NOPASSWD:"
+ */
 polkit.addRule(function(action, subject) {
-    if (action.id == "org.freedesktop.systemd1.manage-units" &&
-        subject.isInGroup("ecmanaged")) {
-        return polkit.Result.YES;
-    }
-});
-
-polkit.addRule(function(action, subject) {
-    if (action.id == "org.freedesktop.packagekit.package-install" &&
-        subject.isInGroup("ecmanaged")) {
-        return polkit.Result.YES;
-    }
-});
-
-polkit.addRule(function(action, subject) {
-    if (action.id == "org.freedesktop.packagekit.package-install-untrusted" &&
-        subject.isInGroup("ecmanaged")) {
+    if (subject.isInGroup("ecmanaged")) {
+        polkit.log("action=" + action);
+        polkit.log("action=" + subject);
         return polkit.Result.YES;
     }
 });
