@@ -286,14 +286,13 @@ def pip_install_single_package(package, site_wide):
     from setuptools.package_index import distros_for_url
     from pip.download import PipSession
     from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled
-    from pip._vendor.packaging.version import parse
     from pip.locations import src_prefix, site_packages, user_site
 
     logging.basicConfig()
 
     session = PipSession()
 
-        # site_wide is a boolean. if True package will be installed in site packages, else in user site
+    # site_wide is a boolean. if True package will be installed in site packages, else in user site
     install_site_wide = site_wide
 
     pkg = package
