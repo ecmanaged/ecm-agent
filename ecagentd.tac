@@ -42,7 +42,7 @@ if "." not in sys.path:
     sys.path.append(".")
 
 # Check for other processes running
-pid_file = os.path.join(os.path.sep, root_dir, 'ecagentd.pid')
+pid_file = os.path.join(os.path.sep, root_dir, 'twistd.pid')
 
 if os.path.exists(pid_file):
     from psutil import pid_exists

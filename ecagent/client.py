@@ -23,6 +23,8 @@ from twisted.words.xish.domish import Element
 # Local
 from core import BasicClient
 
+XMPP_HOST = 'xmpp.ecmanaged.net'
+
 
 class Client(BasicClient):
     def __init__(self, config, observers, resource='XMPPClient'):
@@ -50,11 +52,11 @@ class Client(BasicClient):
             max_delay = self.cfg.as_int('max_delay')
 
         self._concurrency_semaphore = DeferredSemaphore(max_concurrent)
-        self._my_full_jid = '/'.join((config['user'], resource))
+        self._my_full_jid = '/'.join((config['user'] + '@' + XMPP_HOST, resource))
         BasicClient.__init__(self,
-                             config['user'],
+                             config['user'] + '@' + XMPP_HOST,
                              config['password'],
-                             config['host'],
+                             XMPP_HOST,
                              my_observers,
                              resource=resource,
                              max_delay=max_delay,

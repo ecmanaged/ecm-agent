@@ -96,7 +96,7 @@ class SMConfigObj(ConfigObj):
 
             else:
                 log.info('UUID has changed, reconfiguring XMPP user/pass')
-                self['XMPP']['user'] = '@'.join((get_config['uuid'], self['XMPP']['host']))
+                self['XMPP']['user'] = get_config['uuid']
                 self['XMPP']['unique_id'] = unique_id
                 self['XMPP']['account'] = get_config.get('account', '')
                 self['XMPP']['groups'] = get_config.get('groups', '')
@@ -141,7 +141,7 @@ class SMConfigObj(ConfigObj):
         return str(unique_id) == str(self._get_stored_unique_id())
 
     def _get_stored_uuid(self):
-        return self['XMPP'].get('user', '').split('@')[0]
+        return self['XMPP'].get('user', '')
 
     def _get_stored_unique_id(self):
         return self['XMPP'].get('unique_id', '')
