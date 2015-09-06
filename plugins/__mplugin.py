@@ -509,7 +509,7 @@ class MPlugin:
         return isinstance(obj, (int, long, float, complex))
         
     @staticmethod
-    def is_windows():
+    def is_win():
         if sys.platform.startswith("win32"):
             return True
             

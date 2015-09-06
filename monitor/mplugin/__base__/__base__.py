@@ -30,7 +30,7 @@ if root_dir not in sys.path:
 from plugins.__mplugin import MPlugin
 from plugins.__mplugin import OK, CRITICAL
 
-from plugins.__helper import is_windows, get_distribution, NotSupported
+from plugins.__helper import is_win, get_distribution, NotSupported
 
 import psutil
 
@@ -89,7 +89,7 @@ class BaseMPlugin(MPlugin):
                 retval['cached'] = self.to_gb(psutil.cached_phymem())
                 retval['buffers'] = self.to_gb(psutil.phymem_buffers())
                 
-                if not self.is_windows():
+                if not self.is_win():
                     try:
                         f = open('/proc/meminfo', 'r')
                         for line in f:
@@ -193,7 +193,7 @@ class BaseMPlugin(MPlugin):
         try:
             data = self._to_data(psutil.network_io_counters(pernic=True))
 
-            if not data.get('errin') and not self.is_windows():
+            if not data.get('errin') and not self.is_win():
                 # Get manualy errors
                 try: 
                     f = open("/proc/net/dev", "r")
@@ -420,7 +420,7 @@ class BaseMPlugin(MPlugin):
 
 
     def _check_update(self):
-        if is_windows():
+        if is_win():
             return -1
 
         # check update using packagekit

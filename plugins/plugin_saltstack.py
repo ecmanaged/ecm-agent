@@ -53,14 +53,14 @@ class ECMSaltstack(ECMPlugin):
         bootstrap = BOOTSTRAP
         bootstrap_file = 'bootstrap.sh'
 
-        if ecm.is_windows():
+        if ecm.is_win():
             bootstrap = BOOTSTRAP_WINDOWS
             bootstrap_file = 'bootstrap.ps1'
 
         if not self._install(bootstrap,bootstrap_file):
             # Try alternative bootstrap
             bootstrap = BOOTSTRAP_ALT
-            if ecm.is_windows():
+            if ecm.is_win():
                 bootstrap = BOOTSTRAP_WINDOWS_ALT
 
             if not self._install(bootstrap,bootstrap_file):
@@ -86,12 +86,12 @@ class ECMSaltstack(ECMPlugin):
 
         # Get default paths
         default_path = DEFAULT_SALT_PATH
-        if ecm.is_windows():
+        if ecm.is_win():
             default_path = DEFAULT_SALT_PATH_WINDOWS
         module_path = kwargs.get('module_path', default_path)
 
         default_pillar_path = DEFAULT_PILLAR_PATH
-        if ecm.is_windows():
+        if ecm.is_win():
             default_pillar_path = DEFAULT_PILLAR_PATH_WINDOWS
         pillar_path = kwargs.get('pillar_path', default_pillar_path)
 
@@ -133,7 +133,7 @@ class ECMSaltstack(ECMPlugin):
     def _is_available(self):
         """ it's salt-call on path?
         """
-        if ecm.is_windows():
+        if ecm.is_win():
             return ecm.which('salt-call.exe')
         return ecm.which('salt-call')
 

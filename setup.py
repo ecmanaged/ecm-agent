@@ -37,10 +37,9 @@ setup(name='ecmanaged-ecagent',
       packages=['ecagent', 'plugins','monitor.mplugin.__base__'],
 
       data_files=[('config', ['config/ecagent.init.cfg', 'config/xmpp_cert.pub']),
-                  ('/usr/share/doc', ['copyright']),
                   ('/usr/lib/systemd/system', ['ecagentd.service']),
                   ('monitor/mplugin/__base__', ['monitor/mplugin/__base__/data.json']),
-                  ('/etc/sudoers.d', ['ecmanaged']),
-                  ('',['configure.py','ecagent.bat', 'ecagent.sh', 'ecagentd.tac']),
-                  ('/etc/polkit-1/rules.d', ['41-ecmanaged.rule'])]
+                  ('/etc/sudoers.d', ['ecmanaged.sudo']),
+                  ('',['configure.py','ecagent.bat', 'ecagent.sh', 'ecagentd.tac'])
+      ]
      )

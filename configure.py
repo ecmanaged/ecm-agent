@@ -31,26 +31,22 @@ if root_dir not in sys.path:
 if "." not in sys.path:
     sys.path.append(".")
 
-configure_uuid = None
-configure_account_id = None
-configure_server_group_id = None
+configure_account = None
+configure_groups = None
 
-optlist, args = getopt.getopt(sys.argv[1:], 'uasp:', ["uuid=", "account-id=", "server-group-id=", "password="])
+optlist, args = getopt.getopt(sys.argv[1:], 'as:', ["account=", "server-groups="])
 
 for option, value in optlist:
-    if option in ("-u", "--uuid"):
-        configure_uuid = value
-    elif option in ("-a", "--account-id"):
-        configure_account_id = value
-    elif option in ("-s", "--server-group-id"):
-        configure_server_group_id = value
-    elif option in ("-p", "--password"):
-        configure_password = value
+    if option in ("-a", "--account"):
+        configure_account = value
+
+    elif option in ("-s", "--server-groups"):
+        configure_groups = value
+
     else:
         raise Exception('unhandled option')
 
 root_dir = os.path.dirname(os.path.realpath(__file__))
-
 os.chdir(root_dir)
 
 # Parse config file or end execution
@@ -69,24 +65,11 @@ if not os.path.isfile(config_file):
 
 config = SMConfigObj(config_file)
 
-if configure_uuid:
-    # Write static configuration and continue
-    config['XMPP']['user'] = '%s@%s' % (configure_uuid, config['XMPP']['host'])
-    config['XMPP']['manual'] = True
-    config['XMPP']['unique_id'] = config.get_unique_id()
+if configure_account:
+    config['XMPP']['account'] = configure_account
 
-if configure_account_id:
-    config['XMPP']['account_id'] = configure_account_id
-if configure_server_group_id:
-    config['XMPP']['server_group_id'] = configure_server_group_id
+if configure_groups:
+    config['XMPP']['groups'] = configure_groups
 
-# Generate a new password if not set and write it asap
-# Avoids problem when starting at same time two agents not configured (fedora??)
-if configure_password:
-    config['XMPP']['password'] = configure_password
-
-if not config['XMPP'].get('password'):
-    config['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
 config.write()
-
 print 'Manual configuration override succeeded.'

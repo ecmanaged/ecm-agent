@@ -210,7 +210,7 @@ class GIT:
     def _is_available(self):
         """ checks if git is on path
         """
-        if ecm.is_windows():
+        if ecm.is_win():
             return ecm.which('git.exe')
 
         return ecm.which('git')
@@ -270,7 +270,7 @@ class SVN:
     def _is_available(self):
         """ is svn on path
         """
-        if ecm.is_windows():
+        if ecm.is_win():
             return ecm.which('svn.cmd')
         return ecm.which('svn')
 

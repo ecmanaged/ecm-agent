@@ -46,14 +46,14 @@ class ECMPuppet(ECMPlugin):
 
         bootstrap = BOOTSTRAP
         bootstrap_file = 'bootstrap.sh'
-        if ecm.is_windows():
+        if ecm.is_win():
             bootstrap = BOOTSTRAP_WINDOWS
             bootstrap_file = 'bootstrap.ps1'
 
         if not self._install(bootstrap, bootstrap_file):
             # Try alternative bootstrap
             bootstrap = BOOTSTRAP_ALT
-            if ecm.is_windows():
+            if ecm.is_win():
                 bootstrap = BOOTSTRAP_WINDOWS_ALT
 
             if not self._install(bootstrap,bootstrap_file):
@@ -76,7 +76,7 @@ class ECMPuppet(ECMPlugin):
         module_path = kwargs.get('module_path', None)
         if module_path is None:
             module_path = MODULES_PATH
-            if ecm.is_windows():
+            if ecm.is_win():
                 module_path = MODULES_PATH_WINDOWS
 
         # Set environment variables before execution
@@ -124,7 +124,7 @@ class ECMPuppet(ECMPlugin):
         recipe_file = None
         recipe_path = None
         module_path = MODULES_PATH
-        if ecm.is_windows():
+        if ecm.is_win():
             module_path = MODULES_PATH_WINDOWS
         module_path = kwargs.get('module_path', module_path)
 
@@ -165,7 +165,7 @@ class ECMPuppet(ECMPlugin):
     def _is_available(self):
         """ which puppet
         """
-        if ecm.is_windows():
+        if ecm.is_win():
             return ecm.which('puppet.exe')
 
         return ecm.which('puppet')

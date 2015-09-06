@@ -18,15 +18,15 @@
 import os
 import gc
 import sys
+import random
 
 # Twisted
 from twisted.application.service import Application
 
 # Local
 from ecagent.config import SMConfigObj
-from ecagent.agent import SMAgentXMPP
+from ecagent.agent import SMAgent
 import ecagent.twlogging as log
-
 
 # Enable automatic garbage collection.
 gc.enable()
@@ -42,7 +42,7 @@ if "." not in sys.path:
     sys.path.append(".")
 
 # Check for other processes running
-pid_file = os.path.join(os.path.sep, root_dir, 'twistd.pid')
+pid_file = os.path.join(os.path.sep, root_dir, 'ecagentd.pid')
 
 if os.path.exists(pid_file):
     from psutil import pid_exists
@@ -58,19 +58,25 @@ open(pid_file, 'w').write(str(os.getpid()))
 
 # Start agent and setup logging
 config_file = os.path.join(os.path.sep, root_dir, 'config', 'ecagent.cfg')
+config_file_init = os.path.join(os.path.sep, root_dir, 'config', 'ecagent.init.cfg')
+
+# Is initial config (move init to cfg)
+if not os.path.exists(config_file) and os.path.exists(config_file_init):
+    os.rename(config_file_init, config_file)
 
 if not os.path.isfile(config_file):
     raise Exception("Config file not found: " + config_file)
 
 config = SMConfigObj(config_file)
 
+# Generate a new password if not set and write it asap
+# Avoids problem when starting at same time two agents not configured (fedora??)
+if not config['XMPP']['password']:
+    config['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
+    config.write()
+
+# Start agent and setup logging
 application = Application("ecagent")
+
 log.setup(application, config['Log'])
-
-if config.checkConfig():
-    agent = SMAgentXMPP(config)
-
-else:
-    print 'Error in configuration'
-    print 'Agent will now quit'
-    sys.exit(-1)
+agent = SMAgent(config)

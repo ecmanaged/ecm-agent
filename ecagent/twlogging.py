@@ -46,9 +46,8 @@ def setup(app, config):
         setattr(module, loglevels[c], _blackhole)
         c += 1
 
-    if 'log_to_file' in config and config.as_bool('log_to_file'):
-        logfile = makeLogFile(config)
-        app.setComponent(log.ILogObserver, log.FileLogObserver(logfile).emit)
+    logfile = makeLogFile(config)
+    app.setComponent(log.ILogObserver, log.FileLogObserver(logfile).emit)
 
 def makeLogFile(config):
     log_dir, log_file = split(config['log_path'])

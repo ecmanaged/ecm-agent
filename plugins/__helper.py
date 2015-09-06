@@ -50,7 +50,7 @@ _FLUSH_WORKER_SLEEP_TIME = 0.2
 AGENT_VERSION = 2.2
 
 
-def is_windows():
+def is_win():
         """ Returns True if is a windows system
         """
         if platform.startswith("win32"):
@@ -437,7 +437,7 @@ def install_package(packages, update=True):
     Install packages
     """
 
-    if is_windows():
+    if is_win():
         return 1, '', NotSupported('Can\'t install packages on windows systems')
 
     try:
@@ -721,7 +721,7 @@ def get_distribution():
     distribution, version = None, None
 
     try:
-        if is_windows():
+        if is_win():
             distribution = platform.release()
             version = platform.version()
         else:
@@ -871,7 +871,7 @@ class ECMExec:
             for arg in args:
                 command.append(arg)
 
-        if run_as and not is_windows():
+        if run_as and not is_win():
             # don't use su - xxx or env variables will not be available
             command = ['su', run_as, '-c', ' '.join(map(str, command))]
 
@@ -895,7 +895,7 @@ class ECMExec:
 
             p.stdin.close()
 
-            if is_windows():
+            if is_win():
                 std_output, std_error = p.communicate()
                 return p.wait(), std_output, std_error
 

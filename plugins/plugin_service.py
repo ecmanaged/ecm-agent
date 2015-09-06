@@ -24,37 +24,33 @@ import dbus
 from __plugin import ECMPlugin
 import __helper as ecm
 
-RCD = '/etc/rc'
-INITD = '/etc/init.d'
-RUNLEVEL = '/sbin/runlevel'
-HEARTBEAT = '/etc/heartbeat/haresources'
-
 SVC_TIMEOUT = 120
+
+SYSTEMD_BUSNAME = 'org.freedesktop.systemd1'
+SYSTEMD_PATH = '/org/freedesktop/systemd1'
+SYSTEMD_MANAGER_INTERFACE = 'org.freedesktop.systemd1.Manager'
+SYSTEMD_UNIT_INTERFACE = 'org.freedesktop.systemd1.Unit'
+DBUS_PROPERTIES = 'org.freedesktop.DBus.Properties'
 
 
 # noinspection PyUnusedLocal,PyUnusedLocal,PyUnusedLocal
 class ECMLinux(ECMPlugin):
-    def cmd_systemd_service_control(self, *argv, **kwargs):
-        # Syntax: systemd.service.control servicefile.service action
-        SYSTEMD_BUSNAME = 'org.freedesktop.systemd1'
-        SYSTEMD_PATH = '/org/freedesktop/systemd1'
-        SYSTEMD_MANAGER_INTERFACE = 'org.freedesktop.systemd1.Manager'
-        SYSTEMD_UNIT_INTERFACE = 'org.freedesktop.systemd1.Unit'
-        DBUS_PROPERTIES = 'org.freedesktop.DBus.Properties'
+    def cmd_service_control(self, *argv, **kwargs):
+        """
+        Syntax: service.control name.service ['start','stop','restart','status']
+        """
 
-        servicefile = kwargs.get('servicefile', None)
-        if not servicefile:
-            return False, 'empty service file', 'NA'
-        if not servicefile.split('.')[-1] == 'service':
-            return False, 'provide service file in name.service format', 'NA'
-
+        service = kwargs.get('service', None)
         action = kwargs.get('action', None)
-        if not action:
-            return False, 'action not defined', 'NA'
-        if action not in ['start', 'stop', 'restart']:
-            return False, 'unsupported action', 'NA'
 
-        bus = dbus.SystemBus()
+        if not service or not action:
+            raise ecm.InvalidParameters(self.cmd_service_control.__doc__)
+
+        if not service.split('.')[-1] == 'service':
+            raise ecm.InvalidParameters(self.cmd_service_control.__doc__)
+
+        if action not in ['start', 'stop', 'restart']:
+            raise ecm.InvalidParameters('unsupported action')
 
         # proxy = bus.get_object('org.freedesktop.PolicyKit1', '/org/freedesktop/PolicyKit1/Authority')
         # authority = dbus.Interface(proxy, dbus_interface='org.freedesktop.PolicyKit1.Authority')
@@ -73,48 +69,82 @@ class ECMLinux(ECMPlugin):
         #     return False, 'Need administrative privilege', 'NA'
 
         try:
+            bus = dbus.SystemBus()
             systemd_object = bus.get_object(SYSTEMD_BUSNAME, SYSTEMD_PATH)
             systemd_manager = dbus.Interface(systemd_object, SYSTEMD_MANAGER_INTERFACE)
         except dbus.DBusException:
             return False, 'systemd dbus error', 'NA'
 
         try:
-            unit = systemd_manager.GetUnit(servicefile)
+            unit = systemd_manager.GetUnit(service)
         except dbus.DBusException:
             print 'can not find service file'
             return False, 'cannot find service file', 'NA'
 
         try:
             unit_object = bus.get_object(SYSTEMD_BUSNAME, unit)
-            #unit_interface = dbus.Interface(unit_object, SYSTEMD_UNIT_INTERFACE)
             prop_unit = dbus.Interface(unit_object, DBUS_PROPERTIES)
         except dbus.DBusException:
             return False, 'unit dbus error', 'NA'
 
         while list(systemd_manager.ListJobs()):
             time.sleep(2)
-            print 'there are pending jobs, lets wait for them to finish.'
+            # 'there are pending jobs, lets wait for them to finish.'
 
         if action == 'start':
             try:
-                job = systemd_manager.StartUnit(servicefile, 'replace')
+                job = systemd_manager.StartUnit(service, 'replace')
             except dbus.DBusException:
                 return False, 'error starting', 'NA'
+
         if action == 'stop':
             try:
-                job = systemd_manager.StopUnit(servicefile, 'replace')
+                job = systemd_manager.StopUnit(service, 'replace')
             except dbus.DBusException:
                 return False, 'error stopping', 'NA'
+
+            # Ensure that the service has been stopeed
+            try: job = systemd_manager.KillUnit(service, 'replace')
+            except: pass
+
         if action == 'restart':
             try:
-                job = systemd_manager.RestartUnit(servicefile, 'replace')
+                job = systemd_manager.RestartUnit(service, 'replace')
             except dbus.DBusException:
                 return False, 'error restarting', 'NA'
 
         # wait for the job to finish
         while list(systemd_manager.ListJobs()):
             time.sleep(2)
-            print 'wait for job to finish.'
+
+        return True
+
+    def cmd_service_state(self, *argv, **kwargs):
+        """Syntax: service.state service"""
+
+        service = kwargs.get('service', None)
+
+        if not service:
+            raise ecm.InvalidParameters(self.cmd_service_state.__doc__)
+
+        try:
+            bus = dbus.SystemBus()
+            systemd_object = bus.get_object(SYSTEMD_BUSNAME, SYSTEMD_PATH)
+            systemd_manager = dbus.Interface(systemd_object, SYSTEMD_MANAGER_INTERFACE)
+        except dbus.DBusException:
+            return False, 'systemd dbus error', 'NA'
+
+        try:
+            unit = systemd_manager.GetUnit(service)
+        except dbus.DBusException:
+            print 'can not find service file'
+            return False, 'cannot find service file', 'NA'
+
+        try:
+            unit_object = bus.get_object(SYSTEMD_BUSNAME, unit)
+            prop_unit = dbus.Interface(unit_object, DBUS_PROPERTIES)
+        except dbus.DBusException:
+            return False, 'unit dbus error', 'NA'
 
         try:
             active_state = prop_unit.Get(SYSTEMD_UNIT_INTERFACE, 'ActiveState')
@@ -122,113 +152,40 @@ class ECMLinux(ECMPlugin):
         except dbus.DBusException:
             return False, 'error getting state', 'NA'
 
-        return True, str(active_state), str(sub_state)
-
-    def cmd_service_control(self, *argv, **kwargs):
-        """Syntax: service.control daemon action <force: 0/1>"""
-
-        daemon = kwargs.get('daemon', None)
-        action = kwargs.get('action', None)
-        force = kwargs.get('force', 0)
-
-        if not (daemon and action):
-            raise ecm.InvalidParameters(self.cmd_service_control.__doc__)
-
-        if not force:
-            # try to get init.d daemon
-            initd = self._get_rcd(daemon)
-            if not initd:
-                raise Exception("Unable to find daemon: %s" % daemon)
-            daemon = initd
-
-        daemon = os.path.basename(daemon)
-        ecm.renice_me(-19)
-        out, stdout, stderr = ecm.run_command(INITD + '/' + daemon + ' ' + action)
-        ecm.renice_me(5)
-
-        return ecm.format_output(out, stdout, stderr)
-
-    def cmd_service_runlevel(self, *argv, **kwargs):
-        return self._get_runlevel()
-
-    def cmd_service_state(self, *argv, **kwargs):
-        """Syntax: service.exists daemon"""
-
-        name = kwargs.get('name', None)
-
-        if not name:
-            raise ecm.InvalidParameters(self.cmd_service_state.__doc__)
-
-        daemon = os.path.basename(name)
-        out, stdout, stderr = ecm.run_command(INITD + '/' + daemon + ' status')
-
-        return not bool(out)
+        return active_state
 
     def cmd_service_exists(self, *argv, **kwargs):
-        """Syntax: service.control daemon action <force: 0/1>"""
+        """Syntax: service.exists service"""
 
-        daemon = kwargs.get('daemon', None)
-        return bool(self._get_rcd(daemon))
+        service = kwargs.get('service', None)
 
-    def _get_runlevel(self):
-        (out, stdout, stderr) = ecm.run_command(RUNLEVEL)
-        if not out:
-            return str(stdout).split(' ')[1].rstrip()
+        if not service:
+            raise ecm.InvalidParameters(self.cmd_service_state.__doc__)
 
-        return 0
+        try:
+            self.cmd_service_state(service)
+            return True
 
-    def _get_rcd(self, daemon):
-        runlevel = self._get_runlevel()
-        if not runlevel: return False
-
-        path = RCD + str(runlevel) + '.d'
-
-        if os.path.exists(path):
-            target = os.listdir(path)
-            for path in target:
-                try:
-                    m = re.match(r"^S\d+(.*)$", path)
-                    init = m.group(1)
-                    if init in daemon:
-                        return str(init).rstrip()
-                except:
-                    pass
-
-            # Not exists as default start on runlevel
-            # its a heartbeat daemon?
-            if os.path.exists(HEARTBEAT):
-                for line in open(HEARTBEAT):
-                    if daemon in line:
-                        return self._get_init(daemon)
-
-        else:
-            return self._get_init(daemon)
-
-        return False
-
-    def _get_init(self, daemon):
-        filename = INITD + '/' + daemon
-        if os.path.exists(INITD) and os.path.exists(filename):
-            return daemon
-
-        return False
+        except Exception:
+            return False
 
 
 class ECMWindows(ECMPlugin):
     def cmd_service_control(self, *argv, **kwargs):
-        """Syntax: service.control daemon action"""
+        """
+        Syntax: service.control name.service ['start','stop','restart','status']
+        """
 
-        daemon = kwargs.get('daemon', None)
+        service = kwargs.get('service', None)
         action = kwargs.get('action', None)
-        force = kwargs.get('force', 0)
 
-        if not (daemon and action):
+        if not (service and action):
             raise ecm.InvalidParameters(self.cmd_service_control.__doc__)
 
         maxtime = time.time() + SVC_TIMEOUT
 
         scmhandle = ws.OpenSCManager(None, None, ws.SC_MANAGER_ALL_ACCESS)
-        sserv, lserv = self._svc_getname(scmhandle, daemon)
+        sserv, lserv = self._svc_getname(scmhandle, service)
 
         handle = ws.OpenService(scmhandle, sserv, ws.SERVICE_ALL_ACCESS)
 
@@ -272,19 +229,16 @@ class ECMWindows(ECMPlugin):
                     return 0, "Service %s is running " % lserv
             raise Exception("Timeout restarting service %s " % lserv)
 
-    def cmd_service_runlevel(self, *argv, **kwargs):
-        return 0
-
     def cmd_service_state(self, *argv, **kwargs):
-        """Syntax: service.exists daemon"""
+        """Syntax: service.exists service"""
 
-        name = kwargs.get('name', None)
+        service = kwargs.get('service', None)
 
-        if not name:
+        if not service:
             raise ecm.InvalidParameters(self.cmd_service_state.__doc__)
 
         scmhandle = ws.OpenSCManager(None, None, ws.SC_MANAGER_ALL_ACCESS)
-        sserv, lserv = self._svc_getname(scmhandle, name)
+        sserv, lserv = self._svc_getname(scmhandle, service)
 
         handle = ws.OpenService(scmhandle, sserv, ws.SERVICE_ALL_ACCESS)
         stat = ws.QueryServiceStatus(handle)
@@ -292,36 +246,17 @@ class ECMWindows(ECMPlugin):
         return stat[1]
 
     def cmd_service_exists(self, *argv, **kwargs):
-        """Syntax: service.exists daemon"""
+        """Syntax: service.exists service"""
 
-        daemon = kwargs.get('daemon', None)
+        service = kwargs.get('service', None)
+
+        if not service:
+            raise ecm.InvalidParameters(self.cmd_service_exists.__doc__)
+
         scmhandle = ws.OpenSCManager(None, None, ws.SC_MANAGER_ALL_ACCESS)
-        sserv, lserv = self._svc_getname(scmhandle, daemon)
+        sserv, lserv = self._svc_getname(scmhandle, service)
 
         return bool(lserv)
-
-    def cmd_collectd_get(self, *argv, **kwargs):
-        try:
-            sf = StatFetcher(None, None, None)
-            return self._collectd(sf)
-
-        except Exception, e:
-            raise Exception("error with wmi connection")
-
-    def _collectd(self, sf):
-        return {
-            'cpu_util': sf.get_cpu_util(), 'cpu_util_maxcore': sf.get_cpu_util_maxcore(),
-            'cpu_queue_length': sf.get_cpu_queue_length(),
-            'cpu_context_switches': sf.get_cpu_context_switches(),
-            'net_bits_total': sf.get_net_bits_total(), 'net_bits_in': sf.get_net_bits_in(),
-            'net_bits_out': sf.get_net_bits_out(), 'mem_available_bytes': sf.get_mem_available_bytes(),
-            'mem_cache_bytes': sf.get_mem_cache_bytes(),
-            'mem_committed_bytes': sf.get_mem_committed_bytes(), 'mem_pages': sf.get_mem_pages(),
-            'mem_page_faults': sf.get_mem_page_faults(),
-            'disk_queue_length_avg': sf.get_disk_queue_length_avg(),
-            'disk_queue_length_current': sf.get_disk_queue_length_current(),
-            'disk_bytes_transferred': sf.get_disk_bytes_transferred()
-        }
 
     def _svc_getname(self, scmhandle, service):
         snames = ws.EnumServicesStatus(scmhandle)
@@ -335,86 +270,8 @@ class ECMWindows(ECMPlugin):
         raise Exception("The %s service doesn't seem to exist." % service)
 
 
-class StatFetcher(object):
-    def __init__(self, computer, user, password):
-        wmi = __import__("wmi")
-        self.c = wmi.WMI(find_classes=False, computer=computer, user=user, password=password)
-
-    def get_cpu_util(self):
-        cpu_utils = [cpu.LoadPercentage for cpu in self.c.Win32_Processor()]
-        for i, item in enumerate(cpu_utils):
-            if item is None:  # replace None's with zero
-                cpu_utils[i] = 0
-        cpu_util = int(sum(cpu_utils) / len(cpu_utils))  # avg all cores/processors
-        return cpu_util
-
-    def get_cpu_util_maxcore(self):
-        cpu_max = max([int(cpu.LoadPercentage) for cpu in self.c.Win32_Processor()])  # max of all cores/processors
-        return cpu_max
-
-    def get_cpu_queue_length(self):
-        cpu_queue_length = sum([int(cpu.ProcessorQueueLength) for cpu in self.c.Win32_PerfRawData_PerfOS_System()])
-        return cpu_queue_length
-
-    def get_cpu_context_switches(self):
-        cpu_context_switches = sum([int(cpu.ContextSwitchesPerSec) for cpu in self.c.Win32_PerfRawData_PerfOS_System()])
-        return cpu_context_switches
-
-    def get_net_bits_total(self):
-        total_bytes = sum([int(net_interface.BytesTotalPerSec) for net_interface in
-                           self.c.Win32_PerfRawData_Tcpip_NetworkInterface()])
-        total_bits = total_bytes * 8
-        return total_bits
-
-    def get_net_bits_in(self):
-        recv_bytes = sum([int(net_interface.BytesReceivedPerSec) for net_interface in
-                          self.c.Win32_PerfRawData_Tcpip_NetworkInterface()])
-        recv_bits = recv_bytes * 8
-        return recv_bits
-
-    def get_net_bits_out(self):
-        sent_bytes = sum(
-            [int(net_interface.BytesSentPerSec) for net_interface in self.c.Win32_PerfRawData_Tcpip_NetworkInterface()])
-        sent_bits = sent_bytes * 8
-        return sent_bits
-
-    def get_mem_available_bytes(self):
-        mem_available_bytes = sum([int(mem.AvailableBytes) for mem in self.c.Win32_PerfRawData_PerfOS_Memory()])
-        return mem_available_bytes
-
-    def get_mem_cache_bytes(self):
-        mem_cache_bytes = sum([int(mem.CacheBytes) for mem in self.c.Win32_PerfRawData_PerfOS_Memory()])
-        return mem_cache_bytes
-
-    def get_mem_committed_bytes(self):
-        mem_committed_bytes = sum([int(mem.CommittedBytes) for mem in self.c.Win32_PerfRawData_PerfOS_Memory()])
-        return mem_committed_bytes
-
-    def get_mem_pages(self):
-        mem_pages = sum([int(mem.PagesPerSec) for mem in self.c.Win32_PerfRawData_PerfOS_Memory()])
-        return mem_pages
-
-    def get_mem_page_faults(self):
-        mem_page_faults = sum([int(mem.PageFaultsPerSec) for mem in self.c.Win32_PerfRawData_PerfOS_Memory()])
-        return mem_page_faults
-
-    def get_disk_queue_length_avg(self):
-        disk_queue_length_avg = sum(
-            [int(disk.AvgDiskQueueLength) for disk in self.c.Win32_PerfRawData_PerfDisk_PhysicalDisk()])
-        return disk_queue_length_avg
-
-    def get_disk_queue_length_current(self):
-        disk_queue_length_current = sum(
-            [int(disk.CurrentDiskQueueLength) for disk in self.c.Win32_PerfRawData_PerfDisk_PhysicalDisk()])
-        return disk_queue_length_current
-
-    def get_disk_bytes_transferred(self):
-        disk_bytes_transferred = sum(
-            [int(disk.DiskBytesPerSec) for disk in self.c.Win32_PerfRawData_PerfDisk_PhysicalDisk()])
-        return disk_bytes_transferred
-
 # Load class based on platform()
-if sys.platform.startswith("win32"):
+if ecm.is_win():
     ws = __import__("win32service")
     ECMWindows().run()
 

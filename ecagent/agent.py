@@ -37,13 +37,36 @@ _E_UNVERIFIED_COMMAND = 251
 _CHECK_RAM_MAX_RSS_MB = 125
 _CHECK_RAM_INTERVAL = 60
 
+class SMAgent:
+    def __init__(self, config):
+        reactor.callWhenRunning(self._check_config)
+        self.config = config
+
+    def _check_config(self):
+        d = self.config.check_config()
+        d.addCallback(self._on_config_checked)
+        d.addErrback(self._on_config_failed)
+
+    def _on_config_checked(self, success):
+        # Ok, now everything should be correctly configured,
+        # let's start the party.
+        if success:
+            SMAgentXMPP(self.config)
+
+    @staticmethod
+    def _on_config_failed(failure):
+        log.critical("Configuration check failed with: %s, exiting." % failure)
+        log.critical("Please try configuring the XMPP subsystem manually.")
+        reactor.stop()
+
+
 class SMAgentXMPP(Client):
     def __init__(self, config):
         """
         XMPP agent class.
         """
         log.info("Starting Agent...")
-        
+
         log.info("Loading Commands...")
         self.command_runner = CommandRunner(config['Plugins'])
 
