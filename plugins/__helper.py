@@ -841,6 +841,35 @@ class ECMExec:
         self.thread_stderr = ''
         self.thread_run = 1
 
+    @staticmethod
+    def which(program):
+        def is_exe(fpath):
+            return (os.path.exists(fpath) and
+                    os.access(fpath, os.X_OK) and
+                    os.path.isfile(os.path.realpath(fpath)))
+
+        fpath, fname = os.path.split(program)
+        if fpath:
+            if is_exe(program):
+                return program
+        else:
+            if "PATH" not in os.environ:
+                return None
+            for path in os.environ["PATH"].split(os.pathsep):
+                exe_file = os.path.join(path, program)
+                if is_exe(exe_file):
+                    return exe_file
+
+        return None
+
+
+    @staticmethod
+    def check_sudo():
+        #TODO can't run without root
+        return which('sudo') and os.path.isfile(os.path.join(os.path.sep, 'etc', 'sudoers.d', 'ecmanaged.sudo'))
+
+
+
     def command(self, command, args=None, std_input=None, run_as=None, working_dir=None, envars=None, only_stdout = False):
         """
         Execute command and flush stdout/stderr using threads
