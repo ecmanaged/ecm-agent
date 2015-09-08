@@ -107,12 +107,18 @@ class CommandRunner():
         return
 
     def _run_process(self, filename, command_name, command_args, flush_callback=None, message=None):
+        need_sudo = ['plugin_pip.py', 'plugin_service.py', 'plugin_update.py']
         ext = os.path.splitext(filename)[1]
-        if ext in ('.py', '.pyw', '.pyc'):
-            command = self._python_runner
+        if ext == '.py':
 
-            # -u: sets unbuffered output
-            args = [command, '-u', '-W ignore::DeprecationWarning', filename, command_name]
+            if os.path.split(filename)[1] in need_sudo:
+                command = 'sudo'
+                # -u: sets unbuffered output
+                args = [command, self._python_runner,  '-u', '-W ignore::DeprecationWarning', filename, command_name]
+            else:
+                command = self._python_runner
+                # -u: sets unbuffered output
+                args = [command, '-u', '-W ignore::DeprecationWarning', filename, command_name]
 
         else:
             command = filename
