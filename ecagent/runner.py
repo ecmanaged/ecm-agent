@@ -78,7 +78,7 @@ class CommandRunner():
                     for filename in os.listdir(path):
                         if not filename.startswith('plugin_'):
                             continue
-                        if os.path.splitext(filename)[1] != 'py':
+                        if os.path.splitext(filename)[1] != '.py':
                             continue
 
                         log.debug("  Queuing plugin %s for process." % filename)
