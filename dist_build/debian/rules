@@ -5,12 +5,11 @@ export DH_OPTIONS=-v
 # Thu, 30 Jul 2015 08:59:04 +0000
 export PYBUILD_NAME=ecmanaged-ecagent
 %:
-	dh $@ --with python2 --with systemd --buildsystem=pybuild
+	dh $@ --with python2 --buildsystem=pybuild
 
 override_dh_auto_install:
 	python setup.py install --root=debian/ecmanaged-ecagent --install-layout=deb --no-compile
 
 override_dh_auto_build:
 
-override_dh_installinit:
-    dh_installinit --name=ecagentd.service
+
