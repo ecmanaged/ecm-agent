@@ -902,7 +902,10 @@ class ECMExec:
 
         if run_as and not is_win():
             # don't use su - xxx or env variables will not be available
-            command = ['su', run_as, '-c', ' '.join(map(str, command))]
+            if run_as == 'root':
+                command = ['sudo', 'su', 'ecmanaged', '-c', ' '.join(map(str, command))]
+            else:
+                command = ['su', run_as, '-c', ' '.join(map(str, command))]
 
             # :TODO: Run_as for windows :S
 
