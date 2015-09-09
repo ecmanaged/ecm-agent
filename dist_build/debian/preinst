@@ -1,0 +1,8 @@
+getent group ecmanaged >/dev/null || groupadd -r ecmanaged
+getent passwd ecmanaged >/dev/null || \
+    useradd -r -g ecmanaged -d /opt/ecmanaged -s /sbin/nologin \
+    -c "account for running ecagent" ecmanaged
+if [[ $1 == 2 ]]; then
+  # Stop the service if we're upgrading
+  systemctl stop ecagentd.service >/dev/null 2>&1
+fi

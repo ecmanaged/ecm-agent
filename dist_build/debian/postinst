@@ -1,0 +1,3 @@
+chown -R ecmanaged:ecmanaged /opt/ecmanaged
+mkdir -p /etc/ecmanaged
+chown -R ecmanaged:ecmanaged /etc/ecmanaged
