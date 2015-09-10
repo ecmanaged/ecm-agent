@@ -21,7 +21,7 @@ import simplejson as json
 from base64 import b64decode
 from subprocess import Popen, PIPE
 from time import time, sleep
-
+from __helper import pip_install_single_package
 # Local
 import __helper as ecm
 from __plugin import ECMPlugin
@@ -171,6 +171,17 @@ class ECMMonitor(ECMPlugin):
         
         arg_config = plugin.get('config')
         arg_script_b64 = plugin.get('script')
+
+        arg_requirements = plugin.get('requirements', None)
+
+        if arg_requirements:
+            requirements = arg_requirements.keys()
+
+        for item in requirements:
+            result = pip_install_single_package(item)
+
+            if not result:
+                return False
         
         script = None
         try:
