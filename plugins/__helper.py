@@ -274,7 +274,7 @@ def packagekit_install_single_package(package):
 
     return False
 
-def pip_install_single_package(package, site_wide):
+def pip_install_single_package(package, site_wide = False):
     '''packagke: package name
        side_wide: boolean. if True package will be installed in site packages, else in user site
     '''
