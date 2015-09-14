@@ -32,14 +32,12 @@ sys.stderr.flush()
 import logging
 log = logging
 
+from ecagent.config import SMConfigObj
+
+
 class ECMPlugin:
     def __init__(self, *argv, **kwargs):
-        log.basicConfig(
-                filename='/opt/ecmanaged/ecagent/log/plugin.log',
-                format='%(levelname)s:%(message)s',
-                level=log.DEBUG
-            )
-
+        pass
 
     def run(self):
         if len(sys.argv) == 1 or sys.argv[1] == '':
