@@ -29,11 +29,17 @@ PROTECTED_FILES = [
 import sys
 sys.stdout.flush()
 sys.stderr.flush()
-
+import logging
+log = logging
 
 class ECMPlugin:
     def __init__(self, *argv, **kwargs):
-        pass
+        log.basicConfig(
+                filename='/opt/ecmanaged/ecagent/log/plugin.log',
+                format='%(levelname)s:%(message)s',
+                level=log.DEBUG
+            )
+
 
     def run(self):
         if len(sys.argv) == 1 or sys.argv[1] == '':
