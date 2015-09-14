@@ -32,8 +32,6 @@ sys.stderr.flush()
 import logging
 log = logging
 
-from ecagent.config import SMConfigObj
-
 
 class ECMPlugin:
     def __init__(self, *argv, **kwargs):
