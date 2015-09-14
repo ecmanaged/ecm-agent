@@ -22,6 +22,7 @@ from base64 import b64decode
 from subprocess import Popen, PIPE
 from time import time, sleep
 from __helper import pip_install_single_package
+from __helper import packagekit_install_single_package
 # Local
 import __helper as ecm
 from __plugin import ECMPlugin
@@ -174,14 +175,29 @@ class ECMMonitor(ECMPlugin):
 
         arg_requirements = plugin.get('requirements', None)
 
-        if arg_requirements:
-            requirements = arg_requirements.keys()
+        pip_install = []
+        system_install = []
 
-        for item in requirements:
-            result = pip_install_single_package(item)
+        if arg_requirements:
+            for req in arg_requirements.keys():
+                if arg_requirements[req]['type'] == 'system':
+                    system_install.append(arg_requirements[req]['name'])
+                elif arg_requirements[req]['type'] == 'pip':
+                    pip_install.append(arg_requirements[req]['name'])
+
+
+        for item in system_install:
+            result = packagekit_install_single_package(item)
 
             if not result:
                 return False
+
+        for item in pip_install:
+            result = pip_install_single_package(item)
+
+            if not result[0]:
+                return False
+
         
         script = None
         try:
