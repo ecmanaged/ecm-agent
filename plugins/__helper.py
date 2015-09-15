@@ -271,6 +271,8 @@ def packagekit_install_single_package(package):
             if package_ids[0].get_info() != PackageKitGlib.InfoEnum.INSTALLED:
                 res = client.install_packages(False, [package_id], None, lambda p, t, d: True, None)
                 return res.get_exit_code() == PackageKitGlib.ExitEnum.SUCCESS
+            else:
+                return True
 
     return False
 
