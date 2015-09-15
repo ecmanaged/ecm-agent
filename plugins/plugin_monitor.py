@@ -27,6 +27,7 @@ from __helper import packagekit_install_single_package
 import __helper as ecm
 from __plugin import ECMPlugin
 from __mplugin import MPlugin
+from plugin_log import LoggerManager
 
 CRITICAL = 2
 
@@ -147,7 +148,7 @@ class ECMMonitor(ECMPlugin):
         """
         Installs a plugin [url=plugin_url]
         """
-        
+        log = LoggerManager().getLogger(__name__)
         url = kwargs.get('url', None)
         content = None
         
@@ -177,6 +178,7 @@ class ECMMonitor(ECMPlugin):
 
         pip_install = []
         system_install = []
+        log.info("pip_install: %s system_install: %s", pip_install, system_install)
 
         if arg_requirements:
             for req in arg_requirements.keys():
@@ -187,13 +189,17 @@ class ECMMonitor(ECMPlugin):
 
 
         for item in system_install:
+            log.info("system installing %s", item)
             result = packagekit_install_single_package(item)
+            log.info("%s installation %s", item, result)
 
             if not result:
                 return False
 
         for item in pip_install:
+            log.info("pip installing %s", item)
             result = pip_install_single_package(item)
+            log.info("%s installation %s", item, result)
 
             if not result[0]:
                 return False
