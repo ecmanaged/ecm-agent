@@ -157,7 +157,8 @@ class BaseMPlugin(MPlugin):
             
         return retval
 
-    def _get_cpu(self):
+    @staticmethod
+    def _get_cpu():
         retval = {}
 
         try:
@@ -213,7 +214,7 @@ class BaseMPlugin(MPlugin):
                 except:
                     pass
                     
-            retval = self.counters(data,'network')
+            retval = self.counters(data, 'network')
                     
         except:
             pass        
@@ -224,17 +225,19 @@ class BaseMPlugin(MPlugin):
         try:
             # psutil v2
             return self._to_data(psutil.net_connections(kind='inet'))
+
         except:
             return {}
 
     def _get_processes(self):
-        procs = []
+        processes = []
 
         # Ask CPU counters
         try:
             for p in psutil.process_iter():
                 if psutil.version_info[:2] >= (2, 0):
                     p.as_dict(['cpu_percent'])
+
                 else:
                     p.as_dict(['get_cpu_percent'])
         except:
@@ -253,12 +256,12 @@ class BaseMPlugin(MPlugin):
                     p.dict = p.as_dict(['username', 'nice', 'get_memory_info',
                                         'get_memory_percent', 'get_cpu_percent',
                                         'name', 'status'])
-                procs.append(p)
+                processes.append(p)
 
             except:
                 pass
 
-        return self._process_parser(procs)
+        return self._process_parser(processes)
 
     def _process_parser(self, processes):
         retval = []
@@ -418,8 +421,8 @@ class BaseMPlugin(MPlugin):
 
         return retval
 
-
-    def _check_update(self):
+    @staticmethod
+    def _check_update():
         if is_win():
             return -1
 
@@ -435,8 +438,9 @@ class BaseMPlugin(MPlugin):
             updates += 1
             info = pkg.get_info()
             if info == pk.InfoEnum.SECURITY:
-                security =+ 1
+                security = +1
         print "There are %s updates available totally" % updates
+
         if security:
             print "There are %s important security updates!" % security
         return updates, security
