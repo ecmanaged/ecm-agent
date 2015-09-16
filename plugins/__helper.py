@@ -42,7 +42,8 @@ _CLOUD_INFO_FILE = _DIR + '/cloud-metadata.info'
 _PLATFORM_JSON_FILE = _DIR + '/platform-metadata.json'
 _PLATFORM_INFO_FILE = _DIR + '/platform-metadata.info'
 
-_DEFAULT_GROUP_LINUX = 'root'
+_ROOT = 'root'
+_DEFAULT_GROUP_LINUX = _ROOT
 _DEFAULT_GROUP_WINDOWS = 'Administrators'
 
 _FLUSH_WORKER_SLEEP_TIME = 0.2
@@ -257,8 +258,6 @@ def packagekit_install_package(packages):
 
 def packagekit_install_single_package(package):
     from gi.repository import PackageKitGlib
-    from packaging.version import parse
-    from platform import machine
 
     client = PackageKitGlib.Client()
 
@@ -266,28 +265,17 @@ def packagekit_install_single_package(package):
 
     res = client.resolve(PackageKitGlib.FilterEnum.NONE, [package], None, lambda p, t, d: True, None)
 
-    result = None
-
-    if res.get_exit_code() != PackageKitGlib.ExitEnum.SUCCESS:
-        return False, 'resolve failed'
-
-    package_ids = res.get_package_array()
-
-    if len(package_ids) == 0:
-        return False, 'resolved 0 packages'
-
-    for pkg in package_ids:
-        if pkg.get_arch() == machine():
-            if result == None:
-                result = pkg
+    if res.get_exit_code() == PackageKitGlib.ExitEnum.SUCCESS:
+        package_ids = res.get_package_array()
+        if len(package_ids) > 0:
+            package_id = package_ids[0].get_id()
+            if package_ids[0].get_info() != PackageKitGlib.InfoEnum.INSTALLED:
+                res = client.install_packages(False, [package_id], None, lambda p, t, d: True, None)
+                return res.get_exit_code() == PackageKitGlib.ExitEnum.SUCCESS
             else:
-                if parse(pkg.get_version()) > parse(result.get_version()):
-                    result = pkg
-    if result.get_info() != PackageKitGlib.InfoEnum.INSTALLED:
-        res = client.install_packages(False, [result.get_id()], None, lambda p, t, d: True, None)
-        return res.get_exit_code() == PackageKitGlib.ExitEnum.SUCCESS, 'installed'
-    else:
-        return True, 'already installed'
+                return True
+
+    return False
 
 def pip_install_single_package(package, site_wide = False):
     '''packagke: package name
@@ -901,7 +889,7 @@ class ECMExec:
 
         if run_as and not is_win():
             # don't use su - xxx or env variables will not be available
-            if run_as == 'root':
+            if run_as == _ROOT:
                 command = ['sudo', ' '.join(map(str, command))]
 
             else:

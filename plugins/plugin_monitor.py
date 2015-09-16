@@ -147,7 +147,7 @@ class ECMMonitor(ECMPlugin):
         """
         Installs a plugin [url=plugin_url]
         """
-        
+
         url = kwargs.get('url', None)
         content = None
         
