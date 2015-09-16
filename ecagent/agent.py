@@ -74,7 +74,10 @@ class SMAgentXMPP(Client):
         self.verify = ECVerify()
 
         log.info("Setting up Memory checker")
-        self.running_commands = 0
+
+        self.running_commands = set()
+        self.num_running_commands = 0
+
         self.memory_checker = LoopingCall(self._check_memory, self.running_commands)
         self.memory_checker.start(_CHECK_RAM_INTERVAL)
 
@@ -91,7 +94,8 @@ class SMAgentXMPP(Client):
         """
         log.debug('__onIq')
         mem_clean('__onIq [start]')
-        self.running_commands += 1
+
+
 
         log.debug("q Message received: \n%s" % msg.toXml())
         log.debug("Message type: %s" % msg['type'])
@@ -99,17 +103,27 @@ class SMAgentXMPP(Client):
         if msg['type'] == 'set':
             message = IqMessage(msg)
 
-            if hasattr(message, 'command') and hasattr(message, 'from_'):
-                log.debug('online contacts: %s' % self._online_contacts)
+            if message.command.replace('.', '_') not in self.running_commands:
 
-                if message.from_ not in self._online_contacts:
-                    log.warn('IQ sender not in roster (%s), dropping message' % message.from_)
+                self.running_commands.add(message.command.replace('.', '_'))
+                self.num_running_commands += 1
+                log.info('recieved new command: %s with message: %s' % (message.command, message))
+                log.info("Running commands: %s %i" % (self.running_commands, self.num_running_commands))
+
+                if hasattr(message, 'command') and hasattr(message, 'from_'):
+                    log.debug('online contacts: %s' % self._online_contacts)
+
+                    if message.from_ not in self._online_contacts:
+                        log.warn('IQ sender not in roster (%s), dropping message' % message.from_)
+                    else:
+                        self._processCommand(message)
+
                 else:
-                    self._processCommand(message)
+                    log.warn('Unknown ecm_message received: Full XML:\n%s' % (msg.toXml()))
+
+                del message
             else:
-                log.warn('Unknown ecm_message received: Full XML:\n%s' % (msg.toXml()))
-                
-            del message
+                log.info("already running given command %s" %message.command.replace('.', '_'))
             
         else:
             log.warn('Unknown IQ type received: Full XML:\n%s' % (msg.toXml()))
@@ -154,7 +168,10 @@ class SMAgentXMPP(Client):
         mem_clean('agent._onCallFinished')
         log.debug('Call Finished')
         self._send(result, message)
-        self.running_commands -= 1
+
+        self.running_commands.remove(message.command_name)
+        self.num_running_commands -= 1
+        log.info('command finished %s' %message.command_name)
 
     def _onCallFailed(self, failure, *argv, **kwargs):
         log.error("onCallFailed")
@@ -177,9 +194,9 @@ class SMAgentXMPP(Client):
         mem_clean('agent._send')
         self.send(message.toEtree())
 
-    def _check_memory(self, running_commands):
+    def _check_memory(self, running_commands, num_running_commands):
         rss, vms = mem_usage()
-        log.info("Running commands: %i" % running_commands)
+        log.info("Running commands: %s %i" % (running_commands, num_running_commands))
         log.info("Current Memory usage: rss=%sMB | vms=%sMB" % (rss, vms))
 
         if not running_commands and rss > _CHECK_RAM_MAX_RSS_MB:
