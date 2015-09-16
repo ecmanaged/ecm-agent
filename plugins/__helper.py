@@ -42,7 +42,8 @@ _CLOUD_INFO_FILE = _DIR + '/cloud-metadata.info'
 _PLATFORM_JSON_FILE = _DIR + '/platform-metadata.json'
 _PLATFORM_INFO_FILE = _DIR + '/platform-metadata.info'
 
-_DEFAULT_GROUP_LINUX = 'root'
+_ROOT = 'root'
+_DEFAULT_GROUP_LINUX = _ROOT
 _DEFAULT_GROUP_WINDOWS = 'Administrators'
 
 _FLUSH_WORKER_SLEEP_TIME = 0.2
@@ -888,7 +889,7 @@ class ECMExec:
 
         if run_as and not is_win():
             # don't use su - xxx or env variables will not be available
-            if run_as == 'root':
+            if run_as == _ROOT:
                 command = ['sudo', ' '.join(map(str, command))]
 
             else:
