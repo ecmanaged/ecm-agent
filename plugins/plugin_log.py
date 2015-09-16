@@ -20,9 +20,9 @@ class LoggerManager(object):
     @staticmethod
     def getLogger(name=None):
         if not name:
-            logging.basicConfig(filename='/opt/ecmanaged/ecagent/log/plugin.log', level=logging.DEBUG)
+            logging.basicConfig(filename='/opt/ecmanaged/ecagent/log/plugin.log', level=logging.INFO)
             return logging.getLogger()
         elif name not in LoggerManager._loggers.keys():
-            logging.basicConfig(filename='/opt/ecmanaged/ecagent/log/plugin.log', level=logging.DEBUG)
+            logging.basicConfig(filename='/opt/ecmanaged/ecagent/log/plugin.log', level=logging.INFO)
             LoggerManager._loggers[name] = logging.getLogger(str(name))
         return LoggerManager._loggers[name]  
