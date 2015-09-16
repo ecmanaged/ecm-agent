@@ -191,15 +191,16 @@ class SMAgentXMPP(Client):
         message.toResult(*result)
 
         del result
+
         mem_clean('agent._send')
         self.send(message.toEtree())
 
-    def _check_memory(self, running_commands, num_running_commands):
+    def _check_memory(self, num_running_commands):
         rss, vms = mem_usage()
-        log.info("Running commands: %s %i" % (running_commands, num_running_commands))
+        #log.info("Running commands: %i" % num_running_commands)
         log.info("Current Memory usage: rss=%sMB | vms=%sMB" % (rss, vms))
 
-        if not running_commands and rss > _CHECK_RAM_MAX_RSS_MB:
+        if not num_running_commands and rss > _CHECK_RAM_MAX_RSS_MB:
             log.critical("Max allowed RSS memory exceeded: %s MB, exiting."
                          % _CHECK_RAM_MAX_RSS_MB)
             reactor.stop()
