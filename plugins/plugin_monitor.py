@@ -147,6 +147,9 @@ class ECMMonitor(ECMPlugin):
         """
         Installs a plugin [url=plugin_url]
         """
+        import logging
+        from plugin_log import LoggerManager
+        log = LoggerManager.getLogger(__name__)
 
         url = kwargs.get('url', None)
         content = None
@@ -167,6 +170,8 @@ class ECMMonitor(ECMPlugin):
         except:
             raise Exception("Invalid data received")
 
+        log.info('plugin: %s' %plugin)
+
         id = plugin.get('id')
         runas = plugin.get('runas')
         
@@ -185,17 +190,20 @@ class ECMMonitor(ECMPlugin):
                 elif arg_requirements[req]['type'] == 'pip':
                     pip_install.append(arg_requirements[req]['name'])
 
-
+        log.info("installing system: %s", system_install)
         for item in system_install:
             result = packagekit_install_single_package(item)
 
             if not result:
+                log.info("problem in installing %s", item)
                 return False
 
+        log.info("installing pip: %s", pip_install)
         for item in pip_install:
             result = pip_install_single_package(item)
 
             if not result[0]:
+                log.info("problem in installing %s", item)
                 return False
 
         
