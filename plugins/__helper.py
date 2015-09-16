@@ -261,6 +261,9 @@ def packagekit_install_single_package(package):
     from packaging.version import parse
     from platform import machine
 
+    from plugin_log import LoggerManager
+    log = LoggerManager.getLogger(__name__)
+
     client = PackageKitGlib.Client()
 
     client.refresh_cache(False, None, lambda p, t, d: True, None)
@@ -286,33 +289,35 @@ def packagekit_install_single_package(package):
                     result = pkg
     if result.get_info() != PackageKitGlib.InfoEnum.INSTALLED:
         res = client.install_packages(False, [result.get_id()], None, lambda p, t, d: True, None)
+        log.info('%s installed', result.get_id())
         return res.get_exit_code() == PackageKitGlib.ExitEnum.SUCCESS, 'installed'
     else:
+        log.info('%s already installed', result.get_id())
         return True, 'already installed'
 
 def pip_install_single_package(package, site_wide = False):
     '''packagke: package name
        side_wide: boolean. if True package will be installed in site packages, else in user site
     '''
-    #import logging
+    from plugin_log import LoggerManager
+    log = LoggerManager.getLogger(__name__)
 
     from pip.index import PackageFinder
     from pip.req import InstallRequirement, RequirementSet
     from pkg_resources import safe_name
     from setuptools.package_index import distros_for_url
     from pip.download import PipSession
-    from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled
+    from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled, PreviousBuildDirError
     from pip.locations import src_prefix, site_packages, user_site
     from pip._vendor.packaging.version import parse
-
-    #logging.basicConfig()
 
     session = PipSession()
 
     # site_wide is a boolean. if True package will be installed in site packages, else in user site
     install_site_wide = site_wide
-
     pkg = package
+
+    log.info('installing %s using pip' %pkg)
 
     pkg_normalized = safe_name(pkg).lower()
     req = InstallRequirement.from_line(pkg, None)
@@ -321,8 +326,10 @@ def pip_install_single_package(package, site_wide = False):
     try:
         req.populate_link(pf, True)
     except BestVersionAlreadyInstalled:
+        log.info('Best version already installed')
         return True, 'Best version already installed'
     except DistributionNotFound:
+        log.info('No matching distribution found for: %s '%pkg)
         return True, 'No matching distribution found for '+pkg
 
     if req.check_if_exists():
@@ -339,6 +346,7 @@ def pip_install_single_package(package, site_wide = False):
                 break
         if not update_version:
             #exit()
+            log.info('can not update')
             return True, 'can not update'
         if parse(update_version) > parse(req.installed_version):
             if install_site_wide:
@@ -349,15 +357,23 @@ def pip_install_single_package(package, site_wide = False):
             reqset._check_skip_installed(req, pf)
             reqset.prepare_files(pf)
             if install_site_wide:
-                reqset.install(install_options=[], global_options=[])
+                try:
+                    reqset.install(install_options=[], global_options=[])
+                except:
+                    log.info('Error in installation')
             else:
-                reqset.install(install_options=['--user'], global_options=[])
+                try:
+                    reqset.install(install_options=['--user'], global_options=[])
+                except:
+                    log.info('Error in installation')
+
             reqset.cleanup_files()
         else:
             return True, 'installed version is up-to-date'
         return True, 'update available'
 
     else:
+        log.info('installing: %s' %pkg)
         if install_site_wide:
             reqset = RequirementSet(build_dir=site_packages, src_dir=src_prefix, download_dir=None, session=session, use_user_site=False)
         else:
@@ -368,15 +384,27 @@ def pip_install_single_package(package, site_wide = False):
         reqset.prepare_files(pf)
 
         if install_site_wide:
-            reqset.install(install_options=[], global_options=[])
+            try:
+                reqset.install(install_options=[], global_options=[])
+            except PreviousBuildDirError as error:
+                log.info(error)
         else:
-            reqset.install(install_options=['--user'], global_options=[])
+            try:
+
+                reqset.install(install_options=['--user'], global_options=[])
+            except PreviousBuildDirError as error:
+                log.info(error)
+
         reqset.cleanup_files()
+
+        log.info('checking installation status')
 
         if req.install_succeeded:
             req.check_if_exists()
+            log.info('installed %s', req.satisfied_by)
             return True, req.satisfied_by
         else:
+            log.info('installation of %s failed', pkg)
             return False, 'installation failed'
 
 # def apt_install_package(package):
