@@ -258,7 +258,7 @@ def packagekit_install_package(packages):
 
 def packagekit_install_single_package(package):
     from gi.repository import PackageKitGlib
-    from packaging.version import parse
+    from pkg_resources import parse_version
     from platform import machine
 
     from plugin_log import LoggerManager
@@ -292,7 +292,7 @@ def packagekit_install_single_package(package):
             if result == None:
                 result = pkg
             else:
-                if parse(pkg.get_version()) > parse(result.get_version()):
+                if parse_version(pkg.get_version()) > parse_version(result.get_version()):
                     result = pkg
     if result.get_info() != PackageKitGlib.InfoEnum.INSTALLED:
         res = client.install_packages(False, [result.get_id()], None, lambda p, t, d: True, None)
@@ -316,7 +316,7 @@ def pip_install_single_package(package, site_wide = False):
     from pip.download import PipSession
     from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled, PreviousBuildDirError
     from pip.locations import src_prefix, site_packages, user_site
-    from packaging.version import parse
+    from pkg_resources import parse_version
 
     session = PipSession()
 
@@ -355,7 +355,7 @@ def pip_install_single_package(package, site_wide = False):
             #exit()
             log.info('can not update')
             return True, 'can not update'
-        if parse(update_version) > parse(req.installed_version):
+        if parse_version(update_version) > parse_version(req.installed_version):
             if install_site_wide:
                 reqset = RequirementSet(build_dir=site_packages, src_dir=src_prefix, download_dir=None, session=session, use_user_site=False, upgrade= True)
             else:
