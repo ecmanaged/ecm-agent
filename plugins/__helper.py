@@ -314,9 +314,10 @@ def pip_install_single_package(package, site_wide = False):
     from pkg_resources import safe_name
     from setuptools.package_index import distros_for_url
     from pip.download import PipSession
-    from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled, PreviousBuildDirError
+    from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled
+    from pip.exceptions import PreviousBuildDirError, InstallationError
     from pip.locations import src_prefix, site_packages, user_site
-    from pkg_resources import parse_version
+    from pip._vendor.packaging.version import parse
 
     session = PipSession()
 
@@ -351,28 +352,70 @@ def pip_install_single_package(package, site_wide = False):
                 if safe_name(dist.project_name).lower() == pkg_normalized and dist.version:
                     update_version = dist.version
                 break
+
         if not update_version:
             #exit()
             log.info('can not update')
             return True, 'can not update'
-        if parse_version(update_version) > parse_version(req.installed_version):
+
+        if parse(update_version) > parse(req.installed_version):
             if install_site_wide:
                 reqset = RequirementSet(build_dir=site_packages, src_dir=src_prefix, download_dir=None, session=session, use_user_site=False, upgrade= True)
             else:
                 reqset = RequirementSet(build_dir=user_site, src_dir=src_prefix, download_dir=None, session=session, use_user_site=True, upgrade= True)
+
             reqset.add_requirement(req)
             reqset._check_skip_installed(req, pf)
-            reqset.prepare_files(pf)
+
+            try:
+                reqset.prepare_files(pf)
+            except PreviousBuildDirError as error:
+                log.info('reqset.prepare_files PreviousBuildDirError')
+                log.info(error)
+
+                # deleted the the source file to avoid PreviousBuildDirError
+                import shutil
+                shutil.rmtree(req.source_dir)
+
+                reqset.cleanup_files()
+                return False, 'PreviousBuildDirError'
+            except InstallationError as error:
+                log.info('reqset.prepare_files InstallationError')
+                log.info(error)
+
+                # deleted the the source file to avoid PreviousBuildDirError
+                import shutil
+                shutil.rmtree(req.source_dir)
+
+                reqset.cleanup_files()
+                return False, 'InstallationError'
+
             if install_site_wide:
                 try:
                     reqset.install(install_options=[], global_options=[])
-                except:
-                    log.info('Error in installation')
+                except PreviousBuildDirError as error:
+                    log.info('reqset.install PreviousBuildDirError')
+                    log.info(error)
+                    reqset.cleanup_files()
+                    return False, 'PreviousBuildDirError'
+                except InstallationError as error:
+                    log.info('reqset.install PreviousBuildDirError')
+                    log.info(error)
+                    reqset.cleanup_files()
+                    return False, 'InstallationError'
             else:
                 try:
                     reqset.install(install_options=['--user'], global_options=[])
-                except:
-                    log.info('Error in installation')
+                except PreviousBuildDirError as error:
+                    log.info('reqset.install PreviousBuildDirError')
+                    log.info(error)
+                    reqset.cleanup_files()
+                    return False, 'PreviousBuildDirError'
+                except InstallationError as error:
+                    log.info('reqset.install PreviousBuildDirError')
+                    log.info(error)
+                    reqset.cleanup_files()
+                    return False, 'InstallationError'
 
             reqset.cleanup_files()
         else:
@@ -388,19 +431,56 @@ def pip_install_single_package(package, site_wide = False):
 
         reqset.add_requirement(req)
 
-        reqset.prepare_files(pf)
+        try:
+            reqset.prepare_files(pf)
+        except PreviousBuildDirError as error:
+            log.info('reqset.prepare_files PreviousBuildDirError')
+            log.info(error)
+
+            # deleted the the source file to avoid PreviousBuildDirError
+            import shutil
+            shutil.rmtree(req.source_dir)
+
+            reqset.cleanup_files()
+            return False, 'PreviousBuildDirError'
+        except InstallationError as error:
+            log.info('reqset.prepare_files InstallationError')
+            log.info(error)
+
+            # deleted the the source file to avoid PreviousBuildDirError
+            import shutil
+            shutil.rmtree(req.source_dir)
+
+            reqset.cleanup_files()
+            return False, 'InstallationError'
+
 
         if install_site_wide:
             try:
                 reqset.install(install_options=[], global_options=[])
             except PreviousBuildDirError as error:
+                log.info('reqset.install PreviousBuildDirError')
                 log.info(error)
+                reqset.cleanup_files()
+                return False, 'PreviousBuildDirError'
+            except InstallationError as error:
+                log.info('reqset.install PreviousBuildDirError')
+                log.info(error)
+                reqset.cleanup_files()
+                return False, 'InstallationError'
         else:
             try:
-
                 reqset.install(install_options=['--user'], global_options=[])
             except PreviousBuildDirError as error:
+                log.info('reqset.install PreviousBuildDirError')
                 log.info(error)
+                reqset.cleanup_files()
+                return False, 'PreviousBuildDirError'
+            except InstallationError as error:
+                log.info('reqset.install PreviousBuildDirError')
+                log.info(error)
+                reqset.cleanup_files()
+                return False, 'InstallationError'
 
         reqset.cleanup_files()
 
