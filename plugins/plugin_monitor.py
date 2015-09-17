@@ -28,6 +28,10 @@ import __helper as ecm
 from __plugin import ECMPlugin
 from __mplugin import MPlugin
 
+import logging
+from plugin_log import LoggerManager
+log = LoggerManager.getLogger(__name__)
+
 CRITICAL = 2
 
 COMMAND_TIMEOUT = 55
@@ -147,10 +151,6 @@ class ECMMonitor(ECMPlugin):
         """
         Installs a plugin [url=plugin_url]
         """
-        import logging
-        from plugin_log import LoggerManager
-        log = LoggerManager.getLogger(__name__)
-
         url = kwargs.get('url', None)
         content = None
         
