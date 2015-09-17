@@ -23,6 +23,16 @@ import socket
 from plugin_log import LoggerManager
 log = LoggerManager.getLogger(__name__)
 
+from pip.index import PackageFinder
+from pip.req import InstallRequirement, RequirementSet
+from pkg_resources import safe_name
+from setuptools.package_index import distros_for_url
+from pip.download import PipSession
+from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled
+from pip.exceptions import PreviousBuildDirError, InstallationError
+from pip.locations import src_prefix, site_packages, user_site
+from pkg_resources import parse_version
+
 from sys import platform
 from time import sleep, time
 
@@ -258,7 +268,6 @@ def packagekit_install_package(packages):
 
 def packagekit_install_single_package(package):
     from gi.repository import PackageKitGlib
-    from pkg_resources import parse_version
     from platform import machine
 
     from plugin_log import LoggerManager
@@ -302,23 +311,93 @@ def packagekit_install_single_package(package):
         log.info('%s already installed', result.get_id())
         return True, 'already installed'
 
+def _pip_prepare_files(req, reqset, pf):
+    try:
+        reqset.prepare_files(pf)
+    except PreviousBuildDirError as error:
+        log.info('reqset.prepare_files PreviousBuildDirError')
+        log.info(error)
+
+        # deleted the the source file to avoid PreviousBuildDirError
+        import shutil
+        shutil.rmtree(req.source_dir)
+
+        reqset.cleanup_files()
+        return False, 'PreviousBuildDirError'
+    except InstallationError as error:
+        log.info('reqset.prepare_files InstallationError')
+        log.info(error)
+
+        # deleted the the source file to avoid PreviousBuildDirError
+        import shutil
+        shutil.rmtree(req.source_dir)
+
+        reqset.cleanup_files()
+        return False, 'InstallationError'
+    return True, 'successful'
+
+def _pip_install_pkg(install_site_wide, reqset):
+    if install_site_wide:
+        try:
+            reqset.install(install_options=[], global_options=[])
+        except PreviousBuildDirError as error:
+            log.info('reqset.install PreviousBuildDirError')
+            log.info(error)
+            reqset.cleanup_files()
+            return False, 'PreviousBuildDirError'
+        except InstallationError as error:
+            log.info('reqset.install PreviousBuildDirError')
+            log.info(error)
+            reqset.cleanup_files()
+            return False, 'InstallationError'
+    else:
+        try:
+            reqset.install(install_options=['--user'], global_options=[])
+        except PreviousBuildDirError as error:
+            log.info('reqset.install PreviousBuildDirError')
+            log.info(error)
+            reqset.cleanup_files()
+            return False, 'PreviousBuildDirError'
+        except InstallationError as error:
+            log.info('reqset.install PreviousBuildDirError')
+            log.info(error)
+            reqset.cleanup_files()
+            return False, 'InstallationError'
+
+    reqset.cleanup_files()
+    return True, 'successful'
+
+def _get_pip_version(req, pkg_normalized):
+    update_version = None
+    if req.link.is_wheel:
+        from pip.wheel import Wheel
+        update_version = Wheel(req.link.filename).version
+    else:
+        for dist in distros_for_url(req.link.url):
+            if safe_name(dist.project_name).lower() == pkg_normalized and dist.version:
+                update_version = dist.version
+            break
+    return update_version
+
+def _pip_check_installation_status(req, pkg):
+    if req.install_succeeded:
+        req.check_if_exists()
+        log.info('installed %s', req.satisfied_by)
+        return True
+    else:
+        log.info('installation of %s failed', pkg)
+        return False
+def _pip_create_requirementset(install_site_wide, session, upgrade=False, ignore_installed=False):
+    if install_site_wide:
+        return RequirementSet(build_dir=site_packages, src_dir=src_prefix, download_dir=None, session=session, use_user_site=False, upgrade=upgrade, ignore_installed=ignore_installed)
+    else:
+        return RequirementSet(build_dir=user_site, src_dir=src_prefix, download_dir=None, session=session, use_user_site=True, upgrade=upgrade, ignore_installed=ignore_installed)
+
+
 def pip_install_single_package(package, site_wide = False):
     '''packagke: package name
        side_wide: boolean. if True package will be installed in site packages, else in user site
     '''
-    from plugin_log import LoggerManager
-    log = LoggerManager.getLogger(__name__)
-
-    from pip.index import PackageFinder
-    from pip.req import InstallRequirement, RequirementSet
-    from pkg_resources import safe_name
-    from setuptools.package_index import distros_for_url
-    from pip.download import PipSession
-    from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled
-    from pip.exceptions import PreviousBuildDirError, InstallationError
-    from pip.locations import src_prefix, site_packages, user_site
-    from pip._vendor.packaging.version import parse
-
     session = PipSession()
 
     # site_wide is a boolean. if True package will be installed in site packages, else in user site
@@ -342,157 +421,47 @@ def pip_install_single_package(package, site_wide = False):
 
     if req.check_if_exists():
         # check if update available
-        update_version = None
-
-        if req.link.is_wheel:
-            from pip.wheel import Wheel
-            update_version = Wheel(req.link.filename).version
-        else:
-            for dist in distros_for_url(req.link.url):
-                if safe_name(dist.project_name).lower() == pkg_normalized and dist.version:
-                    update_version = dist.version
-                break
+        update_version = _get_pip_version(req, pkg_normalized)
 
         if not update_version:
-            #exit()
-            log.info('can not update')
-            return True, 'can not update'
+            log.info('can not get update version')
+            return True, 'can not get update version'
 
-        if parse(update_version) > parse(req.installed_version):
-            if install_site_wide:
-                reqset = RequirementSet(build_dir=site_packages, src_dir=src_prefix, download_dir=None, session=session, use_user_site=False, upgrade= True)
-            else:
-                reqset = RequirementSet(build_dir=user_site, src_dir=src_prefix, download_dir=None, session=session, use_user_site=True, upgrade= True)
+        if parse_version(update_version) > parse_version(req.installed_version):
+            log.info('updating: %s from %s to %s', pkg, req.installed_version, update_version)
+            reqset = _pip_create_requirementset(install_site_wide, session, upgrade=True, ignore_installed=True)
 
             reqset.add_requirement(req)
+
             reqset._check_skip_installed(req, pf)
 
-            try:
-                reqset.prepare_files(pf)
-            except PreviousBuildDirError as error:
-                log.info('reqset.prepare_files PreviousBuildDirError')
-                log.info(error)
+            result = _pip_prepare_files(req, reqset, pf)
+            if not result[0]:
+                return result
 
-                # deleted the the source file to avoid PreviousBuildDirError
-                import shutil
-                shutil.rmtree(req.source_dir)
+            result = _pip_install_pkg(install_site_wide, reqset)
+            if not result[0]:
+                return result
 
-                reqset.cleanup_files()
-                return False, 'PreviousBuildDirError'
-            except InstallationError as error:
-                log.info('reqset.prepare_files InstallationError')
-                log.info(error)
+	        return _pip_check_installation_status(req, pkg)
 
-                # deleted the the source file to avoid PreviousBuildDirError
-                import shutil
-                shutil.rmtree(req.source_dir)
-
-                reqset.cleanup_files()
-                return False, 'InstallationError'
-
-            if install_site_wide:
-                try:
-                    reqset.install(install_options=[], global_options=[])
-                except PreviousBuildDirError as error:
-                    log.info('reqset.install PreviousBuildDirError')
-                    log.info(error)
-                    reqset.cleanup_files()
-                    return False, 'PreviousBuildDirError'
-                except InstallationError as error:
-                    log.info('reqset.install PreviousBuildDirError')
-                    log.info(error)
-                    reqset.cleanup_files()
-                    return False, 'InstallationError'
-            else:
-                try:
-                    reqset.install(install_options=['--user'], global_options=[])
-                except PreviousBuildDirError as error:
-                    log.info('reqset.install PreviousBuildDirError')
-                    log.info(error)
-                    reqset.cleanup_files()
-                    return False, 'PreviousBuildDirError'
-                except InstallationError as error:
-                    log.info('reqset.install PreviousBuildDirError')
-                    log.info(error)
-                    reqset.cleanup_files()
-                    return False, 'InstallationError'
-
-            reqset.cleanup_files()
         else:
             return True, 'installed version is up-to-date'
-        return True, 'update available'
 
     else:
         log.info('installing: %s' %pkg)
-        if install_site_wide:
-            reqset = RequirementSet(build_dir=site_packages, src_dir=src_prefix, download_dir=None, session=session, use_user_site=False)
-        else:
-            reqset = RequirementSet(build_dir=user_site, src_dir=src_prefix, download_dir=None, session=session, use_user_site=True)
 
+        reqset = _pip_create_requirementset(install_site_wide, session)
         reqset.add_requirement(req)
 
-        try:
-            reqset.prepare_files(pf)
-        except PreviousBuildDirError as error:
-            log.info('reqset.prepare_files PreviousBuildDirError')
-            log.info(error)
+        result = _pip_prepare_files(req, reqset, pf)
+        if not result[0]:
+            return result
 
-            # deleted the the source file to avoid PreviousBuildDirError
-            import shutil
-            shutil.rmtree(req.source_dir)
-
-            reqset.cleanup_files()
-            return False, 'PreviousBuildDirError'
-        except InstallationError as error:
-            log.info('reqset.prepare_files InstallationError')
-            log.info(error)
-
-            # deleted the the source file to avoid PreviousBuildDirError
-            import shutil
-            shutil.rmtree(req.source_dir)
-
-            reqset.cleanup_files()
-            return False, 'InstallationError'
-
-
-        if install_site_wide:
-            try:
-                reqset.install(install_options=[], global_options=[])
-            except PreviousBuildDirError as error:
-                log.info('reqset.install PreviousBuildDirError')
-                log.info(error)
-                reqset.cleanup_files()
-                return False, 'PreviousBuildDirError'
-            except InstallationError as error:
-                log.info('reqset.install PreviousBuildDirError')
-                log.info(error)
-                reqset.cleanup_files()
-                return False, 'InstallationError'
-        else:
-            try:
-                reqset.install(install_options=['--user'], global_options=[])
-            except PreviousBuildDirError as error:
-                log.info('reqset.install PreviousBuildDirError')
-                log.info(error)
-                reqset.cleanup_files()
-                return False, 'PreviousBuildDirError'
-            except InstallationError as error:
-                log.info('reqset.install PreviousBuildDirError')
-                log.info(error)
-                reqset.cleanup_files()
-                return False, 'InstallationError'
-
-        reqset.cleanup_files()
-
-        log.info('checking installation status')
-
-        if req.install_succeeded:
-            req.check_if_exists()
-            log.info('installed %s', req.satisfied_by)
-            return True, req.satisfied_by
-        else:
-            log.info('installation of %s failed', pkg)
-            return False, 'installation failed'
+        result = _pip_install_pkg(install_site_wide, reqset)
+        if not result[0]:
+            return result
+    return _pip_check_installation_status(req, pkg)
 
 # def apt_install_package(package):
 #     if type(package) is types.StringType:
