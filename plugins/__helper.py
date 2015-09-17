@@ -19,9 +19,9 @@ import re
 import types
 import urllib
 import socket
-#import yum
-#from yum import Errors
-#import apt
+
+from plugin_log import LoggerManager
+log = LoggerManager.getLogger(__name__)
 
 from sys import platform
 from time import sleep, time
@@ -266,21 +266,28 @@ def packagekit_install_single_package(package):
 
     client = PackageKitGlib.Client()
 
-    client.refresh_cache(False, None, lambda p, t, d: True, None)
+    log.info('refreshing cache')
 
+    client.refresh_cache(False, None, lambda p, t, d: True, None)
+    log.info('cache refreshed')
+
+    log.info('resolving: %s', package)
     res = client.resolve(PackageKitGlib.FilterEnum.NONE, [package], None, lambda p, t, d: True, None)
 
     result = None
 
     if res.get_exit_code() != PackageKitGlib.ExitEnum.SUCCESS:
+        log.info('resolve failed')
         return False, 'resolve failed'
 
     package_ids = res.get_package_array()
 
     if len(package_ids) == 0:
+        log.info('resolved 0 packages')
         return False, 'resolved 0 packages'
 
     for pkg in package_ids:
+        log.info(pkg.get_id())
         if pkg.get_arch() == machine():
             if result == None:
                 result = pkg
@@ -309,7 +316,7 @@ def pip_install_single_package(package, site_wide = False):
     from pip.download import PipSession
     from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled, PreviousBuildDirError
     from pip.locations import src_prefix, site_packages, user_site
-    from pip._vendor.packaging.version import parse
+    from packaging.version import parse
 
     session = PipSession()
 
