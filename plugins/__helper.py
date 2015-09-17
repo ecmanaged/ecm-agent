@@ -443,7 +443,7 @@ def pip_install_single_package(package, site_wide = False):
             if not result[0]:
                 return result
 
-	        return _pip_check_installation_status(req, pkg)
+            return _pip_check_installation_status(req, pkg)
 
         else:
             return True, 'installed version is up-to-date'
