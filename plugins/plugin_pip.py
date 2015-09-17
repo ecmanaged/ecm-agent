@@ -88,10 +88,19 @@ class ECMPip(ECMPlugin):
                 except PreviousBuildDirError as error:
                     log.info('reqset.prepare_files PreviousBuildDirError')
                     log.info(error)
+
+                    import shutil
+                    shutil.rmtree(req.source_dir)
+                    reqset.cleanup_files()
                     return False, 'PreviousBuildDirError'
+
                 except InstallationError as error:
                     log.info('reqset.prepare_files InstallationError')
                     log.info(error)
+                    import shutil
+                    shutil.rmtree(req.source_dir)
+
+                    reqset.cleanup_files()
                     return False, 'InstallationError'
 
                 if install_site_wide:
@@ -136,10 +145,16 @@ class ECMPip(ECMPlugin):
             except PreviousBuildDirError as error:
                 log.info('reqset.prepare_files PreviousBuildDirError')
                 log.info(error)
+                import shutil
+                shutil.rmtree(req.source_dir)
+                reqset.cleanup_files()
                 return False, 'PreviousBuildDirError'
             except InstallationError as error:
                 log.info('reqset.prepare_files InstallationError')
                 log.info(error)
+                import shutil
+                shutil.rmtree(req.source_dir)
+                reqset.cleanup_files()
                 return False, 'InstallationError'
 
             if install_site_wide:
