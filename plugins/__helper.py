@@ -29,16 +29,13 @@ from plugin_log import LoggerManager
 log = LoggerManager.getLogger(__name__)
 
 from pip.commands import commands_dict
-
+from pip.commands import ListCommand
 from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
                             CommandError, PreviousBuildDirError)
-
-from pip.status_codes import (
-    SUCCESS, ERROR, UNKNOWN_ERROR, PREVIOUS_BUILD_DIR_ERROR,
-)
-from pip.utils.outdated import pip_version_check
+from pip.status_codes import SUCCESS, ERROR, UNKNOWN_ERROR, PREVIOUS_BUILD_DIR_ERROR
+from pip.utils import get_installed_distributions
 from pkg_resources import parse_version
-
+from pkg_resources import safe_name
 from sys import platform
 from time import sleep, time
 
@@ -75,7 +72,6 @@ def is_win():
 
         return False
 
-
 def file_write(file_path, content=None):
     """ Writes a file
     """
@@ -92,7 +88,6 @@ def file_write(file_path, content=None):
     except:
         raise Exception("Unable to write file: %s" % file)
 
-
 def file_read(file_path):
     """ Reads a file and returns content
     """
@@ -106,7 +101,6 @@ def file_read(file_path):
     except:
         raise Exception("Unable to read file: %s" % file)
 
-
 def random_charts(length=60):
     """ Generates random chars
     """
@@ -116,7 +110,6 @@ def random_charts(length=60):
     chars = string.ascii_uppercase + string.digits + '!@#$%^&*()'
     return ''.join(random.choice(chars) for x in range(length))
 
-
 def clean_stdout(std_output):
     """ Remove color chars from output
     """
@@ -125,7 +118,6 @@ def clean_stdout(std_output):
         return r.sub('', std_output)
     except:
         return std_output
-
 
 def download_file(url, filename=None, user=None, passwd=None):
     """
@@ -176,7 +168,6 @@ def download_file(url, filename=None, user=None, passwd=None):
 
     return filename
 
-
 def get_url(url, timeout=10):
     socket.setdefaulttimeout(timeout)
     urlopen = urllib.urlopen(url)
@@ -185,7 +176,6 @@ def get_url(url, timeout=10):
     urlopen.close()
 
     return retval
-
 
 def chmod(filename, mode):
     """
@@ -197,7 +187,6 @@ def chmod(filename, mode):
 
     except:
         return False
-
 
 def which(command):
     """
@@ -224,7 +213,6 @@ def which(command):
         found = False
 
     return found
-
 
 def chown(path, user, group=None, recursive=False):
     """
@@ -271,7 +259,6 @@ def packagekit_install_package(packages):
     for package in packages:
         packagekit_install_single_package(package)
 
-
 def packagekit_install_single_package(package):
     from gi.repository import PackageKitGlib
     from platform import machine
@@ -317,6 +304,31 @@ def packagekit_install_single_package(package):
         log.info('%s already installed', result.get_id())
         return True, 'already installed'
 
+def canonicalize_name(name):
+    """Convert an arbitrary string to a canonical name used for comparison"""
+    return safe_name(name).lower()
+
+def pip_outdated_packages(local=False, user=False):
+    update_available = []
+
+    list_command = ListCommand()
+    options, args = list_command.parse_args([])
+
+    options.local = local
+    options.user = user
+
+    for dist, version, typ in list_command.find_packages_latest_versions(options):
+        if version > dist.parsed_version:
+            update_available.append((dist.project_name, str(dist.version), str(version), typ))
+    return update_available
+
+def pip_installed_packages(package, site_wide = False):
+    # returns a dictionary {'package name': 'package version'}
+    available_packages = {}
+    for dist in get_installed_distributions(local_only=True):
+        available_packages [dist.project_name] = str(dist.parsed_version)
+    return available_packages
+
 def pip_install_single_package(package, site_wide = False, isolated=False):
 
     if site_wide:
@@ -354,8 +366,6 @@ def pip_install_single_package(package, site_wide = False, isolated=False):
         log.info('Installation failed')
         log.critical('Exception:', exc_info=True)
         return UNKNOWN_ERROR
-
-
 
 def install_package(packages, update=True):
     """
@@ -416,7 +426,6 @@ def install_package(packages, update=True):
     except Exception as e:
         return 1, '', "Error installing packages %s" % e
 
-
 def run_file(filename, args=None, stdin=None, runas=None, workdir=None, envars=None):
     """
     Execute a script file
@@ -428,14 +437,12 @@ def run_file(filename, args=None, stdin=None, runas=None, workdir=None, envars=N
 
     return 255, '', 'Script file not found'
 
-
 def run_command(command, args=None, stdin=None, runas=None, workdir=None, envars=None, only_stdout=False):
     """
     Execute command and flush stdout/stderr using threads
     """
     e = ECMExec()
     return e.command(command, args, stdin, runas, workdir, envars, only_stdout)
-
 
 def write_metadata(metadata=None, metadata_b64=None, metadata_json=None):
     from base64 import b64decode
@@ -449,7 +456,6 @@ def write_metadata(metadata=None, metadata_b64=None, metadata_json=None):
 
     return _write_metadata(metadata, _JSON_FILE, _INFO_FILE, _ENV_FILE)
 
-
 def write_metadata_stack(metadata=None, metadata_b64=None, metadata_json=None):
     from base64 import b64decode
     import simplejson as json
@@ -461,7 +467,6 @@ def write_metadata_stack(metadata=None, metadata_b64=None, metadata_json=None):
         metadata = json.loads(metadata_json)
 
     return _write_metadata(metadata, _STACK_JSON_FILE, _STACK_INFO_FILE)
-
 
 def write_metadata_platform(metadata=None, metadata_b64=None, metadata_json=None):
     from base64 import b64decode
@@ -475,7 +480,6 @@ def write_metadata_platform(metadata=None, metadata_b64=None, metadata_json=None
 
     return _write_metadata(metadata, _PLATFORM_JSON_FILE, _PLATFORM_INFO_FILE)
 
-
 def write_metadata_cloud(metadata=None, metadata_b64=None, metadata_json=None):
     from base64 import b64decode
     import simplejson as json
@@ -487,7 +491,6 @@ def write_metadata_cloud(metadata=None, metadata_b64=None, metadata_json=None):
         metadata = json.loads(metadata_json)
 
     return _write_metadata(metadata, _CLOUD_JSON_FILE, _CLOUD_INFO_FILE)
-
 
 def _write_metadata(metadata=None, json_file=None, info_file=None, env_file=None):
     import simplejson as json
@@ -519,7 +522,6 @@ def _write_metadata(metadata=None, json_file=None, info_file=None, env_file=None
 
     return False
 
-
 def metadata_to_env(metadata=None, metadata_b64=None, metadata_json=None):
     from base64 import b64decode
     import simplejson as json
@@ -547,7 +549,6 @@ def metadata_to_env(metadata=None, metadata_b64=None, metadata_json=None):
 
     return retval
 
-
 def renice_me(nice):
     """
     Changes execution priority
@@ -562,7 +563,6 @@ def renice_me(nice):
     else:
         return 1
 
-
 def is_number(s):
     """ Helper function """
     try:
@@ -570,7 +570,6 @@ def is_number(s):
         return True
     except ValueError:
         return False
-
 
 def output(string):
     """ Helper function """
@@ -582,7 +581,6 @@ def format_output(out, std_output, std_error):
 
     return format_out
 
-
 def mkdir_p(path):
     """ Recursive Mkdir """
     try:
@@ -591,22 +589,18 @@ def mkdir_p(path):
     except OSError:
         pass
 
-
 def utime():
     """ Helper function: microtime """
     str_time = str(time()).replace('.', '_')
     return str_time
 
-
 def is_dict(obj):
     """Check if the object is a dictionary."""
     return isinstance(obj, dict)
 
-
 def is_list(obj):
     """Check if the object is a list"""
     return isinstance(obj, list)
-
 
 def is_integer(value):
     try:
@@ -622,14 +616,12 @@ def is_string(obj):
 
     return False
 
-
 def encode(string):
     try:
         string = string.encode('utf-8')
         return string
     except:
         return str(string)
-
 
 def split_path(path):
     components = []
@@ -639,7 +631,6 @@ def split_path(path):
             components.reverse()
             return components
         components.append(tail)
-
 
 def get_distribution():
     import platform
@@ -685,7 +676,6 @@ def get_distribution():
 
     return distribution, version
 
-
 def hash_to_str(_hash, _key):
     final_str = ''
     if is_dict(_hash):
@@ -704,7 +694,6 @@ def hash_to_str(_hash, _key):
         final_str += "%s: %s\n" % (_key, _hash)
 
     return final_str
-
 
 def fork(workdir):
     """Detach a process from the controlling terminal and run it in the
@@ -758,7 +747,6 @@ def fork(workdir):
     os.dup2(se.fileno(), sys.stderr.fileno())
 
     return 0
-
 
 class ECMExec:
     def __init__(self):
@@ -925,9 +913,7 @@ class ECMExec:
         except:
             return ''
 
-
 # Exceptions
-
 class InvalidParameters(Exception):
     def __init__(self, reason):
         self._reason = reason
