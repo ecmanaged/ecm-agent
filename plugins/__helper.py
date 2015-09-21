@@ -23,14 +23,20 @@ import socket
 from plugin_log import LoggerManager
 log = LoggerManager.getLogger(__name__)
 
-from pip.index import PackageFinder
-from pip.req import InstallRequirement, RequirementSet
-from pkg_resources import safe_name
-from setuptools.package_index import distros_for_url
-from pip.download import PipSession
-from pip.exceptions import DistributionNotFound, BestVersionAlreadyInstalled
-from pip.exceptions import PreviousBuildDirError, InstallationError
-from pip.locations import src_prefix, site_packages, user_site
+from __future__ import absolute_import
+
+from plugin_log import LoggerManager
+log = LoggerManager.getLogger(__name__)
+
+from pip.commands import commands_dict
+
+from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
+                            CommandError, PreviousBuildDirError)
+
+from pip.status_codes import (
+    SUCCESS, ERROR, UNKNOWN_ERROR, PREVIOUS_BUILD_DIR_ERROR,
+)
+from pip.utils.outdated import pip_version_check
 from pkg_resources import parse_version
 
 from sys import platform
@@ -311,210 +317,56 @@ def packagekit_install_single_package(package):
         log.info('%s already installed', result.get_id())
         return True, 'already installed'
 
-def _pip_prepare_files(req, reqset, pf):
-    try:
-        reqset.prepare_files(pf)
-    except PreviousBuildDirError as error:
-        log.info('reqset.prepare_files PreviousBuildDirError')
-        log.info(error)
-
-        # deleted the the source file to avoid PreviousBuildDirError
-        import shutil
-        shutil.rmtree(req.source_dir)
-
-        reqset.cleanup_files()
-        return False, 'PreviousBuildDirError'
-    except InstallationError as error:
-        log.info('reqset.prepare_files InstallationError')
-        log.info(error)
-
-        # deleted the the source file to avoid PreviousBuildDirError
-        import shutil
-        shutil.rmtree(req.source_dir)
-
-        reqset.cleanup_files()
-        return False, 'InstallationError'
-    return True, 'successful'
-
-def _pip_install_pkg(install_site_wide, reqset):
-    if install_site_wide:
-        try:
-            reqset.install(install_options=[], global_options=[])
-        except PreviousBuildDirError as error:
-            log.info('reqset.install PreviousBuildDirError')
-            log.info(error)
-            reqset.cleanup_files()
-            return False, 'PreviousBuildDirError'
-        except InstallationError as error:
-            log.info('reqset.install PreviousBuildDirError')
-            log.info(error)
-            reqset.cleanup_files()
-            return False, 'InstallationError'
-    else:
-        try:
-            reqset.install(install_options=['--user'], global_options=[])
-        except PreviousBuildDirError as error:
-            log.info('reqset.install PreviousBuildDirError')
-            log.info(error)
-            reqset.cleanup_files()
-            return False, 'PreviousBuildDirError'
-        except InstallationError as error:
-            log.info('reqset.install PreviousBuildDirError')
-            log.info(error)
-            reqset.cleanup_files()
-            return False, 'InstallationError'
-
-    reqset.cleanup_files()
-    return True, 'successful'
-
-def _get_pip_version(req, pkg_normalized):
-    update_version = None
-    if req.link.is_wheel:
-        from pip.wheel import Wheel
-        update_version = Wheel(req.link.filename).version
-    else:
-        for dist in distros_for_url(req.link.url):
-            if safe_name(dist.project_name).lower() == pkg_normalized and dist.version:
-                update_version = dist.version
-            break
-    return update_version
-
-def _pip_check_installation_status(req, pkg):
-    if req.install_succeeded:
-        req.check_if_exists()
-        log.info('installed %s', req.satisfied_by)
-        return True
-    else:
-        log.info('installation of %s failed', pkg)
-        return False
-def _pip_create_requirementset(install_site_wide, session, upgrade=False, ignore_installed=False):
-    if install_site_wide:
-        return RequirementSet(build_dir=site_packages, src_dir=src_prefix, download_dir=None, session=session, use_user_site=False, upgrade=upgrade, ignore_installed=ignore_installed)
-    else:
-        return RequirementSet(build_dir=user_site, src_dir=src_prefix, download_dir=None, session=session, use_user_site=True, upgrade=upgrade, ignore_installed=ignore_installed)
-
 
 def pip_install_single_package(package, site_wide = False):
-    '''packagke: package name
-       side_wide: boolean. if True package will be installed in site packages, else in user site
-    '''
-    session = PipSession()
 
-    # site_wide is a boolean. if True package will be installed in site packages, else in user site
-    install_site_wide = site_wide
-    pkg = package
+    if site_wide:
+        cmd_name, cmd_args = 'install', [package]
+    else:
+        cmd_name, cmd_args = 'install', [package, '--user']
 
-    log.info('installing %s using pip' %pkg)
-
-    pkg_normalized = safe_name(pkg).lower()
-    req = InstallRequirement.from_line(pkg, None)
-    pf = PackageFinder(find_links=[], index_urls=['https://pypi.python.org/simple/'], session=session)
+    command = commands_dict[cmd_name](isolated=False)
+    options, args = command.parse_args(cmd_args)
 
     try:
-        req.populate_link(pf, True)
-    except BestVersionAlreadyInstalled:
-        log.info('Best version already installed')
-        return True, 'Best version already installed'
-    except DistributionNotFound:
-        log.info('No matching distribution found for: %s '%pkg)
-        return True, 'No matching distribution found for '+pkg
+        status = command.run(options, args)
+        # FIXME: all commands should return an exit status
+        # and when it is done, isinstance is not needed anymore
+        if isinstance(status, int):
+            return status
+    except PreviousBuildDirError as exc:
+        log.critical(str(exc))
+        log.debug('Exception information:', exc_info=True)
+        log.info('PREVIOUS_BUILD_DIR_ERROR')
+        return PREVIOUS_BUILD_DIR_ERROR
+    except (InstallationError, UninstallationError, BadCommand) as exc:
+        log.critical(str(exc))
+        log.debug('Exception information:', exc_info=True)
+        log.info('InstallationError, UninstallationError, BadCommand')
+        return ERROR
+    except CommandError as exc:
+        log.critical('ERROR: %s', exc)
+        log.debug('Exception information:', exc_info=True)
+        log.info('CommandError')
+        return ERROR
+    except KeyboardInterrupt:
+        log.critical('Operation cancelled by user')
+        log.debug('Exception information:', exc_info=True)
+        return ERROR
+    except:
+        log.info('Installation failed')
+        log.critical('Exception:', exc_info=True)
+        return UNKNOWN_ERROR
 
-    if req.check_if_exists():
-        # check if update available
-        update_version = _get_pip_version(req, pkg_normalized)
+    finally:
+        # Check if we're using the latest version of pip available
+        if (not options.disable_pip_version_check and not getattr(options, "no_index", False)):
+            with command._build_session(options, retries=0, timeout=min(5, options.timeout)) \
+                         as session:
+                    pip_version_check(session)
 
-        if not update_version:
-            log.info('can not get update version')
-            return True, 'can not get update version'
+    return SUCCESS
 
-        if parse_version(update_version) > parse_version(req.installed_version):
-            log.info('updating: %s from %s to %s', pkg, req.installed_version, update_version)
-            reqset = _pip_create_requirementset(install_site_wide, session, upgrade=True, ignore_installed=True)
-
-            reqset.add_requirement(req)
-
-            reqset._check_skip_installed(req, pf)
-
-            result = _pip_prepare_files(req, reqset, pf)
-            if not result[0]:
-                return result
-
-            result = _pip_install_pkg(install_site_wide, reqset)
-            if not result[0]:
-                return result
-
-            return _pip_check_installation_status(req, pkg)
-
-        else:
-            return True, 'installed version is up-to-date'
-
-    else:
-        log.info('installing: %s' %pkg)
-
-        reqset = _pip_create_requirementset(install_site_wide, session)
-        reqset.add_requirement(req)
-
-        result = _pip_prepare_files(req, reqset, pf)
-        if not result[0]:
-            return result
-
-        result = _pip_install_pkg(install_site_wide, reqset)
-        if not result[0]:
-            return result
-    return _pip_check_installation_status(req, pkg)
-
-# def apt_install_package(package):
-#     if type(package) is types.StringType:
-#         apt_install_single_package(package)
-#     elif type(package) is types.ListType:
-#         for item in package:
-#             apt_install_single_package(item)
-#
-#
-# def apt_install_single_package(package):
-#     cache = apt.Cache()
-#     try:
-#         pkg = cache[package]
-#     except KeyError:
-#         print "package not found"
-#         return
-#     if not pkg.is_installed:
-#         pkg.mark_install()
-#         pkg.commit()
-#         cache.open()
-#
-#
-#
-# def yum_install_package(package):
-#     if type(package) is types.StringType:
-#         yum_install_single_package(package)
-#     elif type(package) is types.ListType:
-#         for item in package:
-#             yum_install_single_package(item)
-#
-#
-# def yum_install_single_package(package):
-#     yb=yum.YumBase()
-#     inst = yb.rpmdb.returnPackages()
-#     installed=[x.name for x in inst]
-#
-#     if package in installed:
-#         print('{0} is already installed'.format(package))
-#
-#     else:
-#         print('Installing {0}'.format(package))
-#
-#     kwarg = {
-#         'name':package
-#         }
-#     try:
-#         yb.install(**kwarg)
-#     except Errors.InstallError as e:
-#         print e
-#         return
-#     yb.resolveDeps()
-#     yb.buildTransaction()
-#     yb.processTransaction()
 
 def install_package(packages, update=True):
     """
