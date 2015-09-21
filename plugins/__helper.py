@@ -13,31 +13,28 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+from __future__ import absolute_import
 
 import os
 import re
 import types
 import urllib
 import socket
-
-from plugin_log import LoggerManager
-log = LoggerManager.getLogger(__name__)
-
-from __future__ import absolute_import
-
-from plugin_log import LoggerManager
-log = LoggerManager.getLogger(__name__)
-
-from pip.commands import commands_dict
-from pip.commands import ListCommand
-from pip.exceptions import (BadCommand, InstallationError, UninstallationError,
-                            CommandError, PreviousBuildDirError)
-from pip.status_codes import SUCCESS, ERROR, UNKNOWN_ERROR, PREVIOUS_BUILD_DIR_ERROR
-from pip.utils import get_installed_distributions
-from pkg_resources import parse_version
-from pkg_resources import safe_name
 from sys import platform
 from time import sleep, time
+import datetime
+
+from pip.commands import commands_dict, ListCommand
+from pip.exceptions import BadCommand, InstallationError, UninstallationError, CommandError, PreviousBuildDirError
+from pip.status_codes import ERROR, UNKNOWN_ERROR, PREVIOUS_BUILD_DIR_ERROR
+from pip.utils import get_installed_distributions, get_installed_version
+from pkg_resources import parse_version, safe_name
+from pip.utils.outdated import load_selfcheck_statefile
+from pip.compat import total_seconds
+from pip.index import PyPI
+
+from plugin_log import LoggerManager
+log = LoggerManager.getLogger(__name__)
 
 
 _ETC = '/etc'
@@ -62,6 +59,8 @@ _DEFAULT_GROUP_WINDOWS = 'Administrators'
 _FLUSH_WORKER_SLEEP_TIME = 0.2
 
 AGENT_VERSION = 2.2
+
+SELFCHECK_DATE_FMT = "%Y-%m-%dT%H:%M:%SZ"
 
 
 def is_win():
@@ -307,6 +306,51 @@ def packagekit_install_single_package(package):
 def canonicalize_name(name):
     """Convert an arbitrary string to a canonical name used for comparison"""
     return safe_name(name).lower()
+
+def pip_check_version():
+    list_command = ListCommand()
+    options, args = list_command.parse_args([])
+    session = list_command._build_session(options, retries=0, timeout=min(5, options.timeout))
+
+    installed_version = get_installed_version("pip")
+
+    if installed_version is None:
+        return
+
+    pypi_version = None
+
+    try:
+        state = load_selfcheck_statefile()
+        current_time = datetime.datetime.utcnow()
+        if "last_check" in state.state and "pypi_version" in state.state:
+            last_check = datetime.datetime.strptime(
+                state.state["last_check"],
+                SELFCHECK_DATE_FMT
+            )
+            if total_seconds(current_time - last_check) < 7 * 24 * 60 * 60:
+                pypi_version = state.state["pypi_version"]
+
+        # Refresh the version if we need to or just see if we need to warn
+        if pypi_version is None:
+            resp = session.get(
+                PyPI.pip_json_url,
+                headers={"Accept": "application/json"},
+            )
+            resp.raise_for_status()
+            pypi_version = [
+                v for v in sorted(
+                    list(resp.json()["releases"]),
+                    key=parse_version,
+                )
+                if not parse_version(v).is_prerelease
+            ][-1]
+
+            state.save(pypi_version, current_time)
+    except Exception:
+        log.info("There was an error checking the latest version of pip",
+            exc_info=True,)
+
+    return 'pip', installed_version, str(pypi_version)
 
 def pip_outdated_packages(local=False, user=False):
     update_available = []
