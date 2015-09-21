@@ -317,21 +317,18 @@ def packagekit_install_single_package(package):
         log.info('%s already installed', result.get_id())
         return True, 'already installed'
 
-
-def pip_install_single_package(package, site_wide = False):
+def pip_install_single_package(package, site_wide = False, isolated=False):
 
     if site_wide:
         cmd_name, cmd_args = 'install', [package]
     else:
         cmd_name, cmd_args = 'install', [package, '--user']
 
-    command = commands_dict[cmd_name](isolated=False)
+    command = commands_dict[cmd_name](isolated=isolated)
     options, args = command.parse_args(cmd_args)
 
     try:
         status = command.run(options, args)
-        # FIXME: all commands should return an exit status
-        # and when it is done, isinstance is not needed anymore
         if isinstance(status, int):
             return status
     except PreviousBuildDirError as exc:
@@ -357,16 +354,6 @@ def pip_install_single_package(package, site_wide = False):
         log.info('Installation failed')
         log.critical('Exception:', exc_info=True)
         return UNKNOWN_ERROR
-
-    finally:
-        # Check if we're using the latest version of pip available
-        if (not options.disable_pip_version_check and not getattr(options, "no_index", False)):
-            with command._build_session(options, retries=0, timeout=min(5, options.timeout)) \
-                         as session:
-                    pip_version_check(session)
-
-    return SUCCESS
-
 
 def install_package(packages, update=True):
     """
