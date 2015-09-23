@@ -17,7 +17,7 @@
 from __logger import LoggerManager
 log = LoggerManager.getLogger(__name__)
 
-from __helper import pip_install_single_package
+from __packages import pip_install_single_package
 from __plugin import ECMPlugin
 
 class ECMPip(ECMPlugin):
