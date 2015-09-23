@@ -38,6 +38,9 @@ class ECMPlugin:
         pass
 
     def run(self):
+        """
+        :rtype : object
+        """
         if len(sys.argv) == 1 or sys.argv[1] == '':
             return self._list_commands()
 

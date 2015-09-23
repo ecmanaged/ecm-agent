@@ -14,7 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from plugin_log import LoggerManager
+from __logger import LoggerManager
 log = LoggerManager.getLogger(__name__)
 
 from __helper import pip_install_single_package

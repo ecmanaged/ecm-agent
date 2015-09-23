@@ -14,10 +14,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import time
-import sys
 import os
 import re
+import time
 import dbus
 
 # Local
@@ -26,6 +25,13 @@ import __helper as ecm
 
 SVC_TIMEOUT = 120
 
+# contants for init.d
+RCD = '/etc/rc'
+INITD = '/etc/init.d'
+RUNLEVEL = '/sbin/runlevel'
+HEARTBEAT = '/etc/heartbeat/haresources'
+
+# contants for systemd
 SYSTEMD_BUSNAME = 'org.freedesktop.systemd1'
 SYSTEMD_PATH = '/org/freedesktop/systemd1'
 SYSTEMD_MANAGER_INTERFACE = 'org.freedesktop.systemd1.Manager'
@@ -34,12 +40,11 @@ DBUS_PROPERTIES = 'org.freedesktop.DBus.Properties'
 
 
 # noinspection PyUnusedLocal,PyUnusedLocal,PyUnusedLocal
-class ECMLinux(ECMPlugin):
+class ECMLinuxSystemD(ECMPlugin):
     def cmd_service_control(self, *argv, **kwargs):
         """
         Syntax: service.control name.service ['start','stop','restart','status']
         """
-
         service = kwargs.get('service', None)
         action = kwargs.get('action', None)
 
@@ -73,19 +78,18 @@ class ECMLinux(ECMPlugin):
             systemd_object = bus.get_object(SYSTEMD_BUSNAME, SYSTEMD_PATH)
             systemd_manager = dbus.Interface(systemd_object, SYSTEMD_MANAGER_INTERFACE)
         except dbus.DBusException:
-            return False, 'systemd dbus error', 'NA'
+            raise Exception("systemd dbus error")
 
         try:
             unit = systemd_manager.GetUnit(service)
         except dbus.DBusException:
-            print 'can not find service file'
-            return False, 'cannot find service file', 'NA'
+            raise Exception("cannot find service file")
 
         try:
             unit_object = bus.get_object(SYSTEMD_BUSNAME, unit)
             prop_unit = dbus.Interface(unit_object, DBUS_PROPERTIES)
         except dbus.DBusException:
-            return False, 'unit dbus error', 'NA'
+            raise Exception("unit dbus error")
 
         while list(systemd_manager.ListJobs()):
             time.sleep(2)
@@ -95,13 +99,13 @@ class ECMLinux(ECMPlugin):
             try:
                 job = systemd_manager.StartUnit(service, 'replace')
             except dbus.DBusException:
-                return False, 'error starting', 'NA'
+                raise Exception("error starting")
 
         if action == 'stop':
             try:
                 job = systemd_manager.StopUnit(service, 'replace')
             except dbus.DBusException:
-                return False, 'error stopping', 'NA'
+                raise Exception("error stopping")
 
             # Ensure that the service has been stopeed
             try: job = systemd_manager.KillUnit(service, 'replace')
@@ -111,7 +115,7 @@ class ECMLinux(ECMPlugin):
             try:
                 job = systemd_manager.RestartUnit(service, 'replace')
             except dbus.DBusException:
-                return False, 'error restarting', 'NA'
+                raise Exception("error restarting")
 
         # wait for the job to finish
         while list(systemd_manager.ListJobs()):
@@ -132,25 +136,24 @@ class ECMLinux(ECMPlugin):
             systemd_object = bus.get_object(SYSTEMD_BUSNAME, SYSTEMD_PATH)
             systemd_manager = dbus.Interface(systemd_object, SYSTEMD_MANAGER_INTERFACE)
         except dbus.DBusException:
-            return False, 'systemd dbus error', 'NA'
+            raise Exception("systemd dbus error")
 
         try:
             unit = systemd_manager.GetUnit(service)
         except dbus.DBusException:
-            print 'can not find service file'
-            return False, 'cannot find service file', 'NA'
+            raise Exception("cannot find service file")
 
         try:
             unit_object = bus.get_object(SYSTEMD_BUSNAME, unit)
             prop_unit = dbus.Interface(unit_object, DBUS_PROPERTIES)
         except dbus.DBusException:
-            return False, 'unit dbus error', 'NA'
+            raise Exception("unit dbus error")
 
         try:
             active_state = prop_unit.Get(SYSTEMD_UNIT_INTERFACE, 'ActiveState')
             sub_state = prop_unit.Get(SYSTEMD_UNIT_INTERFACE, 'SubState')
         except dbus.DBusException:
-            return False, 'error getting state', 'NA'
+            raise Exception("error getting state")
 
         return active_state
 
@@ -168,6 +171,97 @@ class ECMLinux(ECMPlugin):
 
         except Exception:
             return False
+
+
+class ECMLinuxInitD(ECMPlugin):
+    def cmd_service_control(self, *argv, **kwargs):
+        """Syntax: service.control daemon action <force: 0/1>"""
+
+        daemon = kwargs.get('daemon', None)
+        action = kwargs.get('action', None)
+        force = kwargs.get('force', 0)
+
+        if not (daemon and action):
+            raise ecm.InvalidParameters(self.cmd_service_control.__doc__)
+
+        if not force:
+            # try to get init.d daemon
+            initd = self._get_rcd(daemon)
+            if not initd:
+                raise Exception("Unable to find daemon: %s" % daemon)
+            daemon = initd
+
+        daemon = os.path.basename(daemon)
+        ecm.renice_me(-19)
+        out, stdout, stderr = ecm.run_command(INITD + '/' + daemon + ' ' + action)
+        ecm.renice_me(5)
+
+        return ecm.format_output(out, stdout, stderr)
+
+    def cmd_service_runlevel(self, *argv, **kwargs):
+        return self._get_runlevel()
+
+    def cmd_service_state(self, *argv, **kwargs):
+        """Syntax: service.exists daemon"""
+
+        name = kwargs.get('name', None)
+
+        if not name:
+            raise ecm.InvalidParameters(self.cmd_service_state.__doc__)
+
+        daemon = os.path.basename(name)
+        out, stdout, stderr = ecm.run_command(INITD + '/' + daemon + ' status')
+
+        return not bool(out)
+
+    def cmd_service_exists(self, *argv, **kwargs):
+        """Syntax: service.control daemon action <force: 0/1>"""
+
+        daemon = kwargs.get('daemon', None)
+        return bool(self._get_rcd(daemon))
+
+    def _get_runlevel(self):
+        (out, stdout, stderr) = ecm.run_command(RUNLEVEL)
+        if not out:
+            return str(stdout).split(' ')[1].rstrip()
+
+        return 0
+
+    def _get_rcd(self, daemon):
+        runlevel = self._get_runlevel()
+        if not runlevel: return False
+
+        path = RCD + str(runlevel) + '.d'
+
+        if os.path.exists(path):
+            target = os.listdir(path)
+            for path in target:
+                try:
+                    m = re.match(r"^S\d+(.*)$", path)
+                    init = m.group(1)
+                    if init in daemon:
+                        return str(init).rstrip()
+                except:
+                    pass
+
+            # Not exists as default start on runlevel
+            # its a heartbeat daemon?
+            if os.path.exists(HEARTBEAT):
+                for line in open(HEARTBEAT):
+                    if daemon in line:
+                        return self._get_init(daemon)
+
+        else:
+            return self._get_init(daemon)
+
+        return False
+
+    def _get_init(self, daemon):
+        filename = INITD + '/' + daemon
+        if os.path.exists(INITD) and os.path.exists(filename):
+            return daemon
+
+        return False
 
 
 class ECMWindows(ECMPlugin):
@@ -276,4 +370,14 @@ if ecm.is_win():
     ECMWindows().run()
 
 else:
-    ECMLinux().run()
+    try:
+        # Try systemd
+        bus = dbus.SystemBus()
+        systemd_object = bus.get_object(SYSTEMD_BUSNAME, SYSTEMD_PATH)
+        systemd_manager = dbus.Interface(systemd_object, SYSTEMD_MANAGER_INTERFACE)
+
+        ECMLinuxSystemD().run()
+
+    except:
+        # Do our best with init.d
+        ECMLinuxInitD().run()

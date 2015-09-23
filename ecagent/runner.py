@@ -112,7 +112,6 @@ class CommandRunner():
         need_sudo = ['plugin_pip.py', 'plugin_service.py', 'plugin_update.py']
         ext = os.path.splitext(filename)[1]
         if ext == '.py':
-
             if os.path.split(filename)[1] in need_sudo:
                 command = 'sudo'
                 # -u: sets unbuffered output
@@ -126,7 +125,7 @@ class CommandRunner():
             command = filename
             args = [command, command_name]
 
-        # Set timeout from command
+        # :TODO Set timeout from command
         cmd_timeout = int(command_args.get('timeout',self.timeout))
         if command_name == 'monitor_plugin_install':
             log.info('changed time out to 5 minutes')

@@ -19,17 +19,15 @@ import sys
 
 import simplejson as json
 from base64 import b64decode
-from subprocess import Popen, PIPE
-from time import time, sleep
-from __helper import pip_install_single_package
-from __helper import packagekit_install_single_package
+from time import time
+
 # Local
 import __helper as ecm
 from __plugin import ECMPlugin
 from __mplugin import MPlugin
 
 import logging
-from plugin_log import LoggerManager
+from __logger import LoggerManager
 log = LoggerManager.getLogger(__name__)
 
 CRITICAL = 2
@@ -180,33 +178,36 @@ class ECMMonitor(ECMPlugin):
 
         arg_requirements = plugin.get('requirements', None)
 
-        pip_install = []
-        system_install = []
-
         if arg_requirements:
+            pip_install = []
+            system_install = []
+
+            from __packages import pip_install_single_package
+            from __packages import packagekit_install_single_package
+
             for req in arg_requirements.keys():
                 if arg_requirements[req]['type'] == 'system':
                     system_install.append(arg_requirements[req]['name'])
+
                 elif arg_requirements[req]['type'] == 'pip':
                     pip_install.append(arg_requirements[req]['name'])
 
-        log.info("installing system: %s", system_install)
-        for item in system_install:
-            result = packagekit_install_single_package(item)
+            log.info("installing system: %s", system_install)
+            for item in system_install:
+                result = packagekit_install_single_package(item)
 
-            if not result:
-                log.info("problem in installing %s", item)
-                return False
+                if not result:
+                    log.info("problem in installing %s", item)
+                    return False
 
-        log.info("installing pip: %s", pip_install)
-        for item in pip_install:
-            result = pip_install_single_package(item)
+            log.info("installing pip: %s", pip_install)
+            for item in pip_install:
+                result = pip_install_single_package(item)
 
-            if not result[0]:
-                log.info("problem in installing %s", item)
-                return False
+                if not result[0]:
+                    log.info("problem in installing %s", item)
+                    return False
 
-        
         script = None
         try:
             script = b64decode(arg_script_b64)
