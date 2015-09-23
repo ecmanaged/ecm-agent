@@ -19,7 +19,7 @@ from distutils.core import setup
 def _create_data_files():
     data_files=[('config', ['config/ecagent.init.cfg', 'config/xmpp_cert.pub']),
                   ('monitor/mplugin/__base__', ['monitor/mplugin/__base__/data.json']),
-                  ('/etc/sudoers.d', ['ecmanaged.sudo']),
+                  ('/etc/sudoers.d', ['sudoers.d/ecmanaged']),
                   ('',['configure.py','ecagent.bat', 'ecagent.sh', 'ecagentd.tac'])
                 ]
 
