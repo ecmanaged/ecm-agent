@@ -28,11 +28,11 @@ def _create_data_files():
 
     if retcode:
         # systemd is unavailable
-        data_files.append('/etc/init.d',['ecagentd'])
-        data_files.append('/etc/cron.d',['cron.d/ecmanaged-ecagent-SysVinit'])
+        data_files.append(('/etc/init.d',['ecagentd']))
+        data_files.append(('/etc/cron.d',['cron.d/ecmanaged-ecagent-SysVinit']))
     else:
-        data_files.append(systemd_system_unit_dir, ['ecagentd.service'])
-        data_files.append('/etc/cron.d',['cron.d/ecmanaged-ecagent-systemd'])
+        data_files.append((systemd_system_unit_dir, ['ecagentd.service']))
+        data_files.append(('/etc/cron.d',['cron.d/ecmanaged-ecagent-systemd']))
 
     return data_files
 
