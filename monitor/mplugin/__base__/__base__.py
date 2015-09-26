@@ -27,10 +27,10 @@ root_dir = os.path.join(os.path.sep, 'opt','ecmanaged','ecagent')
 if root_dir not in sys.path:
     sys.path.append(root_dir)
 
-from plugins.__mplugin import MPlugin
-from plugins.__mplugin import OK, CRITICAL
+from __mplugin import MPlugin
+from __mplugin import OK, CRITICAL
 
-from plugins.__helper import is_win, get_distribution, NotSupported
+CPU_INTERVAL= 5
 
 import psutil
 
@@ -162,7 +162,7 @@ class BaseMPlugin(MPlugin):
         retval = {}
 
         try:
-            data = psutil.cpu_percent(interval=2, percpu=True)
+            data = psutil.cpu_percent(interval=CPU_INTERVAL, percpu=True)
             total = 0
             for cpu in data:
                 total += cpu
@@ -268,7 +268,8 @@ class BaseMPlugin(MPlugin):
 
         # Get CPU count
         cpu_count = 1
-        data = psutil.cpu_percent(interval=0, percpu=True)
+        data = psutil.cpu_percent(percpu=True)
+
         if data:
             cpu_count = len(data)
 
@@ -291,6 +292,7 @@ class BaseMPlugin(MPlugin):
 
             if not p.dict['cpu_percent']:
                 p.dict['cpu_percent'] = 0
+
             else:
                 p.dict['cpu_percent'] /= cpu_count
 
@@ -420,31 +422,6 @@ class BaseMPlugin(MPlugin):
                 retval[name] = getattr(obj, name)
 
         return retval
-
-    @staticmethod
-    def _check_update():
-        if is_win():
-            return -1
-
-        # check update using packagekit
-        from gi.repository import PackageKitGlib as pk
-
-        client = pk.Client()
-        client.refresh_cache(True, None, lambda p, t, d: True, None)
-        res = client.get_updates(pk.FilterEnum.NONE, None, lambda p, t, d: True, None)
-        updates = 0
-        security = 0
-        for pkg in res.get_package_array():
-            updates += 1
-            info = pkg.get_info()
-            if info == pk.InfoEnum.SECURITY:
-                security = +1
-        print "There are %s updates available totally" % updates
-
-        if security:
-            print "There are %s important security updates!" % security
-        return updates, security
-
 
 
 mplugin = BaseMPlugin()
