@@ -69,12 +69,6 @@ if not os.path.isfile(config_file):
 
 config = SMConfigObj(config_file)
 
-# Generate a new password if not set and write it asap
-# Avoids problem when starting at same time two agents not configured (fedora??)
-if not config['XMPP']['password']:
-    config['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
-    config.write()
-
 # Start agent and setup logging
 application = Application("ecagent")
 
