@@ -247,6 +247,7 @@ def chown(path, user, group=None, recursive=False):
 
     return True
 
+
 def packagekit_install_package(packages):
 
     if type(packages) is types.StringType:
@@ -277,7 +278,8 @@ def packagekit_install_single_package(package):
 
     return False
 
-def pip_install_single_package(package, site_wide = False):
+
+def pip_install_single_package(package, site_wide=False):
     '''packagke: package name
        side_wide: boolean. if True package will be installed in site packages, else in user site
     '''
@@ -419,6 +421,7 @@ def pip_install_single_package(package, site_wide = False):
 #     yb.buildTransaction()
 #     yb.processTransaction()
 
+
 def install_package(packages, update=True):
     """
     Install packages
@@ -449,6 +452,7 @@ def install_package(packages, update=True):
         elif distribution.lower() in ['centos', 'redhat', 'fedora', 'amazon']:
             if update:
                 run_command(['yum', '-y', 'clean', 'all'])
+
             command = ['yum',
                        '-y',
                        '--nogpgcheck',
@@ -677,6 +681,7 @@ def is_integer(value):
     except ValueError:
         return False
 
+
 def is_string(obj):
     """Check if the object is a list"""
     if isinstance(obj, str) or isinstance(obj, unicode):
@@ -854,8 +859,6 @@ class ECMExec:
     def check_sudo():
         #TODO can't run without root
         return which('sudo') and os.path.isfile(os.path.join(os.path.sep, 'etc', 'sudoers.d', 'ecmanaged.sudo'))
-
-
 
     def command(self, command, args=None, std_input=None, run_as=None, working_dir=None, envars=None, only_stdout = False):
         """
