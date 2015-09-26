@@ -88,6 +88,10 @@ class SMConfigObj(ConfigObj):
             if not self['XMPP'].get('password'):
                 self['XMPP']['password'] = hex(random.getrandbits(256))[2:-1]
 
+            # Updates from v2 to v3 write account info
+            if not self.get_stored_account() and get_config.get('account'):
+                self['XMPP']['account'] = get_config.get('account')
+
             if self._get_stored_uuid() and str(get_config.get('uuid')) == str(self._get_stored_uuid()):
                 log.debug('UUID has not changed.')
                 self['XMPP']['unique_id'] = unique_id
