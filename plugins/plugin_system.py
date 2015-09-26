@@ -62,6 +62,7 @@ class ECMSystem(ECMPlugin):
             'hostname': platform.node(),
             'public_ip': self._get_ip(),
             'agent_version': AGENT_VERSION,
+            'sudo': int(ecm.check_sudo())
         }
         (retval['os_distrib'], retval['os_version']) = ecm.get_distribution()
 

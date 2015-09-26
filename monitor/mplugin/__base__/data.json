@@ -1,1 +1,1 @@
-{"interval": 120, "config": {}, "name": "SYSTEM HEALTH", "id": "__base__"}
+{"interval": 60, "config": {}, "name": "SYSTEM HEALTH", "id": "__base__"}

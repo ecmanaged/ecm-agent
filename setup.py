@@ -16,9 +16,29 @@
 
 from distutils.core import setup
 
+def _create_data_files():
+    data_files=[('config', ['config/ecagent.init.cfg', 'config/xmpp_cert.pub']),
+                  ('monitor/mplugin/__base__', ['monitor/mplugin/__base__/data.json']),
+                  ('/etc/sudoers.d', ['sudoers.d/ecmanaged']),
+                  ('',['configure.py','ecagent.bat', 'ecagent.sh', 'ecagentd.tac'])
+                ]
+
+    from commands import getstatusoutput
+    retcode, systemd_system_unit_dir = getstatusoutput('pkg-config systemd --variable=systemdsystemunitdir')
+
+    if retcode:
+        # systemd is unavailable
+        data_files.append(('/etc/init.d',['ecagentd']))
+        data_files.append(('/etc/cron.d',['cron.d/ecmanaged-ecagent-SysVinit']))
+    else:
+        data_files.append((systemd_system_unit_dir, ['ecagentd.service']))
+        data_files.append(('/etc/cron.d',['cron.d/ecmanaged-ecagent-systemd']))
+
+    return data_files
+
+
 setup(name='ecmanaged-ecagent',
       version='2.2',
-
       license='Apache v2',
       description='ECManaged  Agent - Monitoring and deployment agent',
       long_description='ECManaged  Agent - Monitoring and deployment agent',
@@ -36,10 +56,5 @@ setup(name='ecmanaged-ecagent',
 
       packages=['ecagent', 'plugins','monitor.mplugin.__base__'],
 
-      data_files=[('config', ['config/ecagent.init.cfg', 'config/xmpp_cert.pub']),
-                  ('/usr/lib/systemd/system', ['ecagentd.service']),
-                  ('monitor/mplugin/__base__', ['monitor/mplugin/__base__/data.json']),
-                  ('/etc/sudoers.d', ['ecmanaged.sudo']),
-                  ('',['configure.py','ecagent.bat', 'ecagent.sh', 'ecagentd.tac'])
-      ]
+      data_files=_create_data_files()
      )
