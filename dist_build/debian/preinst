@@ -1,12 +1,27 @@
 #!/bin/sh
+
+set -e
+
 getent group ecmanaged >/dev/null || groupadd -r ecmanaged
 getent passwd ecmanaged >/dev/null || \
     useradd -r -g ecmanaged -d /opt/ecmanaged -s /sbin/nologin \
     -c "account for running ecagent" ecmanaged
 
+case "$1" in
+    upgrade)
+    # Stop the service if we're upgrading
+    if which systemctl >/dev/null 2>&1; then
+        systemctl stop ecagentd.service
+    elif which service >/dev/null 2>&1; then
+        service ecagentd stop
+    elif which invoke-rc.d >/dev/null 2>&1; then
+        invoke-rc.d ecagentd stop
+    else
+        /etc/init.d/ecagentd stop
+    fi
 
-if [[ $1 == 2 ]]; then
-  # Stop the service if we're upgrading
-  systemctl stop ecagentd.service >/dev/null 2>&1
-fi
-
+    if [ -f /etc/init.d/ecagentd ]; then
+        rm -f /etc/init.d/ecagentd >/dev/null 2>&1
+    if [ -f /etc/cron.d/ecmanaged-ecagent ]; then
+        rm -f /etc/cron.d/ecmanaged-ecagent >/dev/null 2>&1
+esac

@@ -8,6 +8,6 @@ Homepage: http://www.ecmanaged.com
 
 Package: ecmanaged-ecagent
 Architecture: all
-Depends: ${misc:Depends}, ${python:Depends}, lsb-base (>= 3.2-13), python, python-crypto, debconf, python-twisted-core, python-protocols, python-twisted-web, python-configobj, python-twisted-words, python-psutil, python-libxml2, python-simplejson, python-apt, python-httplib2, python-pip, python-dbus, PackageKit, gir1.2-packagekitglib-1.0, sudo, pkg-config
+Depends: ${misc:Depends}, ${python:Depends}, lsb-base (>= 3.2-13), python, python-crypto, debconf, python-twisted, python-protocols, python-configobj, python-psutil, python-libxml2, python-simplejson, python-httplib2, python-pip, python-dbus, PackageKit, gir1.2-packagekitglib-1.0, sudo, pkg-config
 Description: ECM Agent - ECMANAGED Monitor and deploy agent
  Deploy and monitor agent for ECmanaged cloud management tool, based on XMPP protocol.
