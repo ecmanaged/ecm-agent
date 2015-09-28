@@ -73,4 +73,9 @@ config = SMConfigObj(config_file)
 application = Application("ecagent")
 
 log.setup(application, config['Log'])
+
+# Create plugin log
+from plugins.__logger import LoggerManager
+logger = LoggerManager.getLogger(__name__)
+
 agent = SMAgent(config)
