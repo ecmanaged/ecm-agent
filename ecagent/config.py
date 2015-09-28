@@ -80,26 +80,27 @@ class SMConfigObj(ConfigObj):
 
             try:
                 get_config = json.loads(data)
+
             except:
                 log.error('ERROR: Invalid configuration received, try later')
                 raise Exception('Invalid configuration received, try later')
 
             if not self['XMPP'].get('password'):
-                self['XMPP']['password'] = hex(random.getrandbits(128))[2:-1]
+                self['XMPP']['password'] = hex(random.getrandbits(256))[2:-1]
+
+            # Updates from v2 to v3 write account info
+            if not self.get_stored_account() and get_config.get('account'):
+                self['XMPP']['account'] = get_config.get('account')
 
             if self._get_stored_uuid() and str(get_config.get('uuid')) == str(self._get_stored_uuid()):
                 log.debug('UUID has not changed.')
                 self['XMPP']['unique_id'] = unique_id
-                self['XMPP']['account'] = get_config.get('account', '')
-                self['XMPP']['groups'] = get_config.get('groups', '')
                 self.write()
 
             else:
                 log.info('UUID has changed, reconfiguring XMPP user/pass')
                 self['XMPP']['user'] = get_config['uuid']
                 self['XMPP']['unique_id'] = unique_id
-                self['XMPP']['account'] = get_config.get('account', '')
-                self['XMPP']['groups'] = get_config.get('groups', '')
                 self.write()
 
         returnValue(True)
@@ -114,10 +115,9 @@ class SMConfigObj(ConfigObj):
         address = self._get_ip()
         uuid = self._get_stored_uuid()
         account = self.get_stored_account()
-        groups = self.get_stored_groups()
 
-        params = "?uuid=%s&ipaddress=%s&hostname=%s&unique_id=%s&account=%s&groups=%s" \
-                 % (uuid, address, hostname, unique_id, account, groups)
+        params = "?uuid=%s&ipaddress=%s&hostname=%s&unique_id=%s&account=%s" \
+                 % (uuid, address, hostname, unique_id, account)
 
         auth_url = ECMANAGED_AUTH_URL + '/' + params
         auth_content = yield getPage(auth_url)
@@ -148,9 +148,6 @@ class SMConfigObj(ConfigObj):
 
     def get_stored_account(self):
         return self['XMPP'].get('account', '')
-
-    def get_stored_groups(self):
-        return self['XMPP'].get('groups', '')
 
     @staticmethod
     def _get_ip():
