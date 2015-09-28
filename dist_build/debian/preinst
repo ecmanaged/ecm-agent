@@ -4,7 +4,7 @@ set -e
 
 getent group ecmanaged >/dev/null || groupadd -r ecmanaged
 getent passwd ecmanaged >/dev/null || \
-    useradd -r -g ecmanaged -d /opt/ecmanaged -s /sbin/nologin \
+    useradd -r -g ecmanaged -d /opt/ecmanaged -s /usr/sbin/nologin \
     -c "account for running ecagent" ecmanaged
 
 case "$1" in
@@ -22,6 +22,8 @@ case "$1" in
 
     if [ -f /etc/init.d/ecagentd ]; then
         rm -f /etc/init.d/ecagentd >/dev/null 2>&1
+    fi
+
     if [ -f /etc/cron.d/ecmanaged-ecagent ]; then
         rm -f /etc/cron.d/ecmanaged-ecagent >/dev/null 2>&1
     fi
