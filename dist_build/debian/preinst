@@ -24,4 +24,5 @@ case "$1" in
         rm -f /etc/init.d/ecagentd >/dev/null 2>&1
     if [ -f /etc/cron.d/ecmanaged-ecagent ]; then
         rm -f /etc/cron.d/ecmanaged-ecagent >/dev/null 2>&1
+    fi
 esac
