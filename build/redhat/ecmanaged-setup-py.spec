@@ -66,8 +66,5 @@ if [[ $1 -eq 0 ]]; then
   systemctl daemon-reload
 fi
 
-%postun
-/usr/sbin/userdel ecmanaged -r
-
 %files -f INSTALLED_FILES
 %defattr(760,ecmanaged,ecmanaged,-)
