@@ -10,10 +10,10 @@ getent passwd ecmanaged >/dev/null || \
 case "$1" in
     upgrade)
     # Stop the service if we're upgrading
-    if which systemctl >/dev/null 2>&1; then
-        systemctl stop ecagentd.service
-    else
+    if [ -f /etc/init.d/ecagentd ]; then
         /etc/init.d/ecagentd stop
+    else
+        systemctl stop ecagentd.service
     fi
 
     if [ -f /etc/init.d/ecagentd ]; then
