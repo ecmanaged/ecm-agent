@@ -26,13 +26,13 @@ def _create_data_files():
     from commands import getstatusoutput
     retcode, systemd_system_unit_dir = getstatusoutput('pkg-config systemd --variable=systemdsystemunitdir')
 
-    if retcode:
-        # systemd is unavailable
-        data_files.append(('/etc/init.d',['ecagentd']))
-        data_files.append(('/etc/cron.d',['cron.d/ecmanaged-ecagent-SysVinit']))
-    else:
+    if retcode == 0:
+        # systemd
         data_files.append((systemd_system_unit_dir, ['ecagentd.service']))
         data_files.append(('/etc/cron.d',['cron.d/ecmanaged-ecagent-systemd']))
+    else:
+        data_files.append(('/etc/init.d',['ecagentd']))
+        data_files.append(('/etc/cron.d',['cron.d/ecmanaged-ecagent-init']))
 
     return data_files
 
