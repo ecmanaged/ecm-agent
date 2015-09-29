@@ -18,7 +18,7 @@ case "$1" in
 
     if [ -f /etc/init.d/ecagentd ]; then
         if dpkg-maintscript-helper supports rm_conffile 2>/dev/null; then
-            dpkg-maintscript-helper rm_conffile /etc/init-d/ecagentd 2.2.0-1 -- "$@"
+            dpkg-maintscript-helper rm_conffile /etc/init.d/ecagentd -- "$@"
         fi
     fi
 
