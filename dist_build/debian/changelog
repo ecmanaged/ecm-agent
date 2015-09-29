@@ -1,4 +1,10 @@
-ecmanaged-ecagent (2.2-2) UNRELEASED; urgency=medium
+ecmanaged-ecagent (3.0-1) UNRELEASED; urgency=medium
+
+  * better system integration
+
+ -- Arindam Choudhury <arindam@live.com>  Thu, 30 Jul 2015 09:06:14 +0000
+
+ecmanaged-ecagent (2.2-2) unstable; urgency=low
 
   * Support for systemd
 

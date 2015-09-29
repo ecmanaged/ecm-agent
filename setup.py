@@ -16,6 +16,7 @@
 
 from distutils.core import setup
 
+
 def _create_data_files():
     data_files=[('config', ['config/ecagent.init.cfg', 'config/xmpp_cert.pub']),
                   ('monitor/mplugin/__base__', ['monitor/mplugin/__base__/data.json']),
@@ -38,7 +39,7 @@ def _create_data_files():
 
 
 setup(name='ecmanaged-ecagent',
-      version='2.2',
+      version='3.0',
       license='Apache v2',
       description='ECManaged  Agent - Monitoring and deployment agent',
       long_description='ECManaged  Agent - Monitoring and deployment agent',

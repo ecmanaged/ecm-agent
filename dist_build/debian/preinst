@@ -17,8 +17,11 @@ case "$1" in
     fi
 
     if [ -f /etc/init.d/ecagentd ]; then
-        rm -f /etc/init.d/ecagentd >/dev/null 2>&1
+        if dpkg-maintscript-helper supports rm_conffile 2>/dev/null; then
+            dpkg-maintscript-helper rm_conffile /etc/init-d/ecagentd 2.2.0-1 -- "$@"
+        fi
     fi
+
 
     if [ -f /etc/cron.d/ecmanaged-ecagent ]; then
         rm -f /etc/cron.d/ecmanaged-ecagent >/dev/null 2>&1
