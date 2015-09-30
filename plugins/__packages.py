@@ -20,7 +20,7 @@ from __future__ import absolute_import
 import types
 import datetime
 
-from pip.commands import commands_dict, ListCommand
+from pip.commands import InstallCommand, ListCommand
 from pip.exceptions import BadCommand, InstallationError, UninstallationError, CommandError, PreviousBuildDirError
 from pip.status_codes import ERROR, UNKNOWN_ERROR, PREVIOUS_BUILD_DIR_ERROR
 from pip.utils import get_installed_distributions, get_installed_version
@@ -199,7 +199,7 @@ def pip_install_single_package(package, site_wide = False, isolated=False):
     else:
         cmd_name, cmd_args = 'install', [package, '--user']
 
-    command = commands_dict[cmd_name](isolated=isolated)
+    command = InstallCommand(isolated=isolated)
     options, args = command.parse_args(cmd_args)
 
     try:
