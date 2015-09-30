@@ -100,14 +100,10 @@ class SMAgentXMPP(Client):
 
         if msg['type'] == 'set':
             message = IqMessage(msg)
-
             recv_command = message.command.replace('.', '_')
 
             if recv_command not in self.running_commands:
-                self.running_commands.add(recv_command)
-                self.num_running_commands += 1
                 log.debug('recieved new command: %s with message: %s' % (message.command, message))
-                log.info("Running commands: %s %i" % (self.running_commands, self.num_running_commands))
 
                 if hasattr(message, 'command') and hasattr(message, 'from_'):
                     log.debug('online contacts: %s' % self._online_contacts)
@@ -115,6 +111,9 @@ class SMAgentXMPP(Client):
                     if message.from_ not in self._online_contacts:
                         log.warn('IQ sender not in roster (%s), dropping message' % message.from_)
                     else:
+                        self.running_commands.add(recv_command)
+                        self.num_running_commands += 1
+                        log.info("Running commands: names: %s numbers: %i" % (self.running_commands, self.num_running_commands))
                         self._processCommand(message)
 
                 else:
@@ -123,7 +122,7 @@ class SMAgentXMPP(Client):
                 del message
             else:
                 log.debug("already running given command %s" %recv_command)
-                result = (_E_RUNNING_COMMAND, '', 'Another command is running', 0)
+                result = (_E_RUNNING_COMMAND, '', 'another command is running', 0)
                 self._send(result, message)
 
         else:
@@ -200,9 +199,7 @@ class SMAgentXMPP(Client):
 
     def _check_memory(self, num_running_commands):
         rss, vms = mem_usage()
-        #log.info("Running commands: %i" % num_running_commands)
         log.info("Current Memory usage: rss=%sMB | vms=%sMB" % (rss, vms))
-
         if not num_running_commands and rss > _CHECK_RAM_MAX_RSS_MB:
             log.critical("Max allowed RSS memory exceeded: %s MB, exiting."
                          % _CHECK_RAM_MAX_RSS_MB)
