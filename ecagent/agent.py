@@ -95,19 +95,18 @@ class SMAgentXMPP(Client):
         log.debug('__onIq')
         mem_clean('__onIq [start]')
 
-
-
         log.debug("q Message received: \n%s" % msg.toXml())
         log.debug("Message type: %s" % msg['type'])
 
         if msg['type'] == 'set':
             message = IqMessage(msg)
 
-            if message.command.replace('.', '_') not in self.running_commands:
+            recv_command = message.command.replace('.', '_')
 
-                self.running_commands.add(message.command.replace('.', '_'))
+            if recv_command not in self.running_commands:
+                self.running_commands.add(recv_command)
                 self.num_running_commands += 1
-                log.info('recieved new command: %s with message: %s' % (message.command, message))
+                log.debug('recieved new command: %s with message: %s' % (message.command, message))
                 log.info("Running commands: %s %i" % (self.running_commands, self.num_running_commands))
 
                 if hasattr(message, 'command') and hasattr(message, 'from_'):
@@ -123,8 +122,10 @@ class SMAgentXMPP(Client):
 
                 del message
             else:
-                log.info("already running given command %s" %message.command.replace('.', '_'))
-            
+                log.debug("already running given command %s" %recv_command)
+                result = (_E_RUNNING_COMMAND, '', 'Another command is running', 0)
+                self._send(result, message)
+
         else:
             log.warn('Unknown IQ type received: Full XML:\n%s' % (msg.toXml()))
 
@@ -168,17 +169,19 @@ class SMAgentXMPP(Client):
         mem_clean('agent._onCallFinished')
         log.debug('Call Finished')
         self._send(result, message)
-
         self.running_commands.remove(message.command_name)
         self.num_running_commands -= 1
         log.info('command finished %s' %message.command_name)
 
     def _onCallFailed(self, failure, *argv, **kwargs):
         log.error("onCallFailed")
-        log.debug(failure)
+        log.info(failure)
+
         if 'message' in kwargs:
             message = kwargs['message']
             result = (2, '', failure, 0)
+            self.running_commands.remove(message.command_name)
+            self.num_running_commands -= 1
             self._onCallFinished(result, message)
 
     def _flush(self, result, message):
