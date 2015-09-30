@@ -68,8 +68,8 @@ case "$1" in
     log_daemon_msg "Starting $DESC" "$NAME"
     killagent   
     /bin/rm -f $PID_FILE > /dev/null 2>&1
-    start-stop-daemon --oknodo --start --pidfile $PID_FILE \
-        --background --chdir $DIR --exec $TWISTD -- -ny $TAC >/dev/null 2>&1
+    start-stop-daemon --oknodo --start --user ecmanaged --pidfile $PID_FILE \
+        --background --chdir $DIR --chuid ecmanaged--exec $TWISTD -- -ny $TAC >/dev/null 2>&1
     case "$?" in
         0) log_end_msg 0 ;;
         *) log_end_msg 1; exit 1 ;;
@@ -78,7 +78,7 @@ case "$1" in
  
   stop)
     log_daemon_msg "Stopping $DESC" "$NAME"
-    start-stop-daemon --retry 5 --oknodo --stop --signal 9 --quiet --pidfile $PID_FILE 2>/dev/null
+    start-stop-daemon --retry 5 --oknodo --stop --user ecmanaged --signal 9 --quiet --pidfile $PID_FILE 2>/dev/null
     case "$?" in
         0) log_end_msg 0; killagent ;;
         *) log_end_msg 1; killagent ; exit 1 ;;
