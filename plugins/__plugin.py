@@ -29,8 +29,10 @@ PROTECTED_FILES = [
 import sys
 sys.stdout.flush()
 sys.stderr.flush()
-import logging
-log = logging
+
+# Create plugin log
+from plugins.__logger import LoggerManager
+logger = LoggerManager.getLogger(__name__)
 
 
 class ECMPlugin:

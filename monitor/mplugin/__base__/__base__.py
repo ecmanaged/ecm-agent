@@ -37,6 +37,7 @@ class BaseMPlugin(MPlugin):
         boottime = self._get_uptime()
         uptime = int(mytime - boottime)
 
+
         data = {
             'version': VERSION,
             'time': mytime,

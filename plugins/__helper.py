@@ -247,6 +247,9 @@ def install_package(packages, update=True):
         envars = {}
         distribution, _version = get_distribution()
 
+        if is_list(packages):
+            packages = ','.join(packages)
+
         if distribution.lower() in ['debian', 'ubuntu']:
             envars['DEBIAN_FRONTEND'] = 'noninteractive'
 
@@ -640,27 +643,6 @@ class ECMExec:
         self.thread_stdout = ''
         self.thread_stderr = ''
         self.thread_run = 1
-
-    @staticmethod
-    def which(program):
-        def is_exe(fpath):
-            return (os.path.exists(fpath) and
-                    os.access(fpath, os.X_OK) and
-                    os.path.isfile(os.path.realpath(fpath)))
-
-        fpath, fname = os.path.split(program)
-        if fpath:
-            if is_exe(program):
-                return program
-        else:
-            if "PATH" not in os.environ:
-                return None
-            for path in os.environ["PATH"].split(os.pathsep):
-                exe_file = os.path.join(path, program)
-                if is_exe(exe_file):
-                    return exe_file
-
-        return None
 
     def command(self, command, args=None, std_input=None, run_as=None, working_dir=None, envars=None, only_stdout = False):
         """

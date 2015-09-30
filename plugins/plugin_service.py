@@ -17,7 +17,15 @@
 import os
 import re
 import time
-import dbus
+
+DBUS = False
+
+try:
+    import dbus
+    DBUS = True
+except:
+    pass
+
 
 # Local
 from __plugin import ECMPlugin
@@ -370,7 +378,7 @@ if ecm.is_win():
     ECMWindows().run()
 
 else:
-    try:
+    if(DBUS):
         # Try systemd
         bus = dbus.SystemBus()
         systemd_object = bus.get_object(SYSTEMD_BUSNAME, SYSTEMD_PATH)
@@ -378,6 +386,6 @@ else:
 
         ECMLinuxSystemD().run()
 
-    except:
+    else:
         # Do our best with init.d
         ECMLinuxInitD().run()

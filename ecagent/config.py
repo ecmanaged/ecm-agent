@@ -61,6 +61,9 @@ class SMConfigObj(ConfigObj):
         if self._get_stored_uuid() and self.is_unique_id_same(unique_id):
             log.debug('UNIQUE ID has not changed. Skip UUID check')
 
+            # Updates from v2 to v3 write account info
+            self['XMPP']['user'] = self['XMPP']['user'].split('@')[0]
+
         else:
              # Try to get uuid (one hour and a half loop: 360x15)
             data = None

@@ -183,7 +183,11 @@ class ECMMonitor(ECMPlugin):
             system_install = []
 
             from __packages import pip_install_single_package
-            from __packages import packagekit_install_single_package
+            try:
+                from __packages import packagekit_install_single_package as install_package
+
+            except:
+                from __helper import install_package
 
             for req in arg_requirements.keys():
                 if arg_requirements[req]['type'] == 'system':
@@ -194,7 +198,7 @@ class ECMMonitor(ECMPlugin):
 
             log.info("installing system: %s", system_install)
             for item in system_install:
-                result = packagekit_install_single_package(item)
+                result = install_package(item)
 
                 if not result:
                     log.info("problem in installing %s", item)

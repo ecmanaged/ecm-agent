@@ -14,11 +14,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from __logger import LoggerManager
-log = LoggerManager.getLogger(__name__)
-
 from __packages import pip_install_single_package
-from __plugin import ECMPlugin
+from __plugin import ECMPlugin, logger
+
 
 class ECMPip(ECMPlugin):
     def cmd_pip_install(self, *argv, **kwargs):
@@ -29,8 +27,8 @@ class ECMPip(ECMPlugin):
         install_site_wide = kwargs.get('site_wide', False)
         pkg = kwargs.get('package', None)
 
-        log.info('installing %s using pip' %pkg)
-
+        logger.info('installing %s using pip' %pkg)
         pip_install_single_package(pkg, install_site_wide)
+
 
 ECMPip().run()

@@ -13,6 +13,8 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+
+
 from __future__ import absolute_import
 
 import types
@@ -22,10 +24,11 @@ from pip.commands import commands_dict, ListCommand
 from pip.exceptions import BadCommand, InstallationError, UninstallationError, CommandError, PreviousBuildDirError
 from pip.status_codes import ERROR, UNKNOWN_ERROR, PREVIOUS_BUILD_DIR_ERROR
 from pip.utils import get_installed_distributions, get_installed_version
-from pkg_resources import parse_version, safe_name
 from pip.utils.outdated import load_selfcheck_statefile
 from pip.compat import total_seconds
 from pip.index import PyPI
+
+from pkg_resources import parse_version, safe_name
 
 from __logger import LoggerManager
 log = LoggerManager.getLogger(__name__)
