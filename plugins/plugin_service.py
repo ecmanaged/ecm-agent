@@ -18,11 +18,11 @@ import os
 import re
 import time
 
-DBUS = False
+GO = False
 
 try:
     import dbus
-    DBUS = True
+    GO = True
 except:
     pass
 
@@ -378,14 +378,8 @@ if ecm.is_win():
     ECMWindows().run()
 
 else:
-    if(DBUS):
-        # Try systemd
-        bus = dbus.SystemBus()
-        systemd_object = bus.get_object(SYSTEMD_BUSNAME, SYSTEMD_PATH)
-        systemd_manager = dbus.Interface(systemd_object, SYSTEMD_MANAGER_INTERFACE)
-
+    if(GO):
         ECMLinuxSystemD().run()
-
     else:
         # Do our best with init.d
         ECMLinuxInitD().run()

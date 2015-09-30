@@ -14,8 +14,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import sys
-from gi.repository import PackageKitGlib as pk
+GO = False
+
+try:
+    from gi.repository import PackageKitGlib as pk
+    GO = True
+except:
+    pass
 
 # Local
 from __plugin import ECMPlugin
@@ -40,7 +45,6 @@ class ECMSystemUpdate(ECMPlugin):
         for pkg in res.get_package_array():
             if pkg.get_id.startswith('ecmanaged'):
                 continue
-
             packages.append(pkg.get_id())
 
         # updating the system
@@ -69,4 +73,10 @@ class ECMSystemUpdate(ECMPlugin):
 
         return True
 
-ECMSystemUpdate().run()
+if(GO):
+    ECMSystemUpdate().run()
+else:
+    # Do our best with init.d
+    pass
+
+
