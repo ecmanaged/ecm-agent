@@ -248,7 +248,7 @@ def install_package(packages, update=True):
         distribution, _version = get_distribution()
 
         if is_list(packages):
-            packages = ','.join(packages)
+            packages = ' '.join(packages)
 
         if distribution.lower() in ['debian', 'ubuntu']:
             envars['DEBIAN_FRONTEND'] = 'noninteractive'
