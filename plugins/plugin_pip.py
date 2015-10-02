@@ -15,7 +15,7 @@
 #    under the License.
 
 from __packages import pip_install_single_package
-from __plugin import ECMPlugin, logger
+from __plugin import ECMPlugin
 
 
 class ECMPip(ECMPlugin):
@@ -27,7 +27,6 @@ class ECMPip(ECMPlugin):
         install_site_wide = kwargs.get('site_wide', False)
         pkg = kwargs.get('package', None)
 
-        logger.info('installing %s using pip' %pkg)
         pip_install_single_package(pkg, install_site_wide)
 
 

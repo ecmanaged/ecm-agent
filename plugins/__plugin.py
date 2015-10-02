@@ -31,8 +31,8 @@ sys.stdout.flush()
 sys.stderr.flush()
 
 # Create plugin log
-from plugins.__logger import LoggerManager
-logger = LoggerManager.getLogger(__name__)
+#from __logger import LoggerManager
+#logger = LoggerManager.getLogger(__name__)
 
 
 class ECMPlugin:

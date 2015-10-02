@@ -26,9 +26,8 @@ import __helper as ecm
 from __plugin import ECMPlugin
 from __mplugin import MPlugin
 
-import logging
-from __logger import LoggerManager
-log = LoggerManager.getLogger(__name__)
+#from __logger import LoggerManager
+#log = LoggerManager.getLogger(__name__)
 
 CRITICAL = 2
 
@@ -168,7 +167,7 @@ class ECMMonitor(ECMPlugin):
         except:
             raise Exception("Invalid data received")
 
-        log.info('plugin: %s' %plugin)
+        #log.info('plugin: %s' %plugin)
 
         id = plugin.get('id')
         runas = plugin.get('runas')
@@ -196,20 +195,20 @@ class ECMMonitor(ECMPlugin):
                 elif arg_requirements[req]['type'] == 'pip':
                     pip_install.append(arg_requirements[req]['name'])
 
-            log.info("installing system: %s", system_install)
+            # log.info("installing system: %s", system_install)
             for item in system_install:
                 result = install_package(item)
 
                 if not result:
-                    log.info("problem in installing %s", item)
+                    # log.info("problem in installing %s", item)
                     return False
 
-            log.info("installing pip: %s", pip_install)
+            # log.info("installing pip: %s", pip_install)
             for item in pip_install:
                 result = pip_install_single_package(item)
 
                 if not result[0]:
-                    log.info("problem in installing %s", item)
+                    # log.info("problem in installing %s", item)
                     return False
 
         script = None
