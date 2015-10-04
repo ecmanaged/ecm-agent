@@ -54,7 +54,6 @@ def check_system_restart():
     return parse_version(installed_kernel) > parse_version(working_kernel)
 
 def packagekit_install_package(packages):
-
     if type(packages) is types.StringType:
         packages = packages.split(' ')
 
@@ -62,12 +61,15 @@ def packagekit_install_package(packages):
         packagekit_install_single_package(package)
 
 def packagekit_install_single_package(package):
-    from gi.repository import PackageKitGlib
+    try:
+        from gi.repository import PackageKitGlib
+    except ImportError:
+        log.info('error importing PackageKitGlib')
+        import sys
+        sys.exit(0)
     from platform import machine
     from pkg_resources import parse_version
 
-    from __logger import LoggerManager
-    log = LoggerManager.getLogger(__name__)
 
     client = PackageKitGlib.Client()
 
@@ -108,9 +110,24 @@ def packagekit_install_single_package(package):
         return True, 'already installed'
 
 def pip_install_single_package(package, site_wide = False, isolated=False):
-    from pip.commands import InstallCommand
-    from pip.exceptions import BadCommand, InstallationError, UninstallationError, CommandError, PreviousBuildDirError
-    from pip.status_codes import ERROR, UNKNOWN_ERROR, PREVIOUS_BUILD_DIR_ERROR
+    try:
+        from pip.commands import InstallCommand
+    except ImportError:
+        log.info('error importing InstallCommand')
+        import sys
+        sys.exit(0)
+    try:
+        from pip.exceptions import BadCommand, InstallationError, UninstallationError, CommandError, PreviousBuildDirError
+    except ImportError:
+        log.info('error importing pip.exceptions')
+        import sys
+        sys.exit(0)
+    try:
+        from pip.status_codes import ERROR, UNKNOWN_ERROR, PREVIOUS_BUILD_DIR_ERROR
+    except ImportError:
+        log.info('error importing pip status codes')
+        import sys
+        sys.exit(0)
 
     if site_wide:
         cmd_name, cmd_args = 'install', [package]
