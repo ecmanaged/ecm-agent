@@ -93,14 +93,18 @@ def packagekit_install_single_package(package):
         log.info('resolved 0 packages')
         return False, 'resolved 0 packages'
 
-    for pkg in package_ids:
-        log.info(pkg.get_id())
-        if pkg.get_arch() == machine():
-            if result == None:
-                result = pkg
-            else:
-                if parse_version(pkg.get_version()) > parse_version(result.get_version()):
+    if len(package_ids) == 1:
+        result = package_ids[0]
+
+    else:
+        for pkg in package_ids:
+            log.info(pkg.get_id())
+            if pkg.get_arch() == machine():
+                if result == None:
                     result = pkg
+                else:
+                    if parse_version(pkg.get_version()) > parse_version(result.get_version()):
+                        result = pkg
     if result.get_info() != PackageKitGlib.InfoEnum.INSTALLED:
         res = client.install_packages(False, [result.get_id()], None, lambda p, t, d: True, None)
         log.info('%s installed', result.get_id())
