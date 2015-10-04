@@ -14,26 +14,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-
-from __future__ import absolute_import
-
 import types
-import datetime
-
-from pip.commands import InstallCommand, ListCommand
-from pip.exceptions import BadCommand, InstallationError, UninstallationError, CommandError, PreviousBuildDirError
-from pip.status_codes import ERROR, UNKNOWN_ERROR, PREVIOUS_BUILD_DIR_ERROR
-from pip.utils import get_installed_distributions, get_installed_version
-from pip.utils.outdated import load_selfcheck_statefile
-from pip.compat import total_seconds
-from pip.index import PyPI
-
-from pkg_resources import parse_version, safe_name
 
 from __logger import LoggerManager
 log = LoggerManager.getLogger(__name__)
-
-SELFCHECK_DATE_FMT = "%Y-%m-%dT%H:%M:%SZ"
 
 
 def check_system_restart():
@@ -80,6 +64,7 @@ def packagekit_install_package(packages):
 def packagekit_install_single_package(package):
     from gi.repository import PackageKitGlib
     from platform import machine
+    from pkg_resources import parse_version
 
     from __logger import LoggerManager
     log = LoggerManager.getLogger(__name__)
@@ -122,77 +107,10 @@ def packagekit_install_single_package(package):
         log.info('%s already installed', result.get_id())
         return True, 'already installed'
 
-def canonicalize_name(name):
-    """Convert an arbitrary string to a canonical name used for comparison"""
-    return safe_name(name).lower()
-
-def pip_check_version():
-    list_command = ListCommand()
-    options, args = list_command.parse_args([])
-    session = list_command._build_session(options, retries=0, timeout=min(5, options.timeout))
-
-    installed_version = get_installed_version("pip")
-
-    if installed_version is None:
-        return
-
-    pypi_version = None
-
-    try:
-        state = load_selfcheck_statefile()
-        current_time = datetime.datetime.utcnow()
-        if "last_check" in state.state and "pypi_version" in state.state:
-            last_check = datetime.datetime.strptime(
-                state.state["last_check"],
-                SELFCHECK_DATE_FMT
-            )
-            if total_seconds(current_time - last_check) < 7 * 24 * 60 * 60:
-                pypi_version = state.state["pypi_version"]
-
-        # Refresh the version if we need to or just see if we need to warn
-        if pypi_version is None:
-            resp = session.get(
-                PyPI.pip_json_url,
-                headers={"Accept": "application/json"},
-            )
-            resp.raise_for_status()
-            pypi_version = [
-                v for v in sorted(
-                    list(resp.json()["releases"]),
-                    key=parse_version,
-                )
-                if not parse_version(v).is_prerelease
-            ][-1]
-
-            state.save(pypi_version, current_time)
-    except Exception:
-        log.info("There was an error checking the latest version of pip",
-            exc_info=True,)
-
-    return 'pip', installed_version, str(pypi_version)
-
-def pip_outdated_packages(local=False, user=False):
-    update_available = []
-
-    list_command = ListCommand()
-    options, args = list_command.parse_args([])
-
-    options.local = local
-    options.user = user
-
-    for dist, version, typ in list_command.find_packages_latest_versions(options):
-        if version > dist.parsed_version:
-            update_available.append((dist.project_name, str(dist.version), str(version), typ))
-    return update_available
-
-def pip_installed_packages(package, site_wide = False):
-    # returns a dictionary {'package name': 'package version'}
-    available_packages = {}
-    for dist in get_installed_distributions(local_only=True):
-        available_packages [dist.project_name] = str(dist.parsed_version)
-    return available_packages
-
 def pip_install_single_package(package, site_wide = False, isolated=False):
+    from pip.commands import InstallCommand
+    from pip.exceptions import BadCommand, InstallationError, UninstallationError, CommandError, PreviousBuildDirError
+    from pip.status_codes import ERROR, UNKNOWN_ERROR, PREVIOUS_BUILD_DIR_ERROR
 
     if site_wide:
         cmd_name, cmd_args = 'install', [package]
