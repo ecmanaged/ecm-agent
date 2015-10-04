@@ -18,7 +18,7 @@ Vendor: Juan Carlos Moreno<juancarlos.moreno@ecmanaged.com>
 Packager: Arindam Choudhury<arindam@live.com>
 Provides: ecmanaged-ecagent
 Requires(pre): shadow-utils
-Requires: python2 python-devel pygobject3 PackageKit PolicyKit dbus-python python-twisted python-protocols python-configobj python-twisted-words python-psutil libxml2-python python-simplejson rpm-python python-crypto python-httplib2 python-pip
+Requires: python2 python-devel pygobject3 PackageKit PolicyKit dbus-python python-twisted python-protocols python-configobj python-psutil libxml2-python python-simplejson rpm-python python-crypto python-httplib2 python-pip
 Url: www.ecmanaged.com
 BuildRequires: systemd
 
