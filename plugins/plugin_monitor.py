@@ -29,6 +29,21 @@ from __mplugin import MPlugin
 from __logger import LoggerManager
 log = LoggerManager.getLogger(__name__)
 
+try:
+    from __packages import pip_install_single_package
+except ImportError:
+    log.info('error importing pip_install_single_package')
+    sys.exit(0)
+try:
+    from __packages import packagekit_install_single_package as install_package
+except ImportError:
+    log.info('error importing packagekit_install_single_package')
+    try:
+        from __helper import install_package
+    except ImportError:
+        log.info('error importing install_package')
+        sys.exit(0)
+
 CRITICAL = 2
 
 COMMAND_TIMEOUT = 55
@@ -180,21 +195,6 @@ class ECMMonitor(ECMPlugin):
         if arg_requirements:
             pip_install = []
             system_install = []
-
-            try:
-                from __packages import pip_install_single_package
-            except ImportError:
-                log.info('error importing pip_install_single_package')
-                sys.exit(0)
-            try:
-                from __packages import packagekit_install_single_package as install_package
-            except ImportError:
-                log.info('error importing packagekit_install_single_package')
-                try:
-                    from __helper import install_package
-                except ImportError:
-                    log.info('error importing install_package')
-                    sys.exit(0)
 
             for req in arg_requirements.keys():
                 if arg_requirements[req]['type'] == 'system':
