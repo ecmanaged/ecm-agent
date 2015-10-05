@@ -45,7 +45,7 @@ stop() {
             echo -n $"removing stale pid file"
             rm -f ${PID_FILE}
             echo
-
+        fi
     else
         echo -n $"${NAME}: is not running"
         echo
