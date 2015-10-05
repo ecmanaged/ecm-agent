@@ -103,6 +103,6 @@ class ECMPipExtra(ECMPlugin):
         return available_packages
 
 if go:
-    ECMPipExtra.run()
+    ECMPipExtra().run()
 else:
     pass
