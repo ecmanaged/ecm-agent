@@ -34,22 +34,27 @@ start() {
 }
 
 stop() {
-    PID=$(getpid)
-    if [ -e /proc/${PID} -a /proc/${PID}/exe ]; then
-        echo -n $"Stopping ${NAME}: "
-        kill -TERM $PID
-        RETVAL=$?
-        echo
-        #if [ $RETVAL = 0 ]; then
-        #    rm -f ${PID_FILE}
-        #fi
+    if [ -f ${PID_FILE} ]; then
+        PID=$(getpid)
+        if [ -e /proc/${PID} -a /proc/${PID}/exe ]; then
+            echo -n $"Stopping ${NAME}: "
+            kill -TERM $PID
+            RETVAL=$?
+            echo
+        else
+            echo -n $"removing stale pid file"
+            rm -f ${PID_FILE}
+            echo
+
     else
         echo -n $"${NAME}: is not running"
+        echo
     fi
 }
 
 restart() {
     stop
+    sleep 2
     start
 }
 
@@ -81,7 +86,7 @@ check() {
     ls -l /proc/$PID/exe > /dev/null 2>&1
     case "$?" in
         0) zombies; echo 'OK' ;;
-        *) echo 'KO'; stop; start ;;
+        *) echo 'KO'; stop; sleep 2; start ;;
     esac
 }
 
