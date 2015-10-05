@@ -34,13 +34,17 @@ start() {
 }
 
 stop() {
-    echo -n $"Stopping ${NAME}: "
     PID=$(getpid)
-    kill -TERM $PID
-    RETVAL=$?
-    echo
-    if [ $RETVAL = 0 ]; then
-        rm -f ${PID_FILE}
+    if [ -e /proc/${PID} -a /proc/${PID}/exe ]; then
+        echo -n $"Stopping ${NAME}: "
+        kill -TERM $PID
+        RETVAL=$?
+        echo
+        #if [ $RETVAL = 0 ]; then
+        #    rm -f ${PID_FILE}
+        #fi
+    else
+        echo -n $"${NAME}: is not running"
     fi
 }
 
