@@ -43,7 +43,7 @@ def check_system_restart():
 
     for pkg in package_ids:
         if pkg.get_arch() == machine():
-            if installed_kernel == None:
+            if installed_kernel is None:
                 installed_kernel = pkg
             else:
                 if parse_version(pkg.get_version()) > parse_version(installed_kernel.get_version()):
@@ -53,12 +53,14 @@ def check_system_restart():
 
     return parse_version(installed_kernel) > parse_version(working_kernel)
 
+
 def packagekit_install_package(packages):
     if type(packages) is types.StringType:
         packages = packages.split(' ')
 
     for package in packages:
         packagekit_install_single_package(package)
+
 
 def packagekit_install_single_package(package):
     try:
@@ -82,6 +84,7 @@ def packagekit_install_single_package(package):
     res = client.resolve(PackageKitGlib.FilterEnum.NONE, [package], None, lambda p, t, d: True, None)
 
     result = None
+    arch_set = set()
 
     if res.get_exit_code() != PackageKitGlib.ExitEnum.SUCCESS:
         log.info('resolve failed')
@@ -93,18 +96,42 @@ def packagekit_install_single_package(package):
         log.info('resolved 0 packages')
         return False, 'resolved 0 packages'
 
+    for pkg in package_ids:
+        log.info(pkg.get_id())
+        arch_set.add(pkg.get_arch())
+
     if len(package_ids) == 1:
         result = package_ids[0]
 
-    else:
+    elif len(arch_set) == 1:
         for pkg in package_ids:
-            log.info(pkg.get_id())
+            if result is None:
+                result = pkg
+            else:
+                if parse_version(pkg.get_version()) > parse_version(result.get_version()):
+                    result = pkg
+
+    if result is None:
+        for pkg in package_ids:
             if pkg.get_arch() == machine():
-                if result == None:
+                if result is None:
                     result = pkg
                 else:
                     if parse_version(pkg.get_version()) > parse_version(result.get_version()):
                         result = pkg
+    if result is None:
+        for pkg in package_ids:
+            if pkg.get_arch() == 'noarch':
+                if result is None:
+                    result = pkg
+                else:
+                    if parse_version(pkg.get_version()) > parse_version(result.get_version()):
+                        result = pkg
+
+    if result is None:
+        log.info('can not determine what package to install')
+        sys.exit(0)
+
     if result.get_info() != PackageKitGlib.InfoEnum.INSTALLED:
         res = client.install_packages(False, [result.get_id()], None, lambda p, t, d: True, None)
         log.info('%s installed', result.get_id())
