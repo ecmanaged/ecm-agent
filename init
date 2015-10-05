@@ -36,7 +36,7 @@ start() {
 stop() {
     echo -n $"Stopping ${NAME}: "
     PID=$(getpid)
-    kill $PID
+    kill -TERM $PID
     RETVAL=$?
     echo
     if [ $RETVAL = 0 ]; then
@@ -47,6 +47,28 @@ stop() {
 restart() {
     stop
     start
+}
+
+zombies() {
+    PID=$(getpid)
+    for i in $(ps aux | awk '"[Zz]" ~ $8 { printf("%d\n", $2); }'); do
+        if [ $i -eq ${PID} ]; then
+            if [ $(ps --pid $PID -o etime= | sed 's/:\|-/ /g;' | awk '{print $4" "$3" "$2" "$1}' | \
+                  awk '{print $1+$2*60+$3*3600+$4*86400}') > 300 ]; then
+                restart
+            fi
+        fi
+    done
+}
+
+check() {
+    echo -n $"Checking status of ${NAME}: "
+    PID=$(getpid)
+    ls -l /proc/$PID/exe > /dev/null 2>&1
+    case "$?" in
+        0) zombies; echo 'OK' ;;
+        *) echo 'KO' ;;
+    esac
 }
 
 case "$1" in
@@ -60,10 +82,10 @@ case "$1" in
         restart
     ;;
     status)
-        status twistd
+        check twistd
     ;;
     *)
-        echo $"Usage: $0 {start|stop|status|restart|check|kill}"
+        echo $"Usage: $0 {start|stop|status|restart}"
         exit 1
 esac
 
