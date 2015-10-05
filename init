@@ -61,13 +61,23 @@ zombies() {
     done
 }
 
-check() {
+status() {
     echo -n $"Checking status of ${NAME}: "
     PID=$(getpid)
     ls -l /proc/$PID/exe > /dev/null 2>&1
     case "$?" in
         0) zombies; echo 'OK' ;;
         *) echo 'KO' ;;
+    esac
+}
+
+check() {
+    echo -n $"Checking status of ${NAME}: "
+    PID=$(getpid)
+    ls -l /proc/$PID/exe > /dev/null 2>&1
+    case "$?" in
+        0) zombies; echo 'OK' ;;
+        *) echo 'KO'; stop; start ;;
     esac
 }
 
@@ -82,10 +92,13 @@ case "$1" in
         restart
     ;;
     status)
+        status twistd
+    ;;
+    check)
         check twistd
     ;;
     *)
-        echo $"Usage: $0 {start|stop|status|restart}"
+        echo $"Usage: $0 {start|stop|restart|status|check}"
         exit 1
 esac
 
