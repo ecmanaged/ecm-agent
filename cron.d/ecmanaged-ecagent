@@ -1,0 +1,1 @@
+*/5 *	* * *	root	/opt/ecmanaged/ecagent/init check > /dev/null 2>&1
