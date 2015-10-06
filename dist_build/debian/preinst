@@ -23,6 +23,13 @@ case "$1" in
                 dpkg-maintscript-helper rm_conffile /usr/lib/systemd/system/ecagentd.service -- "$@"
             fi
         fi
+
+        if [ -f /lib/systemd/system/ecagentd.service ]; then
+            if dpkg-maintscript-helper supports rm_conffile 2>/dev/null; then
+                dpkg-maintscript-helper rm_conffile /lib/systemd/system/ecagentd.service -- "$@"
+            fi
+        fi
+        systemctl daemon-reload
     fi
 
     if [ -f /etc/cron.d/ecmanaged-ecagent ]; then
