@@ -1,17 +1,7 @@
 #!/bin/sh
-if which systemctl >/dev/null 2>&1; then
-    systemctl daemon-reload
-    systemctl enable ecagentd.service
-    systemctl daemon-reload
-fi
-
 
 chown -R ecmanaged:ecmanaged /opt/ecmanaged
 mkdir -p /etc/ecmanaged
 chown -R ecmanaged:ecmanaged /etc/ecmanaged
 
-if which systemctl >/dev/null 2>&1; then
-    systemctl start ecagentd.service
-else
-    /etc/init.d/ecagentd start
-fi
+/opt/ecmanaged/ecagent/init start
