@@ -12,14 +12,15 @@ case "$1" in
     # Stop the service if we're upgrading
     if [ -f /etc/init.d/ecagentd ]; then
         /etc/init.d/ecagentd stop
+        if dpkg-maintscript-helper supports rm_conffile 2>/dev/null; then
+            dpkg-maintscript-helper rm_conffile /etc/init.d/ecagentd -- "$@"
+        fi
     else
         systemctl stop ecagentd.service
-    fi
-
-    if which systemctl >/dev/null 2>&1; then
-        if [ -f /etc/init.d/ecagentd ]; then
+        systemctl disable ecagentd.service
+        if [ -f /usr/lib/systemd/system/ecagentd.service ]; then
             if dpkg-maintscript-helper supports rm_conffile 2>/dev/null; then
-                dpkg-maintscript-helper rm_conffile /etc/init.d/ecagentd -- "$@"
+                dpkg-maintscript-helper rm_conffile /usr/lib/systemd/system/ecagentd.service -- "$@"
             fi
         fi
     fi
