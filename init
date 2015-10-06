@@ -1,11 +1,10 @@
 #!/bin/bash
 
 NAME=${NAME:-ecagentd}
-TWISTD=${TWISTD:-/usr/bin/twistd}
-TAC=${TAC:-"$NAME.tac"}
-DESC=${DESC:-"ECM Agent"}
+TWISTD="$(which twistd)"
 DIR=${DIR:-/opt/ecmanaged/ecagent}
 PID_FILE=${PID_FILE:-"$DIR/twistd.pid"}
+TAC=${TAC:-"$DIR/ecagentd.tac"}
 RETVAL=0
 
 getpid() {
