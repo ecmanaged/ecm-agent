@@ -15,24 +15,33 @@ case "$1" in
         if dpkg-maintscript-helper supports rm_conffile 2>/dev/null; then
             dpkg-maintscript-helper rm_conffile /etc/init.d/ecagentd -- "$@"
         fi
-    else
-        systemctl stop ecagentd.service
-        systemctl disable ecagentd.service
-        if [ -f /usr/lib/systemd/system/ecagentd.service ]; then
-            if dpkg-maintscript-helper supports rm_conffile 2>/dev/null; then
-                dpkg-maintscript-helper rm_conffile /usr/lib/systemd/system/ecagentd.service -- "$@"
-            fi
-        fi
+    fi
 
-        if [ -f /lib/systemd/system/ecagentd.service ]; then
-            if dpkg-maintscript-helper supports rm_conffile 2>/dev/null; then
-                dpkg-maintscript-helper rm_conffile /lib/systemd/system/ecagentd.service -- "$@"
+    if which systemctl >/dev/null 2>&1; then
+        if systemctl list-units | grep ecagentd >/dev/null 2>&1; then
+            systemctl stop ecagentd.service
+            systemctl disable ecagentd.service
+            if [ -f /usr/lib/systemd/system/ecagentd.service ]; then
+                if dpkg-maintscript-helper supports rm_conffile 2>/dev/null; then
+                    dpkg-maintscript-helper rm_conffile /usr/lib/systemd/system/ecagentd.service -- "$@"
+                fi
             fi
+
+            if [ -f /lib/systemd/system/ecagentd.service ]; then
+                if dpkg-maintscript-helper supports rm_conffile 2>/dev/null; then
+                    dpkg-maintscript-helper rm_conffile /lib/systemd/system/ecagentd.service -- "$@"
+                fi
+            fi
+            systemctl daemon-reload
         fi
-        systemctl daemon-reload
     fi
 
     if [ -f /etc/cron.d/ecmanaged-ecagent ]; then
         rm -f /etc/cron.d/ecmanaged-ecagent >/dev/null 2>&1
     fi
+
+    if [ -f /opt/ecmanaged/ecagent/init ]; then
+        /opt/ecmanaged/ecagent/init stop 2>&1
+    fi
+
 esac
