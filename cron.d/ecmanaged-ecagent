@@ -1,4 +1,3 @@
 SHELL=/bin/bash
 HOME=/opt/ecmanaged/ecagent/
 */1 *	* * *	root	/opt/ecmanaged/ecagent/init check
-@reboot /opt/ecmanaged/ecagent/init check
