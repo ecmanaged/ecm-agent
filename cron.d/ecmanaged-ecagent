@@ -1,1 +1,4 @@
-*/5 *	* * *	root	/opt/ecmanaged/ecagent/init check > /dev/null 2>&1
+SHELL=/bin/bash
+HOME=/opt/ecmanaged/ecagent/
+*/1 *	* * *	root	/opt/ecmanaged/ecagent/init check
+@reboot /opt/ecmanaged/ecagent/init check

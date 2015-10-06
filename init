@@ -4,7 +4,7 @@ NAME=${NAME:-ecagentd}
 TWISTD="$(which twistd)"
 DIR=${DIR:-/opt/ecmanaged/ecagent}
 PID_FILE=${PID_FILE:-"$DIR/twistd.pid"}
-TAC=${TAC:-"$DIR/ecagentd.tac"}
+TAC=${TAC:-"$DIR/$NAME.tac"}
 RETVAL=0
 
 getpid() {
