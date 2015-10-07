@@ -1,12 +1,16 @@
 #!/bin/sh
 
-chown -R ecmanaged:ecmanaged /opt/ecmanaged
-mkdir -p /etc/ecmanaged
-chown -R ecmanaged:ecmanaged /etc/ecmanaged
+set -e
+
+if getent passwd ecmanaged >/dev/null 2>&1; then
+    chown -R ecmanaged:ecmanaged /opt/ecmanaged
+    mkdir -p /etc/ecmanaged
+    chown -R ecmanaged:ecmanaged /etc/ecmanaged
+fi
 
 case "$1" in
-    upgrade)
+    configure)
     if [ -f /opt/ecmanaged/ecagent/init ]; then
-        /opt/ecmanaged/ecagent/init start 2>&1
+        /opt/ecmanaged/ecagent/init start > /dev/null 2>&1
     fi
 esac
