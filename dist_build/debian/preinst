@@ -43,9 +43,4 @@ case "$1" in
             systemctl daemon-reload
         fi
     fi
-
-    if [ -f /opt/ecmanaged/ecagent/init ]; then
-        /opt/ecmanaged/ecagent/init stop 2>&1
-    fi
-
 esac
