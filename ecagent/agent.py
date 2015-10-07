@@ -113,7 +113,7 @@ class SMAgentXMPP(Client):
                     else:
                         self.running_commands.add(recv_command)
                         self.num_running_commands += 1
-                        log.info("Running commands: names: %s numbers: %i" % (self.running_commands, self.num_running_commands))
+                        log.debug("Running commands: names: %s numbers: %i" % (self.running_commands, self.num_running_commands))
                         self._processCommand(message)
 
                 else:
@@ -170,7 +170,7 @@ class SMAgentXMPP(Client):
         self._send(result, message)
         self.running_commands.remove(message.command_name)
         self.num_running_commands -= 1
-        log.info('command finished %s' %message.command_name)
+        log.debug('command finished %s' %message.command_name)
 
     def _onCallFailed(self, failure, *argv, **kwargs):
         log.error("onCallFailed")
