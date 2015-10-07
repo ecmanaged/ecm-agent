@@ -16,8 +16,8 @@
 
 import types
 
-from __logger import LoggerManager
-log = LoggerManager.getLogger(__name__)
+# from __logger import LoggerManager
+# log = LoggerManager.getLogger(__name__)
 
 
 def check_system_restart():
@@ -66,7 +66,7 @@ def packagekit_install_single_package(package):
     try:
         from gi.repository import PackageKitGlib
     except ImportError:
-        log.info('error importing PackageKitGlib')
+        # log.info('error importing PackageKitGlib')
         import sys
         sys.exit(0)
     from platform import machine
@@ -75,29 +75,29 @@ def packagekit_install_single_package(package):
 
     client = PackageKitGlib.Client()
 
-    log.info('refreshing cache')
+    # log.info('refreshing cache')
 
     client.refresh_cache(False, None, lambda p, t, d: True, None)
-    log.info('cache refreshed')
+    # log.info('cache refreshed')
 
-    log.info('resolving: %s', package)
+    # log.info('resolving: %s', package)
     res = client.resolve(PackageKitGlib.FilterEnum.NONE, [package], None, lambda p, t, d: True, None)
 
     result = None
     arch_set = set()
 
     if res.get_exit_code() != PackageKitGlib.ExitEnum.SUCCESS:
-        log.info('resolve failed')
+        # log.info('resolve failed')
         return False, 'resolve failed'
 
     package_ids = res.get_package_array()
 
     if len(package_ids) == 0:
-        log.info('resolved 0 packages')
+        # log.info('resolved 0 packages')
         return False, 'resolved 0 packages'
 
     for pkg in package_ids:
-        log.info(pkg.get_id())
+        # log.info(pkg.get_id())
         arch_set.add(pkg.get_arch())
 
     if len(package_ids) == 1:
@@ -129,34 +129,34 @@ def packagekit_install_single_package(package):
                         result = pkg
 
     if result is None:
-        log.info('can not determine what package to install')
-        sys.exit(0)
+        # log.info('can not determine what package to install')
+        return False, 'can not determine what package to install'
 
     if result.get_info() != PackageKitGlib.InfoEnum.INSTALLED:
         res = client.install_packages(False, [result.get_id()], None, lambda p, t, d: True, None)
-        log.info('%s installed', result.get_id())
+        # log.info('%s installed', result.get_id())
         return res.get_exit_code() == PackageKitGlib.ExitEnum.SUCCESS, 'installed'
     else:
-        log.info('%s already installed', result.get_id())
+        # log.info('%s already installed', result.get_id())
         return True, 'already installed'
 
 def pip_install_single_package(package, site_wide = False, isolated=False):
     try:
         from pip.commands import InstallCommand
     except ImportError:
-        log.info('error importing InstallCommand')
+        # log.info('error importing InstallCommand')
         import sys
         sys.exit(0)
     try:
         from pip.exceptions import BadCommand, InstallationError, UninstallationError, CommandError, PreviousBuildDirError
     except ImportError:
-        log.info('error importing pip.exceptions')
+        # log.info('error importing pip.exceptions')
         import sys
         sys.exit(0)
     try:
         from pip.status_codes import ERROR, UNKNOWN_ERROR, PREVIOUS_BUILD_DIR_ERROR
     except ImportError:
-        log.info('error importing pip status codes')
+        # log.info('error importing pip status codes')
         import sys
         sys.exit(0)
 
@@ -173,25 +173,25 @@ def pip_install_single_package(package, site_wide = False, isolated=False):
         if isinstance(status, int):
             return status
     except PreviousBuildDirError as exc:
-        log.critical(str(exc))
-        log.debug('Exception information:', exc_info=True)
-        log.info('PREVIOUS_BUILD_DIR_ERROR')
+        # log.critical(str(exc))
+        # log.debug('Exception information:', exc_info=True)
+        # log.info('PREVIOUS_BUILD_DIR_ERROR')
         return PREVIOUS_BUILD_DIR_ERROR
     except (InstallationError, UninstallationError, BadCommand) as exc:
-        log.critical(str(exc))
-        log.debug('Exception information:', exc_info=True)
-        log.info('InstallationError, UninstallationError, BadCommand')
+        # log.critical(str(exc))
+        # log.debug('Exception information:', exc_info=True)
+        # log.info('InstallationError, UninstallationError, BadCommand')
         return ERROR
     except CommandError as exc:
-        log.critical('ERROR: %s', exc)
-        log.debug('Exception information:', exc_info=True)
-        log.info('CommandError')
+        # log.critical('ERROR: %s', exc)
+        # log.debug('Exception information:', exc_info=True)
+        # log.info('CommandError')
         return ERROR
     except KeyboardInterrupt:
-        log.critical('Operation cancelled by user')
-        log.debug('Exception information:', exc_info=True)
+        # log.critical('Operation cancelled by user')
+        # log.debug('Exception information:', exc_info=True)
         return ERROR
     except:
-        log.info('Installation failed')
-        log.critical('Exception:', exc_info=True)
+        # log.info('Installation failed')
+        # log.critical('Exception:', exc_info=True)
         return UNKNOWN_ERROR
