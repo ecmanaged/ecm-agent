@@ -26,22 +26,22 @@ import __helper as ecm
 from __plugin import ECMPlugin
 from __mplugin import MPlugin
 
-from __logger import LoggerManager
-log = LoggerManager.getLogger(__name__)
+# from __logger import LoggerManager
+# log = LoggerManager.getLogger(__name__)
 
 try:
     from __packages import pip_install_single_package
 except ImportError:
-    log.info('error importing pip_install_single_package')
+    # log.info('error importing pip_install_single_package')
     sys.exit(0)
 try:
     from __packages import packagekit_install_single_package as install_package
 except ImportError:
-    log.info('error importing packagekit_install_single_package')
+    # log.info('error importing packagekit_install_single_package')
     try:
         from __helper import install_package
     except ImportError:
-        log.info('error importing install_package')
+        # log.info('error importing install_package')
         sys.exit(0)
 
 CRITICAL = 2
@@ -203,20 +203,20 @@ class ECMMonitor(ECMPlugin):
                 elif arg_requirements[req]['type'] == 'pip':
                     pip_install.append(arg_requirements[req]['name'])
 
-            log.info("installing system: %s", system_install)
+            # log.info("installing system: %s", system_install)
             for item in system_install:
                 result = install_package(item)
 
                 if not result:
-                    log.info("problem in installing %s", item)
+                    # log.info("problem in installing %s", item)
                     return False
 
-            log.info("installing pip: %s", pip_install)
+            # log.info("installing pip: %s", pip_install)
             for item in pip_install:
                 result = pip_install_single_package(item)
 
                 if not result[0]:
-                    log.info("problem in installing %s", item)
+                    # log.info("problem in installing %s", item)
                     return False
 
         script = None
