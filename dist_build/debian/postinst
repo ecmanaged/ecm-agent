@@ -4,4 +4,9 @@ chown -R ecmanaged:ecmanaged /opt/ecmanaged
 mkdir -p /etc/ecmanaged
 chown -R ecmanaged:ecmanaged /etc/ecmanaged
 
-/opt/ecmanaged/ecagent/init start
+case "$1" in
+    upgrade)
+    if [ -f /opt/ecmanaged/ecagent/init ]; then
+        /opt/ecmanaged/ecagent/init start 2>&1
+    fi
+esac
