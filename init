@@ -7,6 +7,8 @@ PID_FILE=${PID_FILE:-"$HOME/twistd.pid"}
 TAC=${TAC:-"$HOME/$NAME.tac"}
 RETVAL=0
 
+cd ${HOME}
+
 getpid() {
     echo `cat $PID_FILE 2>/dev/null`
 }
