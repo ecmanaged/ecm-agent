@@ -30,7 +30,10 @@ start() {
     else
         $TWISTD -y $TAC 2>/dev/null
     fi
-    RETVAL=$?
+    case "$?" in
+        0) echo 'OK' ;;
+        *) echo 'KO' ;;
+    esac
     echo
 }
 
