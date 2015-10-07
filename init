@@ -18,7 +18,7 @@ start() {
         PID=$(getpid)
         if [ -e /proc/${PID} -a /proc/${PID}/exe ]; then
             echo ${NAME} is already running: $PID
-            exit 2;
+            exit 0;
         else
             rm  -f ${PID_FILE}
         fi
@@ -30,11 +30,11 @@ start() {
     else
         $TWISTD -y $TAC 2>/dev/null
     fi
-    case "$?" in
+    RETVAL=$?
+    case "$RETVAL" in
         0) echo 'OK' ;;
         *) echo 'KO' ;;
     esac
-    echo
 }
 
 stop() {
@@ -44,7 +44,10 @@ stop() {
             echo -n $"Stopping ${NAME}: "
             kill -TERM $PID
             RETVAL=$?
-            echo
+            case "$RETVAL" in
+                0) echo 'OK' ;;
+                *) echo 'KO' ;;
+            esac
         else
             echo -n $"removing stale pid file"
             rm -f ${PID_FILE}
