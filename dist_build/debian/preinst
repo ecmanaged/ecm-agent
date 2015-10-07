@@ -36,12 +36,6 @@ case "$1" in
         fi
     fi
 
-    if [ -f /etc/cron.d/ecmanaged-ecagent ]; then
-        if dpkg-maintscript-helper supports rm_conffile 2>/dev/null; then
-            dpkg-maintscript-helper rm_conffile /etc/cron.d/ecmanaged-ecagent -- "$@"
-        fi
-    fi
-
     if [ -f /opt/ecmanaged/ecagent/init ]; then
         /opt/ecmanaged/ecagent/init stop 2>&1
     fi
