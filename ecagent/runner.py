@@ -128,7 +128,6 @@ class CommandRunner():
         # :TODO Set timeout from command
         cmd_timeout = int(command_args.get('timeout',self.timeout))
         if command_name == 'monitor_plugin_install':
-            log.info('changed time out to 5 minutes')
             cmd_timeout =  3600
 
         if command_name:
