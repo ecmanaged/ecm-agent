@@ -2,10 +2,6 @@
 
 set -e
 
-DIR=${DIR:-/opt/ecmanaged/ecagent}
-
-cd ${DIR}
-
 getent group ecmanaged >/dev/null || groupadd -r ecmanaged
 getent passwd ecmanaged >/dev/null || \
     useradd -r -g ecmanaged -d /opt/ecmanaged -s /usr/sbin/nologin \
