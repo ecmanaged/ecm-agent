@@ -58,6 +58,33 @@ class SMConfigObj(ConfigObj):
             log.error('ERROR: Could not obtain UNIQUE_ID. Please set up XMPP manually')
             raise Exception('Could not obtain UUID. Please set up XMPP manually')
 
+        if not self.get_stored_account():
+            data = None
+            for i in range(360):
+                log.info("Trying to get configuration via URL (ecagent meta-data v2)")
+                data = yield self._get_config(unique_id)
+                log.info('Config: %s' % data)
+                if data:
+                    log.info('Config: %s' % data)
+                    break
+
+                sleep(15)
+
+            if not data:
+                log.error('ERROR: Could not obtain UUID. Please set up XMPP manually')
+                raise Exception('Could not obtain UUID. Please set up XMPP manually')
+
+            try:
+                get_config = json.loads(data)
+
+            except:
+                log.error('ERROR: Invalid configuration received, try later')
+                raise Exception('Invalid configuration received, try later')
+
+            self['XMPP']['account'] = get_config['account']
+            self.write()
+
+
         if self._get_stored_uuid() and self.is_unique_id_same(unique_id):
             log.debug('UNIQUE ID has not changed. Skip UUID check')
 
