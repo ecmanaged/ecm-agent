@@ -15,7 +15,7 @@
 #    under the License.
 
 import os
-import re
+from commands import getstatusoutput
 import time
 
 GO = False
@@ -184,92 +184,35 @@ class ECMLinuxSystemD(ECMPlugin):
 class ECMLinuxInitD(ECMPlugin):
     def cmd_service_control(self, *argv, **kwargs):
         """Syntax: service.control daemon action <force: 0/1>"""
-
-        daemon = kwargs.get('daemon', None)
+        service = kwargs.get('service', None)
         action = kwargs.get('action', None)
-        force = kwargs.get('force', 0)
 
-        if not (daemon and action):
+        if not service or not action:
             raise ecm.InvalidParameters(self.cmd_service_control.__doc__)
 
-        if not force:
-            # try to get init.d daemon
-            initd = self._get_rcd(daemon)
-            if not initd:
-                raise Exception("Unable to find daemon: %s" % daemon)
-            daemon = initd
+        if action not in ['start', 'stop', 'restart']:
+            raise ecm.InvalidParameters('unsupported action')
 
-        daemon = os.path.basename(daemon)
-        ecm.renice_me(-19)
-        out, stdout, stderr = ecm.run_command(INITD + '/' + daemon + ' ' + action)
-        ecm.renice_me(5)
+        status, result = getstatusoutput('service ' +service+ ' '+action)
 
-        return ecm.format_output(out, stdout, stderr)
-
-    def cmd_service_runlevel(self, *argv, **kwargs):
-        return self._get_runlevel()
+        return status == 0, result
 
     def cmd_service_state(self, *argv, **kwargs):
         """Syntax: service.exists daemon"""
 
-        name = kwargs.get('name', None)
+        service = kwargs.get('service', None)
+        status, result = getstatusoutput('service '+service+ ' status')
 
-        if not name:
-            raise ecm.InvalidParameters(self.cmd_service_state.__doc__)
+        return status == 0, result
 
-        daemon = os.path.basename(name)
-        out, stdout, stderr = ecm.run_command(INITD + '/' + daemon + ' status')
-
-        return not bool(out)
 
     def cmd_service_exists(self, *argv, **kwargs):
         """Syntax: service.control daemon action <force: 0/1>"""
 
-        daemon = kwargs.get('daemon', None)
-        return bool(self._get_rcd(daemon))
+        service = kwargs.get('service', None)
+        status, result = getstatusoutput('service '+service+ ' status')
 
-    def _get_runlevel(self):
-        (out, stdout, stderr) = ecm.run_command(RUNLEVEL)
-        if not out:
-            return str(stdout).split(' ')[1].rstrip()
-
-        return 0
-
-    def _get_rcd(self, daemon):
-        runlevel = self._get_runlevel()
-        if not runlevel: return False
-
-        path = RCD + str(runlevel) + '.d'
-
-        if os.path.exists(path):
-            target = os.listdir(path)
-            for path in target:
-                try:
-                    m = re.match(r"^S\d+(.*)$", path)
-                    init = m.group(1)
-                    if init in daemon:
-                        return str(init).rstrip()
-                except:
-                    pass
-
-            # Not exists as default start on runlevel
-            # its a heartbeat daemon?
-            if os.path.exists(HEARTBEAT):
-                for line in open(HEARTBEAT):
-                    if daemon in line:
-                        return self._get_init(daemon)
-
-        else:
-            return self._get_init(daemon)
-
-        return False
-
-    def _get_init(self, daemon):
-        filename = INITD + '/' + daemon
-        if os.path.exists(INITD) and os.path.exists(filename):
-            return daemon
-
-        return False
+        return status == 0
 
 
 class ECMWindows(ECMPlugin):
