@@ -1,7 +1,7 @@
 %define _unpackaged_files_terminate_build 0
 %define name ecmanaged-ecagent
-%define version 2.2
-%define unmangled_version 2.2
+%define version 3.0
+%define unmangled_version 3.0
 %define release 1
 
 Summary: ECManaged  Agent - Monitoring and deployment agent
@@ -17,10 +17,10 @@ BuildArch: noarch
 Vendor: Juan Carlos Moreno<juancarlos.moreno@ecmanaged.com>
 Packager: Arindam Choudhury<arindam@live.com>
 Provides: ecmanaged-ecagent
-Requires(pre): shadow-utils
-Requires: python2 python-devel pygobject3 PackageKit PolicyKit dbus-python python-twisted python-protocols python-configobj python-psutil libxml2-python python-simplejson rpm-python python-crypto python-httplib2 python-pip
+Requires: python2 python-devel python-twisted python-protocols python-configobj python-psutil libxml2-python python-simplejson rpm-python python-crypto python-httplib2 shadow-utils python-pip pygobject3 PolicyKit PackageKit dbus-python
 Url: www.ecmanaged.com
 BuildRequires: systemd
+
 
 %description
 ECManaged  Agent - Monitoring and deployment agent
@@ -42,28 +42,64 @@ getent group ecmanaged >/dev/null || groupadd -r ecmanaged
 getent passwd ecmanaged >/dev/null || \
     useradd -r -g ecmanaged -d /opt/ecmanaged -s /sbin/nologin \
     -c "account for running ecagent" ecmanaged
-if [[ $1 == 2 ]]; then
-  # Stop the service if we're upgrading
-  systemctl stop ecagentd.service >/dev/null 2>&1
+if [ $1 -eq 2 ]; then
+    if [ -f /opt/ecmanaged/ecagent/init ]; then
+        /opt/ecmanaged/ecagent/init stop > /dev/null 2>&1
+    fi
+
+    if [ -f /etc/init.d/ecagentd ]; then
+        /etc/init.d/ecagentd stop
+        chkconfig ecagentd off
+        chkconfig --del ecagentd
+        rm -f /etc/init.d/ecagentd
+    fi
+
+    if which systemctl >/dev/null 2>&1; then
+        if systemctl list-units | grep ecagentd >/dev/null 2>&1; then
+            systemctl stop ecagentd.service
+            systemctl disable ecagentd.service
+            if [ -f /usr/lib/systemd/system/ecagentd.service ]; then
+                rm -f /usr/lib/systemd/system/ecagentd.service
+            fi
+
+            if [ -f /lib/systemd/system/ecagentd.service ]; then
+                rm -f /lib/systemd/system/ecagentd.service
+            fi
+            systemctl daemon-reload
+        fi
+    fi
 fi
 
 %post
-systemctl daemon-reload
-systemctl enable ecagentd.service
-systemctl daemon-reload
+if getent passwd ecmanaged >/dev/null 2>&1; then
+    chown -R ecmanaged:ecmanaged /opt/ecmanaged
+    mkdir -p /etc/ecmanaged
+    chown -R ecmanaged:ecmanaged /etc/ecmanaged
+fi
 
-chown -R ecmanaged:ecmanaged /opt/ecmanaged
-mkdir -p /etc/ecmanaged
-chown -R ecmanaged:ecmanaged /etc/ecmanaged
-
-systemctl start ecagentd.service >/dev/null 2>&1
+if [ $1 -eq 2 ]; then
+    /opt/ecmanaged/ecagent/init start > /dev/null 2>&1
+fi
 
 %preun
-if [[ $1 -eq 0 ]]; then
-  # Stop and remove service on uninstall
-  systemctl stop ecagentd.service >/dev/null 2>&1
-  systemctl disable ecagentd.service
-  systemctl daemon-reload
+if [ $1 -eq 0 ]; then
+    if [ -f /opt/ecmanaged/ecagent/init ]; then
+        /opt/ecmanaged/ecagent/init stop > /dev/null 2>&1
+    fi
+
+    if [ -f /etc/init.d/ecagentd ]; then
+        /etc/init.d/ecagentd stop
+        chkconfig ecagentd off
+        chkconfig --del ecagentd
+    fi
+
+    if which systemctl >/dev/null 2>&1; then
+        if systemctl list-units | grep ecagentd >/dev/null 2>&1; then
+            systemctl stop ecagentd.service
+            systemctl disable ecagentd.service
+            systemctl daemon-reload
+        fi
+    fi
 fi
 
 %files -f INSTALLED_FILES
