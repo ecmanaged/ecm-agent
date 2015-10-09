@@ -115,8 +115,8 @@ class ECMLinuxSystemD(ECMPlugin):
             except dbus.DBusException:
                 raise Exception("error stopping")
 
-            # Ensure that the service has been stopeed
-            try: job = systemd_manager.KillUnit(service, 'replace')
+            # Ensure that the service has been stopped
+            try: job = systemd_manager.KillUnit(service, 'main', 15)
             except: pass
 
         if action == 'restart':
