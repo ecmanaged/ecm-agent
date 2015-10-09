@@ -71,18 +71,18 @@ class SMConfigObj(ConfigObj):
                 sleep(15)
 
             if not data:
-                log.error('ERROR: Could not obtain UUID. Please set up XMPP manually')
-                raise Exception('Could not obtain UUID. Please set up XMPP manually')
+                log.error('ERROR: Could not obtain data. Please set up XMPP manually')
 
             try:
                 get_config = json.loads(data)
-
             except:
                 log.error('ERROR: Invalid configuration received, try later')
-                raise Exception('Invalid configuration received, try later')
 
-            self['XMPP']['account'] = get_config['account']
-            self.write()
+            try:
+                self['XMPP']['account'] = get_config['account']
+                self.write()
+            except:
+                log.error('could not obtain account information')
 
 
         if self._get_stored_uuid() and self.is_unique_id_same(unique_id):
