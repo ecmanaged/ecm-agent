@@ -18,6 +18,7 @@
 import os
 import gc
 import sys
+import stat
 import random
 
 # Twisted
@@ -63,6 +64,8 @@ config_file_init = os.path.join(os.path.sep, root_dir, 'config', 'ecagent.init.c
 # Is initial config (move init to cfg)
 if not os.path.exists(config_file) and os.path.exists(config_file_init):
     os.rename(config_file_init, config_file)
+
+os.chmod(config_file, stat.S_IRWXU)
 
 if not os.path.isfile(config_file):
     raise Exception("Config file not found: " + config_file)
