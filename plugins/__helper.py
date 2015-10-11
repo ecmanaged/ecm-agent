@@ -446,8 +446,9 @@ def output(string):
     """ Helper function """
     return '[' + str(time()) + '] ' + str(string) + "\n"
 
-def format_output(out, std_output, std_error):
+def format_output(out, std_output, std_error = None):
     """ Helper function """
+    if not out: out = 0
     format_out = {'out': out, 'stdout': std_output, 'stderr': std_error}
 
     return format_out
