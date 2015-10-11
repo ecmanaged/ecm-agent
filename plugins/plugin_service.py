@@ -18,11 +18,11 @@ import os
 from commands import getstatusoutput
 import time
 
-GO = False
+DBUS = False
 
 try:
     import dbus
-    GO = True
+    DBUS = True
 except:
     pass
 
@@ -321,7 +321,7 @@ if ecm.is_win():
     ECMWindows().run()
 
 else:
-    if(GO):
+    if(DBUS):
         ECMLinuxSystemD().run()
     else:
         # Do our best with init.d
