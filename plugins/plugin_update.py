@@ -14,69 +14,95 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-GO = False
+RUN_AS_ROOT = True
 
-try:
-    from gi.repository import PackageKitGlib as pk
-    GO = True
-except:
-    pass
+import os
+import sys
 
 # Local
 from __plugin import ECMPlugin
 import __helper as ecm
 
-class ECMSystemUpdate(ECMPlugin):
-    def cmd_check_update(self, *argv, **kwargs):
-        client = pk.Client()
-        client.refresh_cache(False, None, lambda p, t, d: True, None)
-        res = client.get_updates(pk.FilterEnum.NONE, None, lambda p, t, d: True, None)
-        packages = []
-        for pkg in res.get_package_array():
-            packages.append(pkg.get_id())
+from commands import getstatusoutput
+from time import time
 
-        return packages
+class ECMSystemUpdateAPT(ECMPlugin):
+    def cmd_update_check(self, *argv, **kwargs):
+        status, result = self._update()
+        status, result = getstatusoutput('nice apt-get -s -o Debug::NoLocking=true upgrade | grep ^Inst | cut -f2 -d" "')
+        
+        if status:
+            raise Exception('Problem getting update: %s' % result)
+        
+        pkg_list = []
+        for pkg in result.split('\n'):
+            if not pkg: continue
+            pkg_list.append(pkg)
+        
+        return pkg_list
 
-    def cmd__update_system(self, *argv, **kwargs):
-        client = pk.Client()
-        client.refresh_cache(False, None, lambda p, t, d: True, None)
-        res = client.get_updates(pk.FilterEnum.NONE, None, lambda p, t, d: True, None)
-        packages = []
-        for pkg in res.get_package_array():
-            if pkg.get_id.startswith('ecmanaged'):
-                continue
-            packages.append(pkg.get_id())
-
-        # updating the system
-        if packages:
-            res = client.install_packages(False, packages, None, lambda p, t, d: True, None)
-            return res.get_exit_code() == pk.ExitEnum.SUCCESS
-
-        return True
-
-    def cmd__update_agent(self, *argv, **kwargs):
+    def cmd_update_system(self, *argv, **kwargs):
+        log_file = '/var/tmp/system-update_' + str(time()) + '.log'
+        
+        # Run on detached child
         if ecm.fork('/'):
-           return True
+            return log_file    
+                           
+        self._update()
+        os.environ["LANG"] = "C"
+        os.environ["DEBIAN_FRONTEND"] = "noninteractive"
+        status, output = getstatusoutput('nice apt-get -f -y -o DPkg::Options::=--force-confold -qq \
+            --allow-unauthenticated -o Debug::NoLocking=true upgrade < /dev/null')
 
-        client = pk.Client()
-        client.refresh_cache(False, None, lambda p, t, d: True, None)
-        res = client.get_updates(pk.FilterEnum.NONE, None, lambda p, t, d: True, None)
-        packages = []
-        for pkg in res.get_package_array():
-            if pkg.get_id.startswith('ecmanaged'):
-                packages.append(pkg.get_id())
+        ecm.file_write(log_file, output)
+        sys.exit(status)
 
-        # updating the system
-        if packages:
-            res = client.install_packages(False, packages, None, lambda p, t, d: True, None)
-            return res.get_exit_code() == pk.ExitEnum.SUCCESS
+    @staticmethod
+    def _update():
+        return getstatusoutput('nice apt-get -o Debug::NoLocking=true update')
 
-        return True
 
-if(GO):
-    ECMSystemUpdate().run()
+class ECMSystemUpdateYUM(ECMPlugin):
+    def cmd_update_check(self, *argv, **kwargs):
+        status, result = self._update()
+        status, result = getstatusoutput('nice yum check-update | egrep -e "x86|i386|noarch" | grep -v ^Exclud | cut -f1 -d" "')
+        
+        if status:
+            raise Exception('Problem getting update: %s' % result)
+        
+        pkg_list = []
+        for pkg in result.split('\n'):
+            if not pkg: continue
+            pkg_list.append(pkg)
+        
+        return pkg_list
+
+    def cmd_update_system(self, *argv, **kwargs):
+        log_file = '/var/tmp/system-update_' + str(time()) + '.log'
+        
+        # Run on detached child
+        if ecm.fork('/'):
+            return log_file
+                           
+        self._update()
+        os.environ["LANG"] = "C"
+        status, output = getstatusoutput('nice yum update -y < /dev/null')
+
+        ecm.file_write(log_file, output)
+        sys.exit(status)
+
+    @staticmethod
+    def _update():
+        return getstatusoutput('nice yum clean all')
+        
+
+distribution, _version = ecm.get_distribution()
+if distribution.lower() in ['debian', 'ubuntu']:
+    ECMSystemUpdateAPT().run()
+
+elif distribution.lower() in ['centos', 'redhat', 'fedora', 'amazon']:
+    ECMSystemUpdateYUM().run()
+
 else:
-    # Do our best with init.d
-    pass
-
-
+    # Not supported
+    sys.exit()
