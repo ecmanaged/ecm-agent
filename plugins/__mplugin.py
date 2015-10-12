@@ -162,13 +162,12 @@ class MPlugin:
 
     def uninstall(self, id):
         plugin_path = abspath(join(self.path, id))
-        move_to = abspath(join(self.path, '.' + id))
 
         # Exists and is inside our plugin path
         if exists(plugin_path) and self.path in plugin_path:
-            from shutil import move
+            from shutil import rmtree
 
-            move(plugin_path, move_to)
+            rmtree(plugin_path, ignore_errors=True)
             return True
 
         return False

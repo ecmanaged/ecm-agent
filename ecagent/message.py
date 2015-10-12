@@ -25,7 +25,7 @@ from twisted.words.xish.domish import Element
 import ecagent.twlogging as log
 from ecagent.functions import mem_clean
 
-AGENT_VERSION_CORE = 2
+AGENT_VERSION_CORE = 3
 AGENT_VERSION_PROTOCOL = 1
 
 

@@ -29,20 +29,32 @@ from time import time
 class ECMSystemUpdateAPT(ECMPlugin):
     def cmd_update_check(self, *argv, **kwargs):
         status, result = self._update()
-        return getstatusoutput('nice apt-get -s -o Debug::NoLocking=true upgrade | grep ^Inst | cut -f2 -d" "')
+        status, result = getstatusoutput('nice apt-get -s -o Debug::NoLocking=true upgrade | grep ^Inst | cut -f2 -d" "')
+        
+        if status:
+            raise Exception('Problem getting update: %s' % result)
+        
+        pkg_list = []
+        for pkg in result.split('\n'):
+            if not pkg: continue
+            pkg_list.append(pkg)
+            
+        return ecm.format_output(status, pkg_list)
 
     def cmd_update_system(self, *argv, **kwargs):
+        log_file = '/var/tmp/system-update_' + str(time()) + '.log'
+        
         # Run on detached child
         if ecm.fork('/'):
-            return True
+            return log_file    
                            
         self._update()
         os.environ["LANG"] = "C"
         os.environ["DEBIAN_FRONTEND"] = "noninteractive"
-        status, output = getstatusoutput('nice apt-get -o DPkg::Options::=--force-confold -qq \
-            --allow-unauthenticated -o Debug::NoLocking=true upgrade')
+        status, output = getstatusoutput('nice apt-get -f -y -o DPkg::Options::=--force-confold -qq \
+            --allow-unauthenticated -o Debug::NoLocking=true upgrade < /dev/null')
 
-        ecm.file_write('/var/tmp/system-update_' + str(time()) + '.log', output)
+        ecm.file_write(log_file, output)
         sys.exit(status)
 
     @staticmethod
@@ -53,18 +65,30 @@ class ECMSystemUpdateAPT(ECMPlugin):
 class ECMSystemUpdateYUM(ECMPlugin):
     def cmd_update_check(self, *argv, **kwargs):
         status, result = self._update()
-        return getstatusoutput('nice yum check-update | egrep -e "x86|i386|noarch" | grep -v ^Exclud | cut -f1 -d" "')
+        status, result = getstatusoutput('nice yum check-update | egrep -e "x86|i386|noarch" | grep -v ^Exclud | cut -f1 -d" "')
+        
+        if status:
+            raise Exception('Problem getting update: %s' % result)
+        
+        pkg_list = []
+        for pkg in result.split('\n'):
+            if not pkg: continue
+            pkg_list.append(pkg)
+        
+        return ecm.format_output(status, pkg_list)
 
     def cmd_update_system(self, *argv, **kwargs):
+        log_file = '/var/tmp/system-update_' + str(time()) + '.log'
+        
         # Run on detached child
         if ecm.fork('/'):
-            return True
+            return log_file
                            
         self._update()
         os.environ["LANG"] = "C"
-        status, output = getstatusoutput('nice yum update -y')
+        status, output = getstatusoutput('nice yum update -y < /dev/null')
 
-        ecm.file_write('/var/tmp/system-update_' + str(time()) + '.log', output)
+        ecm.file_write(log_file, output)
         sys.exit(status)
 
     @staticmethod

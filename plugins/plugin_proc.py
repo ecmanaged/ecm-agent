@@ -14,6 +14,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+RUN_AS_ROOT = True
+
 import os
 import re
 import psutil

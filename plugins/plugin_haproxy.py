@@ -15,6 +15,8 @@
 #    under the License.
 
 
+RUN_AS_ROOT = True
+
 import simplejson as json
 from base64 import b64decode
 from __ecmhaproxy import ECMHAConfig, ECMHASocket

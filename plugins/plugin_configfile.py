@@ -1,5 +1,7 @@
 # -*- coding:utf-8 -*-
 
+RUN_AS_ROOT = False
+
 import os
 
 from base64 import b64decode

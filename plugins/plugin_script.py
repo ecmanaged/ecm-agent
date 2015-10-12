@@ -14,6 +14,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+RUN_AS_ROOT = False
+
 from tempfile import mkdtemp
 from base64 import b64decode
 from shutil import rmtree

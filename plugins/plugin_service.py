@@ -14,19 +14,24 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+RUN_AS_ROOT = True
+
 import os
 from commands import getstatusoutput
 import time
 
-GO = False
+DBUS = False
 
 try:
     import dbus
-    GO = True
+    bus = dbus.SystemBus()
+    systemd_object = bus.get_object(SYSTEMD_BUSNAME, SYSTEMD_PATH)
+    systemd_manager = dbus.Interface(systemd_object, SYSTEMD_MANAGER_INTERFACE)
+    DBUS = True
+
 except:
     pass
-
-
+    
 # Local
 from __plugin import ECMPlugin
 import __helper as ecm
@@ -51,35 +56,17 @@ DBUS_PROPERTIES = 'org.freedesktop.DBus.Properties'
 class ECMLinuxSystemD(ECMPlugin):
     def cmd_service_control(self, *argv, **kwargs):
         """
-        Syntax: service.control name.service ['start','stop','restart','status']
+        Syntax: service.control service ['start','stop','restart','status']
         """
+        print str(kwargs)
         service = kwargs.get('service', None)
         action = kwargs.get('action', None)
 
         if not service or not action:
             raise ecm.InvalidParameters(self.cmd_service_control.__doc__)
 
-        if not service.split('.')[-1] == 'service':
-            raise ecm.InvalidParameters(self.cmd_service_control.__doc__)
-
         if action not in ['start', 'stop', 'restart']:
             raise ecm.InvalidParameters('unsupported action')
-
-        # proxy = bus.get_object('org.freedesktop.PolicyKit1', '/org/freedesktop/PolicyKit1/Authority')
-        # authority = dbus.Interface(proxy, dbus_interface='org.freedesktop.PolicyKit1.Authority')
-        # system_bus_name = bus.get_unique_name()
-        #
-        # subject = ('system-bus-name', {'name' : system_bus_name})
-        # action_id = 'org.freedesktop.systemd1.manage-units'
-        # details = {}
-        # flags = 1            # AllowUserInteraction flag
-        # cancellation_id = '' # No cancellation id
-        #
-        # result = authority.CheckAuthorization(subject, action_id, details, flags, cancellation_id)
-        #
-        #
-        # if result[1] != 0:
-        #     return False, 'Need administrative privilege', 'NA'
 
         try:
             bus = dbus.SystemBus()
@@ -182,6 +169,20 @@ class ECMLinuxSystemD(ECMPlugin):
 
 
 class ECMLinuxInitD(ECMPlugin):
+    def run(self):
+        a = self.cmd_service_state(service='nginx')
+        print str(a)
+        a = self.cmd_service_exists(service='nginx')
+        print str(a)
+        a = self.cmd_service_control(service='nginx', action='stop')
+        print str(a)
+        
+        a = self.cmd_service_control(service='nginx', action='start')
+        print str(a)
+        a = self.cmd_service_control(service='nginx', action='restart')
+        print str(a)
+       
+        
     def cmd_service_control(self, *argv, **kwargs):
         """Syntax: service.control daemon action <force: 0/1>"""
         service = kwargs.get('service', None)
@@ -193,7 +194,7 @@ class ECMLinuxInitD(ECMPlugin):
         if action not in ['start', 'stop', 'restart']:
             raise ecm.InvalidParameters('unsupported action')
 
-        status, result = getstatusoutput('service ' +service+ ' '+action)
+        status, result = getstatusoutput('service ' + service + ' '+action)
 
         return status == 0, result
 
@@ -201,7 +202,10 @@ class ECMLinuxInitD(ECMPlugin):
         """Syntax: service.exists daemon"""
 
         service = kwargs.get('service', None)
-        status, result = getstatusoutput('service '+service+ ' status')
+        if not service:
+            raise ecm.InvalidParameters(self.cmd_service_control.__doc__)
+                    
+        status, result = getstatusoutput('service ' + service + ' status')
 
         return status == 0, result
 
@@ -210,9 +214,12 @@ class ECMLinuxInitD(ECMPlugin):
         """Syntax: service.control daemon action <force: 0/1>"""
 
         service = kwargs.get('service', None)
-        status, result = getstatusoutput('service '+service+ ' status')
+        if not service:
+            raise ecm.InvalidParameters(self.cmd_service_control.__doc__)
+            
+        status, result = getstatusoutput('service ' + service + ' status')
 
-        return status == 0
+        return result
 
 
 class ECMWindows(ECMPlugin):
@@ -255,7 +262,6 @@ class ECMWindows(ECMPlugin):
             raise Exception("Timeout stopping service %s " % lserv)
 
         elif action == 'restart':
-            # stop
             ws.ControlService(handle, ws.SERVICE_CONTROL_STOP)
 
             while time.time() < maxtime:
@@ -264,7 +270,6 @@ class ECMWindows(ECMPlugin):
                 if stat[1] == ws.SERVICE_STOPPED:
                     break
 
-            # start
             ws.StartService(handle, None)
 
             while time.time() < maxtime:
@@ -321,7 +326,7 @@ if ecm.is_win():
     ECMWindows().run()
 
 else:
-    if(GO):
+    if(DBUS):
         ECMLinuxSystemD().run()
     else:
         # Do our best with init.d

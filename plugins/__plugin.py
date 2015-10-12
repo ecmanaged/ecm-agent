@@ -14,7 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-_PLUGIN_VERSION = 2.2
+_PLUGIN_VERSION = 3.0
 _ALLOW_PLUGIN_UPDATES = 1
 
 _E_RUNNING_COMMAND = 253

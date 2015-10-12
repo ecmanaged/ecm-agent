@@ -45,7 +45,7 @@ _DEFAULT_GROUP_WINDOWS = 'Administrators'
 
 _FLUSH_WORKER_SLEEP_TIME = 0.2
 
-AGENT_VERSION = 2.2
+AGENT_VERSION = 3.0
 
 
 def is_win():
@@ -446,8 +446,9 @@ def output(string):
     """ Helper function """
     return '[' + str(time()) + '] ' + str(string) + "\n"
 
-def format_output(out, std_output, std_error):
+def format_output(out, std_output, std_error = None):
     """ Helper function """
+    if not out: out = 0
     format_out = {'out': out, 'stdout': std_output, 'stderr': std_error}
 
     return format_out
