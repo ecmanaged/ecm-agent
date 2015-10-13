@@ -169,20 +169,6 @@ class ECMLinuxSystemD(ECMPlugin):
 
 
 class ECMLinuxInitD(ECMPlugin):
-    def run(self):
-        a = self.cmd_service_state(service='nginx')
-        print str(a)
-        a = self.cmd_service_exists(service='nginx')
-        print str(a)
-        a = self.cmd_service_control(service='nginx', action='stop')
-        print str(a)
-        
-        a = self.cmd_service_control(service='nginx', action='start')
-        print str(a)
-        a = self.cmd_service_control(service='nginx', action='restart')
-        print str(a)
-       
-        
     def cmd_service_control(self, *argv, **kwargs):
         """Syntax: service.control daemon action <force: 0/1>"""
         service = kwargs.get('service', None)
