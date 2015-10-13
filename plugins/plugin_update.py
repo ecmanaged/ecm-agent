@@ -35,7 +35,7 @@ log_file = '/opt/ecmanaged/ecagent/log/system-update_' + str(time()) + '.log'
 
 
 class ECMSystemPackageKit(ECMPlugin):
-    def cmd_check_update(self, *argv, **kwargs):
+    def cmd_update_check(self, *argv, **kwargs):
         client = pk.Client()
         client.refresh_cache(False, None, lambda p, t, d: True, None)
         res = client.get_updates(pk.FilterEnum.NONE, None, lambda p, t, d: True, None)
@@ -45,7 +45,7 @@ class ECMSystemPackageKit(ECMPlugin):
 
         return ecm.format_output(res.get_exit_code() == pk.ExitEnum.SUCCESS, pkg_list)
 
-    def cmd__update_system(self, *argv, **kwargs):
+    def cmd_update_system(self, *argv, **kwargs):
         # Run on detached child
         if ecm.fork('/'):
             return log_file
