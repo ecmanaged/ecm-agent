@@ -35,16 +35,7 @@ try:
     from __packages import pip_install_single_package
 except ImportError:
     # log.info('error importing pip_install_single_package')
-    sys.exit(0)
-try:
-    from __packages import packagekit_install_single_package as install_package
-except ImportError:
-    # log.info('error importing packagekit_install_single_package')
-    try:
-        from __helper import install_package
-    except ImportError:
-        # log.info('error importing install_package')
-        sys.exit(0)
+    pass
 
 CRITICAL = 2
 
@@ -207,7 +198,7 @@ class ECMMonitor(ECMPlugin):
 
             # log.info("installing system: %s", system_install)
             for item in system_install:
-                result = install_package(item)
+                result = ecm.install_package(item)
 
                 if not result:
                     # log.info("problem in installing %s", item)
