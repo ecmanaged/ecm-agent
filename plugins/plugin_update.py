@@ -18,19 +18,20 @@ RUN_AS_ROOT = True
 
 import os
 import sys
+from time import time
 
 # Local
 from __plugin import ECMPlugin
 import __helper as ecm
 
-pkg_kit = False
+pkg_kit = True
 
 try:
     from gi.repository import PackageKitGlib as pk
-    pkg_kit = True
 except ImportError:
+    pkg_kit = False
     from commands import getstatusoutput
-    from time import time
+
 log_file = '/opt/ecmanaged/ecagent/log/system-update_' + str(time()) + '.log'
 
 
@@ -131,15 +132,13 @@ class ECMSystemUpdateYUM(ECMPlugin):
         return getstatusoutput('nice yum clean all')
 
 if pkg_kit:
-    ECMSystemPackageKit.run()
+    ECMSystemPackageKit().run()
 else:
     distribution, _version = ecm.get_distribution()
     if distribution.lower() in ['debian', 'ubuntu']:
         ECMSystemUpdateAPT().run()
-
     elif distribution.lower() in ['centos', 'redhat', 'fedora', 'amazon']:
         ECMSystemUpdateYUM().run()
-
     else:
         # Not supported
         sys.exit()
