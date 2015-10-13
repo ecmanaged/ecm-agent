@@ -23,8 +23,47 @@ import sys
 from __plugin import ECMPlugin
 import __helper as ecm
 
-from commands import getstatusoutput
-from time import time
+pkg_kit = False
+
+try:
+    from gi.repository import PackageKitGlib as pk
+    pkg_kit = True
+except ImportError:
+    from commands import getstatusoutput
+    from time import time
+log_file = '/opt/ecmanaged/ecagent/log/system-update_' + str(time()) + '.log'
+
+
+class ECMSystemPackageKit(ECMPlugin):
+    def cmd_check_update(self, *argv, **kwargs):
+        client = pk.Client()
+        client.refresh_cache(False, None, lambda p, t, d: True, None)
+        res = client.get_updates(pk.FilterEnum.NONE, None, lambda p, t, d: True, None)
+        pkg_list = []
+        for pkg in res.get_package_array():
+            pkg_list.append(pkg.get_id())
+
+        return ecm.format_output(res.get_exit_code() == pk.ExitEnum.SUCCESS, pkg_list)
+
+    def cmd__update_system(self, *argv, **kwargs):
+        # Run on detached child
+        if ecm.fork('/'):
+            return log_file
+
+        client = pk.Client()
+        client.refresh_cache(False, None, lambda p, t, d: True, None)
+        res = client.get_updates(pk.FilterEnum.NONE, None, lambda p, t, d: True, None)
+        pkg_list = []
+        for pkg in res.get_package_array():
+            pkg_list.append(pkg.get_id())
+
+        # updating the system
+        if pkg_list:
+            res = client.install_packages(False, pkg_list, None, lambda p, t, d: True, None)
+            ecm.file_write(log_file, pkg_list)
+            return res.get_exit_code() == pk.ExitEnum.SUCCESS
+        else:
+            return "No updates"
 
 class ECMSystemUpdateAPT(ECMPlugin):
     def cmd_update_check(self, *argv, **kwargs):
@@ -42,8 +81,6 @@ class ECMSystemUpdateAPT(ECMPlugin):
         return ecm.format_output(status, pkg_list)
 
     def cmd_update_system(self, *argv, **kwargs):
-        log_file = '/var/tmp/system-update_' + str(time()) + '.log'
-        
         # Run on detached child
         if ecm.fork('/'):
             return log_file    
@@ -78,8 +115,6 @@ class ECMSystemUpdateYUM(ECMPlugin):
         return ecm.format_output(status, pkg_list)
 
     def cmd_update_system(self, *argv, **kwargs):
-        log_file = '/var/tmp/system-update_' + str(time()) + '.log'
-        
         # Run on detached child
         if ecm.fork('/'):
             return log_file
@@ -94,15 +129,17 @@ class ECMSystemUpdateYUM(ECMPlugin):
     @staticmethod
     def _update():
         return getstatusoutput('nice yum clean all')
-        
 
-distribution, _version = ecm.get_distribution()
-if distribution.lower() in ['debian', 'ubuntu']:
-    ECMSystemUpdateAPT().run()
-
-elif distribution.lower() in ['centos', 'redhat', 'fedora', 'amazon']:
-    ECMSystemUpdateYUM().run()
-
+if pkg_kit:
+    ECMSystemPackageKit.run()
 else:
-    # Not supported
-    sys.exit()
+    distribution, _version = ecm.get_distribution()
+    if distribution.lower() in ['debian', 'ubuntu']:
+        ECMSystemUpdateAPT().run()
+
+    elif distribution.lower() in ['centos', 'redhat', 'fedora', 'amazon']:
+        ECMSystemUpdateYUM().run()
+
+    else:
+        # Not supported
+        sys.exit()
