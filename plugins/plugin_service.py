@@ -16,9 +16,15 @@
 
 RUN_AS_ROOT = True
 
-import os
 from commands import getstatusoutput
 import time
+
+# contants for systemd
+SYSTEMD_BUSNAME = 'org.freedesktop.systemd1'
+SYSTEMD_PATH = '/org/freedesktop/systemd1'
+SYSTEMD_MANAGER_INTERFACE = 'org.freedesktop.systemd1.Manager'
+SYSTEMD_UNIT_INTERFACE = 'org.freedesktop.systemd1.Unit'
+DBUS_PROPERTIES = 'org.freedesktop.DBus.Properties'
 
 DBUS = False
 
@@ -38,21 +44,7 @@ import __helper as ecm
 
 SVC_TIMEOUT = 120
 
-# contants for init.d
-RCD = '/etc/rc'
-INITD = '/etc/init.d'
-RUNLEVEL = '/sbin/runlevel'
-HEARTBEAT = '/etc/heartbeat/haresources'
 
-# contants for systemd
-SYSTEMD_BUSNAME = 'org.freedesktop.systemd1'
-SYSTEMD_PATH = '/org/freedesktop/systemd1'
-SYSTEMD_MANAGER_INTERFACE = 'org.freedesktop.systemd1.Manager'
-SYSTEMD_UNIT_INTERFACE = 'org.freedesktop.systemd1.Unit'
-DBUS_PROPERTIES = 'org.freedesktop.DBus.Properties'
-
-
-# noinspection PyUnusedLocal,PyUnusedLocal,PyUnusedLocal
 class ECMLinuxSystemD(ECMPlugin):
     def cmd_service_control(self, *argv, **kwargs):
         """
@@ -64,6 +56,9 @@ class ECMLinuxSystemD(ECMPlugin):
 
         if not service or not action:
             raise ecm.InvalidParameters(self.cmd_service_control.__doc__)
+
+        if not service.split('.')[-1] == 'service':
+            service = service + '.service'
 
         if action not in ['start', 'stop', 'restart']:
             raise ecm.InvalidParameters('unsupported action')
