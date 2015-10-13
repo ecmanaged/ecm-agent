@@ -53,8 +53,9 @@ class SMConfigObj(ConfigObj):
     @inlineCallbacks
     def check_config(self):
         unique_id = self._get_unique_id()
+        account_id = self.get_stored_account()
 
-        if not unique_id:
+        if not unique_id or not account_id:
             log.error('ERROR: Could not obtain UNIQUE_ID. Please set up XMPP manually')
             raise Exception('Could not obtain UUID. Please set up XMPP manually')
 
@@ -63,7 +64,6 @@ class SMConfigObj(ConfigObj):
             for i in range(360):
                 log.info("Trying to get configuration via URL (ecagent meta-data v2)")
                 data = yield self._get_config(unique_id)
-                log.info('Config: %s' % data)
                 if data:
                     log.info('Config: %s' % data)
                     break
