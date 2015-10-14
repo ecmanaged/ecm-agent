@@ -53,43 +53,34 @@ class SMConfigObj(ConfigObj):
     @inlineCallbacks
     def check_config(self):
         unique_id = self._get_unique_id()
-        account_id = self.get_stored_account()
 
-        if not unique_id or not account_id:
+        if not unique_id:
             log.error('ERROR: Could not obtain UNIQUE_ID. Please set up XMPP manually')
             raise Exception('Could not obtain UUID. Please set up XMPP manually')
 
         if not self.get_stored_account():
-            data = None
-            for i in range(360):
-                log.info("Trying to get configuration via URL (ecagent meta-data v2)")
-                data = yield self._get_config(unique_id)
-                if data:
-                    log.info('Config: %s' % data)
-                    break
+            log.info("Trying to get account id via URL (ecagent meta-data v2)")
+            data = yield self._get_config(unique_id)
+            if data:
+                log.info('Config: %s' % data)
 
-                sleep(15)
+                try:
+                    get_config = json.loads(data)
+                    self['XMPP']['account'] = get_config['account']
+                    self.write()
+                    log.info("updated configuration with account id via URL (ecagent meta-data v2)")
+                except:
+                    log.error('could not obtain account information')
 
-            if not data:
-                log.error('ERROR: Could not obtain data. Please set up XMPP manually')
-
-            try:
-                get_config = json.loads(data)
-            except:
-                log.error('ERROR: Invalid configuration received, try later')
-
-            try:
-                self['XMPP']['account'] = get_config['account']
-                self.write()
-            except:
-                log.error('could not obtain account information')
-
+            else:
+                log.info('ERROR: unable to get account id via URL (ecagent meta-data v2)')
 
         if self._get_stored_uuid() and self.is_unique_id_same(unique_id):
             log.debug('UNIQUE ID has not changed. Skip UUID check')
 
             # Updates from v2 to v3 write account info
             self['XMPP']['user'] = self['XMPP']['user'].split('@')[0]
+            self.write()
 
         else:
              # Try to get uuid (one hour and a half loop: 360x15)
