@@ -146,13 +146,13 @@ class SMConfigObj(ConfigObj):
         return str(unique_id) == str(self._get_stored_unique_id())
 
     def _get_stored_uuid(self):
-        return self['XMPP'].get('user', '')
+        return self['XMPP'].get('user', None)
 
     def _get_stored_unique_id(self):
-        return self['XMPP'].get('unique_id', '')
+        return self['XMPP'].get('unique_id', None)
 
     def get_stored_account(self):
-        return self['XMPP'].get('account', '')
+        return self['XMPP'].get('account', None)
 
     def parse_meta_data(self, json_data):
         meta_data = None
