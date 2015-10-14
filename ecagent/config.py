@@ -52,7 +52,7 @@ class SMConfigObj(ConfigObj):
 
     @inlineCallbacks
     def check_config(self):
-        if self._get_stored_uuid() is None or self.get_stored_account() is None:
+        if self._get_stored_uuid() is None and self.get_stored_account() is None:
             log.error('Could not obtain setup UUID or account-id. Please set up XMPP manually')
             raise Exception('Please setup UUID or account-id manually')
 
