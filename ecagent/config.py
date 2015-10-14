@@ -52,6 +52,10 @@ class SMConfigObj(ConfigObj):
 
     @inlineCallbacks
     def check_config(self):
+        if self._get_stored_uuid() is None or self.get_stored_account() is None:
+            log.error('Could not obtain setup UUID or account-id. Please set up XMPP manually')
+            raise Exception('Please setup UUID or account-id manually')
+
         unique_id = self._get_unique_id()
 
         if not unique_id:
@@ -162,13 +166,13 @@ class SMConfigObj(ConfigObj):
         return str(unique_id) == str(self._get_stored_unique_id())
 
     def _get_stored_uuid(self):
-        return self['XMPP'].get('user', '')
+        return self['XMPP'].get('user', None)
 
     def _get_stored_unique_id(self):
-        return self['XMPP'].get('unique_id', '')
+        return self['XMPP'].get('unique_id', None)
 
     def get_stored_account(self):
-        return self['XMPP'].get('account', '')
+        return self['XMPP'].get('account', None)
 
     @staticmethod
     def _get_ip():
