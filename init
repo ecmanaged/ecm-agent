@@ -44,6 +44,10 @@ stop() {
             echo -n $"Stopping ${NAME}: "
             kill -TERM $PID
             RETVAL=$?
+
+            sleep(2)
+            kill -9 $PID
+
             case "$RETVAL" in
                 0) echo 'OK' ;;
                 *) echo 'KO' ;;
