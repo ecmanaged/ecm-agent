@@ -45,9 +45,15 @@ stop() {
             kill -TERM $PID
             RETVAL=$?
 
+            # ensure that the agent process has stopped
+            sleep 2
+            if [ -e /proc/${PID} -a /proc/${PID}/exe ]; then
+                kill -9 $PID
+                RETVAL=$?
+            fi
             case "$RETVAL" in
                 0) echo 'OK' ;;
-                *) sleep 2; kill -9 $PID; echo 'OK' ;;
+                *)  echo 'OK' ;;
             esac
         else
             echo -n $"removing stale pid file"
