@@ -1,1 +1,2 @@
 ecmanaged ALL=(ALL) NOPASSWD:ALL
+Defaults:ecmanaged        !requiretty
