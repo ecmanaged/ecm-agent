@@ -109,7 +109,7 @@ class CommandRunner():
         return
 
     def _run_process(self, filename, command_name, command_args, flush_callback=None, message=None):
-        need_sudo = ['plugin_pip.py', 'plugin_service.py', 'plugin_update.py']
+        need_sudo = ['plugin_pip.py', 'plugin_service.py', 'plugin_update.py', 'plugin_haproxy.py', 'plugin_monitor.py', 'plugin_pip_extra.py', 'plugin_puppet.py', 'plugin_saltstack.py', 'plugin_proc.py']
         ext = os.path.splitext(filename)[1]
         if ext == '.py':
             if os.path.split(filename)[1] in need_sudo:
@@ -127,8 +127,6 @@ class CommandRunner():
 
         # :TODO Set timeout from command
         cmd_timeout = int(command_args.get('timeout',self.timeout))
-        if command_name == 'monitor_plugin_install':
-            cmd_timeout =  3600
 
         if command_name:
             log.info("Running %s from %s (timeout: %i)" % (command_name, filename, cmd_timeout))
