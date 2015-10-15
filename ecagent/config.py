@@ -57,21 +57,17 @@ class SMConfigObj(ConfigObj):
 
         if not uuid and not account_id:
             # Is not an update and no account is set
-            log.error('ERROR: Please configure agent with ./configure --account=XXXXX')
+            log.error('Please configure agent with ./configure --account=XXXXX')
             raise Exception('Please configure agent with ./configure --account=XXXXX')
 
         unique_id = self._get_unique_id()
 
         if not unique_id:
-            log.error('ERROR: Could not obtain UNIQUE_ID or account. Please set up XMPP manually')
-            raise Exception('Could not obtain UUID or account. Please set up XMPP manually')
+            log.error('Could not obtain UNIQUE_ID. Please set up XMPP manually')
+            raise Exception('Could not obtain UNIQUE_ID. Please set up XMPP manually')
 
         if uuid and account_id and self.is_unique_id_same(unique_id):
             log.debug('UNIQUE ID has not changed. Skip UUID check')
-
-            # Updates from v2 to v3 write account info
-            self['XMPP']['user'] = self['XMPP']['user'].split('@')[0]
-            self.write()
 
         else:
             # Try to get uuid (one hour and a half loop: 360x15)
@@ -89,7 +85,7 @@ class SMConfigObj(ConfigObj):
             meta_data = self.parse_meta_data(json_data)
 
             if not meta_data:
-                log.error('ERROR: Could not obtain UUID. Please set up XMPP manually')
+                log.error('Could not obtain UUID. Please set up XMPP manually')
                 raise Exception('Could not obtain UUID. Please set up XMPP manually')
 
             if not self['XMPP'].get('password'):
@@ -99,15 +95,8 @@ class SMConfigObj(ConfigObj):
             if not account_id and meta_data.get('account'):
                 self['XMPP']['account'] = meta_data.get('account')
 
-            if uuid and uuid == str(meta_data.get('uuid')):
-                log.debug('UUID has not changed.')
-                self['XMPP']['unique_id'] = unique_id
-
-            else:
-                log.info('UUID has changed, reconfiguring XMPP user/pass')
-                self['XMPP']['user'] = meta_data['uuid']
-                self['XMPP']['unique_id'] = unique_id
-
+            self['XMPP']['user'] = meta_data['uuid']
+            self['XMPP']['unique_id'] = unique_id
             self.write()
 
         returnValue(True)
@@ -147,7 +136,7 @@ class SMConfigObj(ConfigObj):
         return str(unique_id) == str(self._get_stored_unique_id())
 
     def _get_stored_uuid(self):
-        return self['XMPP'].get('user', '')
+        return self['XMPP'].get('user', '').split('@')[0]
 
     def _get_stored_unique_id(self):
         return self['XMPP'].get('unique_id', '')
@@ -161,7 +150,8 @@ class SMConfigObj(ConfigObj):
             meta_data = json.loads(json_data)
             _tmp = meta_data['uuid']
         except:
-            log.error('ERROR: Invalid configuration received, will try later')
+            log.error('Invalid configuration received, will try later')
+            meta_data = None
 
         return meta_data
 
