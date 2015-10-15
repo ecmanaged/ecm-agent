@@ -20,7 +20,7 @@ Provides: ecmanaged-ecagent
 #fedora
 Requires:  python2 python-devel python-twisted python-protocols python-configobj python-psutil libxml2-python python-simplejson rpm-python python-crypto python-httplib2 shadow-utils python-pip pygobject3 PolicyKit PackageKit dbus-python
 #centos
-Requires:  python2 python-devel python-twisted-core python-twisted-web python-twisted-words python-configobj python-psutil libxml2-python python-simplejson rpm-python python-crypto python-httplib2 shadow-utils python-pip pygobject3 PolicyKit PackageKit dbus-python
+Requires:  python2 python-devel python-twisted-core python-twisted-web python-twisted-words python-configobj python-psutil libxml2-python python-simplejson rpm-python python-crypto python-httplib2 shadow-utils python-pip dbus-python
 Url: www.ecmanaged.com
 BuildRequires: systemd
 
