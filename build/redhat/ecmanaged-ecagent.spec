@@ -17,7 +17,7 @@ BuildArch: noarch
 Vendor: Juan Carlos Moreno<juancarlos.moreno@ecmanaged.com>
 Packager: Arindam Choudhury<arindam@live.com>
 Provides: ecmanaged-ecagent
-Requires: python2 python-devel python-twisted python-protocols python-configobj python-psutil libxml2-python python-simplejson rpm-python python-crypto python-httplib2 shadow-utils python-pip pygobject3 PolicyKit PackageKit dbus-python
+Requires:  python2 python-devel python-twisted python-protocols python-configobj python-psutil libxml2-python python-simplejson rpm-python python-crypto python-httplib2 shadow-utils python-pip pygobject3 PolicyKit PackageKit dbus-python
 Url: www.ecmanaged.com
 BuildRequires: systemd
 
@@ -104,3 +104,5 @@ fi
 
 %files -f INSTALLED_FILES
 %defattr(760,ecmanaged,ecmanaged,-)
+%attr(640,root,root) /etc/cron.d/ecmanaged-ecagent
+%attr(440,root,root) /etc/sudoers.d/ecmanaged
