@@ -71,6 +71,7 @@ class SMConfigObj(ConfigObj):
 
             # Updates from v2 to v3 write account info
             self['XMPP']['user'] = self['XMPP']['user'].split('@')[0]
+            self.write()
 
         else:
             # Try to get uuid (one hour and a half loop: 360x15)
@@ -146,13 +147,13 @@ class SMConfigObj(ConfigObj):
         return str(unique_id) == str(self._get_stored_unique_id())
 
     def _get_stored_uuid(self):
-        return self['XMPP'].get('user', None)
+        return self['XMPP'].get('user', '')
 
     def _get_stored_unique_id(self):
-        return self['XMPP'].get('unique_id', None)
+        return self['XMPP'].get('unique_id', '')
 
     def get_stored_account(self):
-        return self['XMPP'].get('account', None)
+        return self['XMPP'].get('account', '')
 
     def parse_meta_data(self, json_data):
         meta_data = None
@@ -161,7 +162,6 @@ class SMConfigObj(ConfigObj):
             _tmp = meta_data['uuid']
         except:
             log.error('ERROR: Invalid configuration received, will try later')
-            pass
 
         return meta_data
 
