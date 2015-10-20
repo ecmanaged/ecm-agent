@@ -34,7 +34,11 @@ if "." not in sys.path:
 configure_account = None
 configure_groups = None
 
-optlist, args = getopt.getopt(sys.argv[1:], 'as:', ["account=", "server-groups="])
+try:
+    optlist, args = getopt.getopt(sys.argv[1:], 'a:s:', ["account=", "server-groups="])
+except getopt.GetoptError:
+    print 'Please configure agent with ./configure --account=XXXXX'
+    sys.exit(-1)
 
 for option, value in optlist:
     if option in ("-a", "--account"):
@@ -43,8 +47,9 @@ for option, value in optlist:
     elif option in ("-s", "--server-groups"):
         configure_groups = value
 
-    else:
-        raise Exception('unhandled option')
+if not configure_account and not configure_groups:
+    print 'Please configure agent with ./configure --account=XXXXX'
+    sys.exit(-1)
 
 root_dir = os.path.dirname(os.path.realpath(__file__))
 os.chdir(root_dir)
