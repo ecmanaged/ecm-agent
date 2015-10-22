@@ -28,13 +28,9 @@ import __helper as ecm
 from __plugin import ECMPlugin
 from __mplugin import MPlugin
 
-# from __logger import LoggerManager
-# log = LoggerManager.getLogger(__name__)
-
 try:
     from __packages import pip_install_single_package
 except ImportError:
-    # log.info('error importing pip_install_single_package')
     pass
 
 CRITICAL = 2
@@ -51,10 +47,11 @@ CPLUGIN_PATH = os.path.join(MY_PATH, '../monitor/custom')
 CACHE_PATH = os.path.join(MY_PATH, '../monitor/.cache')
 CACHE_FILE_EXTENSION = 'cache'
 CACHE_FILE_EXPIRES = 86400
-CACHE_SOFT_TIME = 10
+CACHE_SOFT_TIME = 30
 
 
 class ECMMonitor(ECMPlugin):
+
     def cmd_monitor_get(self, *argv, **kwargs):
         """
         Runs monitor commands from monitor path
@@ -107,7 +104,7 @@ class ECMMonitor(ECMPlugin):
                     mplugin = MPlugin(p_path)
                         
                     runas = mplugin.data.get('runas', None)
-                    interval = mplugin.data.get('interval', interval)
+                    interval = mplugin.data.get('interval', COMMAND_INTERVAL)
 
                     script = os.path.join(plugin_path, p_path, mplugin.id)
                         
@@ -118,7 +115,7 @@ class ECMMonitor(ECMPlugin):
                         continue
 
                     # Add as valid mplugin script
-                    scripts.append(script)
+                    scripts = [script]
                                     
                     # Executable plugin base
                     if not os.access(script, os.X_OK):
@@ -129,7 +126,7 @@ class ECMMonitor(ECMPlugin):
                         mplugin.write_config(config.get(mplugin.id))
                     
                 # Custom plugins path
-                elif plugin_path == CPLUGIN_PATH:
+                else:
                     # Set default interval or read from path name
                     interval = self._interval_from_path(p_path)
 
@@ -144,7 +141,7 @@ class ECMMonitor(ECMPlugin):
                     retval.append(self._parse_script_name(script) + GLUE + str(interval) + GLUE + from_cache)
                     
                     # Execute script if cache wont be valid on next command_get execution
-                    if not self._cache_read(script, interval - COMMAND_INTERVAL):
+                    if not self._cache_read(script, interval + CACHE_SOFT_TIME - COMMAND_INTERVAL):
                         to_execute.append({'script': script, 'runas': runas})
                         
         for data in to_execute:
@@ -175,8 +172,6 @@ class ECMMonitor(ECMPlugin):
         except:
             raise Exception("Invalid data received")
 
-        #log.info('plugin: %s' %plugin)
-
         id = plugin.get('id')
         runas = plugin.get('runas')
         
@@ -196,21 +191,19 @@ class ECMMonitor(ECMPlugin):
                 elif arg_requirements[req]['type'] == 'pip':
                     pip_install.append(arg_requirements[req]['name'])
 
-            # log.info("installing system: %s", system_install)
             for item in system_install:
                 result = ecm.install_package(item)
 
                 if not result:
-                    # log.info("problem in installing %s", item)
                     return False
 
-            # log.info("installing pip: %s", pip_install)
             for item in pip_install:
-                result = pip_install_single_package(item)
-
-                if not result[0]:
-                    # log.info("problem in installing %s", item)
-                    return False
+                try:
+                    result = pip_install_single_package(item)
+                    if not result[0]:
+                        return False
+                except:
+                    pass
 
         script = None
         try:
