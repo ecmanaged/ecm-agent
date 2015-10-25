@@ -266,8 +266,14 @@ class BaseMPlugin(MPlugin):
 
         if data:
             cpu_count = len(data)
+            
+        skip_pids = [0]
+        skip_pids.append(getpid())
 
         for p in processes:
+            if p.pid in skip_pids:
+                continue
+            
             # Translate
             if 'get_memory_info' in p.dict:
                 p.dict['memory_info'] = p.dict['get_memory_info']
