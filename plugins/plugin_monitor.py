@@ -102,6 +102,11 @@ class ECMMonitor(ECMPlugin):
                 # Search for plugin files
                 if plugin_path == MPLUGIN_PATH:
                     mplugin = MPlugin(p_path)
+                    
+                    # Update config and re-read
+                    if config:
+                        mplugin.write_config(config.get(mplugin.id))
+                        mplugin = MPlugin(p_path)
                         
                     runas = mplugin.data.get('runas', None)
                     interval = mplugin.data.get('interval', COMMAND_INTERVAL)
@@ -121,10 +126,6 @@ class ECMMonitor(ECMPlugin):
                     if not os.access(script, os.X_OK):
                         os.chmod(script, 0755)
                                     
-                    # Update config                                    
-                    if config:
-                        mplugin.write_config(config.get(mplugin.id))
-                    
                 # Custom plugins path
                 else:
                     # Set default interval or read from path name
@@ -141,7 +142,7 @@ class ECMMonitor(ECMPlugin):
                     retval.append(self._parse_script_name(script) + GLUE + str(interval) + GLUE + from_cache)
                     
                     # Execute script if cache wont be valid on next command_get execution
-                    if not self._cache_read(script, interval - COMMAND_INTERVAL):
+                    if not self._cache_read(script, interval - COMMAND_INTERVAL + CACHE_SOFT_TIME):
                         to_execute.append({'script': script, 'runas': runas})
                         
         for data in to_execute:
@@ -268,7 +269,7 @@ class ECMMonitor(ECMPlugin):
             os.makedirs(path)
 
     @staticmethod
-    def _cache_read(command, cache_time):
+    def _cache_read(command, max_old):
         cache_file = os.path.join(CACHE_PATH, os.path.basename(command) + '.' + CACHE_FILE_EXTENSION)
         content = ''
 
@@ -276,7 +277,9 @@ class ECMMonitor(ECMPlugin):
         if os.path.isfile(cache_file):
             modified = os.path.getmtime(cache_file)
             
-            if (modified + cache_time) < time():
+            how_old = int(time() - modified)
+            
+            if(how_old > max_old):
                 # Invalid cache file
                 os.remove(cache_file)
             
