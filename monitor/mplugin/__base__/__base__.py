@@ -20,7 +20,7 @@
 
 import psutil
 
-from os import getloadavg
+from os import getloadavg, getpid
 from time import time, sleep
 
 from __mplugin import MPlugin
@@ -267,8 +267,7 @@ class BaseMPlugin(MPlugin):
         if data:
             cpu_count = len(data)
             
-        skip_pids = [0]
-        skip_pids.append(getpid())
+        skip_pids = [1, getpid()]
 
         for p in processes:
             if p.pid in skip_pids:
