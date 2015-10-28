@@ -15,6 +15,7 @@
 #    under the License.
 
 import resource
+from time import time
 
 # Twisted imports
 from twisted.internet import reactor
@@ -75,7 +76,7 @@ class SMAgentXMPP(Client):
 
         log.info("Setting up Memory checker")
 
-        self.running_commands = set()
+        self.running_commands = {}
         self.num_running_commands = 0
 
         self.memory_checker = LoopingCall(self._check_memory, self.running_commands)
@@ -102,6 +103,12 @@ class SMAgentXMPP(Client):
             message = IqMessage(msg)
             recv_command = message.command.replace('.', '_')
 
+            if recv_command in self.running_commands:
+                if time() > self.running_commands[recv_command]:
+                    del self.running_commands[message.command_name]
+                    self.num_running_commands -= 1
+                    log.debug("Deleted %s from running_commands dict as should have been completed" % (self.running_commands))
+
             if recv_command not in self.running_commands:
                 log.debug('recieved new command: %s with message: %s' % (message.command, message))
 
@@ -111,7 +118,7 @@ class SMAgentXMPP(Client):
                     if message.from_ not in self._online_contacts:
                         log.warn('IQ sender not in roster (%s), dropping message' % message.from_)
                     else:
-                        self.running_commands.add(recv_command)
+                        self.running_commands[recv_command] = time() + int(message.command_args['timeout'])
                         self.num_running_commands += 1
                         log.debug("Running commands: names: %s numbers: %i" % (self.running_commands, self.num_running_commands))
                         self._processCommand(message)
@@ -168,7 +175,7 @@ class SMAgentXMPP(Client):
         mem_clean('agent._onCallFinished')
         log.debug('Call Finished')
         self._send(result, message)
-        self.running_commands.remove(message.command_name)
+        del self.running_commands[message.command_name]
         self.num_running_commands -= 1
         log.debug('command finished %s' %message.command_name)
 
@@ -179,7 +186,7 @@ class SMAgentXMPP(Client):
         if 'message' in kwargs:
             message = kwargs['message']
             result = (2, '', failure, 0)
-            self.running_commands.remove(message.command_name)
+            del self.running_commands[message.command_name]
             self.num_running_commands -= 1
             self._onCallFinished(result, message)
 
