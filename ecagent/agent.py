@@ -105,7 +105,7 @@ class SMAgentXMPP(Client):
 
             if recv_command in self.running_commands:
                 if time() > self.running_commands[recv_command]:
-                    del self.running_commands[message.command_name]
+                    del self.running_commands[recv_command]
                     self.num_running_commands -= 1
                     log.debug("Deleted %s from running_commands dict as should have been completed" % (self.running_commands))
 
