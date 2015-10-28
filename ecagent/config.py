@@ -38,7 +38,7 @@ URL_METADATA_INSTANCE_ID = {
 }
 
 #/ECMANAGED_AUTH_URL = 'https://app.ecmanaged.com/agent/meta-data/v2/id'
-ECMANAGED_AUTH_URL = 'http://my-devel1.ecmanaged.com/agent/meta-data/v2/id'
+ECMANAGED_AUTH_URL = 'http://app.ecmanaged.com/agent/meta-data/v2/id'
 
 
 class SMConfigObj(ConfigObj):
