@@ -115,7 +115,13 @@ class SMConfigObj(ConfigObj):
                  % (uuid, address, hostname, unique_id, account)
 
         auth_url = ECMANAGED_AUTH_URL + '/' + params
-        auth_content = yield getPage(auth_url)
+
+        auth_content = None
+
+        try:
+            auth_content = yield getPage(auth_url)
+        except:
+            log.debug("getPage failed")
 
         #////////////////////////////FIX FOR AMAZON AMI SSL HANDSHAKE ERROR///////////////
         if not auth_content:
