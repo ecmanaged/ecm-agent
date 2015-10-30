@@ -17,6 +17,13 @@
 from __packages import pip_install_single_package
 from __plugin import ECMPlugin
 
+import_error = False
+
+try:
+    from pip.commands import InstallCommand
+except:
+    import_error = True
+
 
 class ECMPip(ECMPlugin):
     def cmd_pip_install(self, *argv, **kwargs):
@@ -29,5 +36,7 @@ class ECMPip(ECMPlugin):
 
         pip_install_single_package(pkg, install_site_wide)
 
-
-ECMPip().run()
+if not import_error:
+    ECMPip().run()
+else:
+    pass
