@@ -44,7 +44,7 @@ class ECMSystemPackageKit(ECMPlugin):
         for pkg in res.get_package_array():
             pkg_list.append(pkg.get_id())
 
-        return ecm.format_output(res.get_exit_code() == pk.ExitEnum.SUCCESS, pkg_list)
+        return ecm.format_output(0 if res.get_exit_code() == pk.ExitEnum.SUCCESS else 1, pkg_list)
 
     def cmd_update_system(self, *argv, **kwargs):
         # Run on detached child
@@ -62,9 +62,7 @@ class ECMSystemPackageKit(ECMPlugin):
         if pkg_list:
             res = client.install_packages(False, pkg_list, None, lambda p, t, d: True, None)
             ecm.file_write(log_file, pkg_list)
-            return res.get_exit_code() == pk.ExitEnum.SUCCESS
-        else:
-            return "No updates"
+            sys.exit(res.get_exit_code() == pk.ExitEnum.SUCCESS)
 
 class ECMSystemUpdateAPT(ECMPlugin):
     def cmd_update_check(self, *argv, **kwargs):
