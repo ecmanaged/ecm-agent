@@ -37,7 +37,6 @@ URL_METADATA_INSTANCE_ID = {
     'do': 'http://169.254.169.254/metadata/v1/id'
 }
 
-#/ECMANAGED_AUTH_URL = 'https://app.ecmanaged.com/agent/meta-data/v2/id'
 ECMANAGED_AUTH_URL = 'http://app.ecmanaged.com/agent/meta-data/v2/id'
 
 
@@ -123,13 +122,11 @@ class SMConfigObj(ConfigObj):
         except:
             log.debug("getPage failed")
 
-        #////////////////////////////FIX FOR AMAZON AMI SSL HANDSHAKE ERROR///////////////
         if not auth_content:
             try:
                 auth_content = urllib2.urlopen(auth_url).read()
             except:
                 pass
-        #///////////////////////////END OF FIX///////////////////////////////////////////
 
         if auth_content:
             for line in auth_content.splitlines():
