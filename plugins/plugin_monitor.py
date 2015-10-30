@@ -28,10 +28,12 @@ import __helper as ecm
 from __plugin import ECMPlugin
 from __mplugin import MPlugin
 
+pip_import_error = False
+
 try:
     from __packages import pip_install_single_package
 except ImportError:
-    pass
+    pip_import_error = True
 
 CRITICAL = 2
 
@@ -198,13 +200,14 @@ class ECMMonitor(ECMPlugin):
                 if not result:
                     return False
 
-            for item in pip_install:
-                try:
-                    result = pip_install_single_package(item)
-                    if not result[0]:
-                        return False
-                except:
-                    pass
+            if not pip_import_error:
+                for item in pip_install:
+                    try:
+                        result = pip_install_single_package(item)
+                        if not result[0]:
+                            return False
+                    except:
+                        pass
 
         script = None
         try:
