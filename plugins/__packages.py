@@ -19,41 +19,6 @@ import types
 # from __logger import LoggerManager
 # log = LoggerManager.getLogger(__name__)
 
-
-def check_system_restart():
-    from platform import release, machine
-    from gi.repository import PackageKitGlib
-    from pkg_resources import parse_version
-
-    working_kernel = release()
-
-    client = PackageKitGlib.Client()
-    client.refresh_cache(False, None, lambda p, t, d: True, None)
-    res = client.resolve(PackageKitGlib.FilterEnum.INSTALLED, ['kernel'], None, lambda p, t, d: True, None)
-
-    if res.get_exit_code() != PackageKitGlib.ExitEnum.SUCCESS:
-        return False
-
-    package_ids = res.get_package_array()
-
-    if len(package_ids) == 0:
-        return False
-
-    installed_kernel = None
-
-    for pkg in package_ids:
-        if pkg.get_arch() == machine():
-            if installed_kernel is None:
-                installed_kernel = pkg
-            else:
-                if parse_version(pkg.get_version()) > parse_version(installed_kernel.get_version()):
-                    installed_kernel = pkg
-
-    installed_kernel = installed_kernel.get_version() + '.' +installed_kernel.get_arch()
-
-    return parse_version(installed_kernel) > parse_version(working_kernel)
-
-
 def packagekit_install_package(packages):
     if type(packages) is types.StringType:
         packages = packages.split(' ')
