@@ -17,13 +17,13 @@
 RUN_AS_ROOT = True
 
 import os
-from time import time
 from commands import getstatusoutput
+from pkg_resources import parse_version
 
 # Local
 from __plugin import ECMPlugin
 import __helper as ecm
-from pkg_resources import parse_version
+
 
 pkg_kit = True
 
@@ -31,8 +31,6 @@ try:
     from gi.repository import PackageKitGlib
 except ImportError:
     pkg_kit = False
-
-log_file = '/opt/ecmanaged/ecagent/log/system-update_' + str(time()) + '.log'
 
 
 class ECMRebootRequirePackageKit(ECMPlugin):
@@ -74,6 +72,16 @@ class ECMRebootRequire(ECMPlugin):
         if distribution.lower() in ['debian', 'ubuntu']:
             if os.path.exists('/var/run/reboot-required.pkgs') or os.path.exists('/var/run/reboot-required'):
                 return True
+            else:
+                retval, current_kernel = getstatusoutput('uname -r')
+                if retval != 0:
+                    return False
+                retval, latest_kernel = getstatusoutput("dpkg --list | grep linux-image | head -n1 | cut -d ' ' -f3 | perl -pe 's/^linux-image-(\S+).*/$1/'")
+                if retval != 0:
+                    return False
+                return parse_version(latest_kernel) > parse_version(current_kernel)
+            return False
+
         elif distribution.lower() in ['centos', 'redhat', 'fedora', 'amazon']:
             retval, current_kernel = getstatusoutput('uname -r')
             if retval != 0:
