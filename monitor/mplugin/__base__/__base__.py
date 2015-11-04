@@ -143,9 +143,23 @@ class BaseMPlugin(MPlugin):
         return retval
 
     def _get_disk_io(self):
-        retval = {}
+        from os.path import basename
+
         try:
-            retval = self.counters(self._to_data(psutil.disk_io_counters(perdisk=True)), 'disk_io')
+            disk_part_name = []
+            disk_part = psutil.disk_partitions(all=False)
+
+            for part in disk_part:
+                disk_part_name.append(basename(part.device))
+
+            disk_io = psutil.disk_io_counters(perdisk=True)
+            res = {}
+
+            for part in disk_part_name:
+                res[part] = disk_io[part]
+
+            retval = {}
+            retval = self.counters(self._to_data(res), 'disk_io')
         except:
             pass
             
