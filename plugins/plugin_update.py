@@ -19,6 +19,7 @@ RUN_AS_ROOT = True
 import os
 import sys
 from time import time
+from pkg_resources import parse_version
 
 # Local
 from __plugin import ECMPlugin
@@ -64,6 +65,37 @@ class ECMSystemPackageKit(ECMPlugin):
             ecm.file_write(log_file, pkg_list)
             sys.exit(res.get_exit_code() == pk.ExitEnum.SUCCESS)
 
+    def cmd_reboot_require(self, *argv, **kwargs):
+        from platform import release, machine
+
+        working_kernel = release()
+
+        client = pk.Client()
+        client.refresh_cache(False, None, lambda p, t, d: True, None)
+        res = client.resolve(pk.FilterEnum.INSTALLED, ['kernel'], None, lambda p, t, d: True, None)
+
+        if res.get_exit_code() != pk.ExitEnum.SUCCESS:
+            return False
+
+        package_ids = res.get_package_array()
+
+        if len(package_ids) == 0:
+            return False
+
+        installed_kernel = None
+
+        for pkg in package_ids:
+            if pkg.get_arch() == machine():
+                if installed_kernel is None:
+                    installed_kernel = pkg
+                else:
+                    if parse_version(pkg.get_version()) > parse_version(installed_kernel.get_version()):
+                        installed_kernel = pkg
+
+        installed_kernel = installed_kernel.get_version() + '.' +installed_kernel.get_arch()
+
+        return parse_version(installed_kernel) > parse_version(working_kernel)
+
 class ECMSystemUpdateAPT(ECMPlugin):
     def cmd_update_check(self, *argv, **kwargs):
         status, result = self._update()
@@ -97,6 +129,17 @@ class ECMSystemUpdateAPT(ECMPlugin):
     def _update():
         return getstatusoutput('nice apt-get -o Debug::NoLocking=true update')
 
+    def cmd_reboot_require(self, *argv, **kwargs):
+        if os.path.exists('/var/run/reboot-required.pkgs') or os.path.exists('/var/run/reboot-required'):
+            return True
+        else:
+            retval, current_kernel = getstatusoutput('uname -r')
+            if retval != 0:
+                return False
+            retval, latest_kernel = getstatusoutput("dpkg --list | grep linux-image | head -n1 | cut -d ' ' -f3 | perl -pe 's/^linux-image-(\S+).*/$1/'")
+            if retval != 0:
+                return False
+            return parse_version(latest_kernel) > parse_version(current_kernel)
 
 class ECMSystemUpdateYUM(ECMPlugin):
     def cmd_update_check(self, *argv, **kwargs):
@@ -128,6 +171,15 @@ class ECMSystemUpdateYUM(ECMPlugin):
     @staticmethod
     def _update():
         return getstatusoutput('nice yum clean all')
+
+    def cmd_reboot_require(self, *argv, **kwargs):
+        retval, current_kernel = getstatusoutput('uname -r')
+        if retval != 0:
+            return False
+        retval, latest_kernel = getstatusoutput("rpm -q --last kernel | perl -pe 's/^kernel-(\S+).*/$1/' | head -1")
+        if retval != 0:
+            return False
+        return parse_version(latest_kernel) > parse_version(current_kernel)
 
 if pkg_kit:
     ECMSystemPackageKit().run()
