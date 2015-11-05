@@ -146,17 +146,19 @@ class BaseMPlugin(MPlugin):
         from os.path import basename
 
         try:
-            disk_part_name = []
+            device_names = []
             disk_part = psutil.disk_partitions(all=False)
 
             for part in disk_part:
-                disk_part_name.append(basename(part.device))
+                device_names.append(basename(part.device))
 
             disk_io = psutil.disk_io_counters(perdisk=True)
             res = {}
 
-            for part in disk_part_name:
-                res[part] = disk_io[part]
+            for device in device_names:
+                if not disk_io.get(device):
+                    continue
+                res[device] = disk_io[device]
 
             retval = {}
             retval = self.counters(self._to_data(res), 'disk_io')
