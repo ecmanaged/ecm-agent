@@ -233,9 +233,13 @@ class BaseMPlugin(MPlugin):
                 
     def _get_netstat(self):
         try:
-            # psutil v2
-            return self._to_data(psutil.net_connections(kind='inet'))
+            # Only psutil > v2
+            conns = []
+            for conn in psutil.net_connections(kind='all'):
+                if conn.status not in ('ESTABLISHED','NONE'): continue
+                conns.append(self._to_dict(conn))
 
+            return conns
         except:
             return {}
 
