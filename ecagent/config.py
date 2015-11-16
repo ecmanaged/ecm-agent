@@ -65,7 +65,8 @@ class SMConfigObj(ConfigObj):
             log.error('Could not obtain UNIQUE_ID. Please set up XMPP manually')
             raise Exception('Could not obtain UNIQUE_ID. Please set up XMPP manually')
 
-        if uuid and account_id and self.is_unique_id_same(unique_id):
+        # Check all data valid for v3
+        if uuid and not '@' in uuid and account_id and self.is_unique_id_same(unique_id):
             log.debug('UNIQUE ID has not changed. Skip UUID check')
 
         else:
