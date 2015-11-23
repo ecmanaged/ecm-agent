@@ -254,7 +254,8 @@ def install_package(packages, update=True):
             envars['DEBIAN_FRONTEND'] = 'noninteractive'
 
             if update:
-                run_command(['apt-get', '-y', '-qq', 'update'])
+                run_command(['apt-get', '-y', '-qq', 'update'], runas='root')
+                
             command = ['apt-get',
                        '-o',
                        'Dpkg::Options::=--force-confold',
@@ -267,7 +268,8 @@ def install_package(packages, update=True):
 
         elif distribution.lower() in ['centos', 'redhat', 'fedora', 'amazon']:
             if update:
-                run_command(['yum', '-y', 'clean', 'all'])
+                run_command(['yum', '-y', 'clean', 'all'], runas='root')
+                
             command = ['yum',
                        '-y',
                        '--nogpgcheck',
@@ -283,7 +285,7 @@ def install_package(packages, update=True):
 
         elif distribution.lower() in ['arch']:
             if update:
-                run_command(['pacman', '-S', '--noconfirm', 'pacman'])
+                run_command(['pacman', '-S', '--noconfirm', 'pacman'], runas='root')
             command = ['pacman',
                        '-S',
                        '--noconfirm',
@@ -292,7 +294,7 @@ def install_package(packages, update=True):
         else:
             return 1, '', "Distribution not supported: %s" % distribution
 
-        return run_command(command, envars=envars)
+        return run_command(command, envars=envars, runas='root')
 
     except Exception as e:
         return 1, '', "Error installing packages %s" % e
@@ -677,14 +679,9 @@ class ECMExec:
         if run_as and not is_win():
             if not check_sudo():
                 return 255, '', 'Sudo is not available:'
+            
             # don't use su - xxx or env variables will not be available
-            if run_as == _ROOT:
-                command = [which('sudo'), ' '.join(map(str, command))]
-
-            else:
-                command = [which('sudo'), 'su', run_as, '-c', ' '.join(map(str, command))]
-
-            # :TODO: Run_as for windows :S
+            command = [which('sudo'), 'su', run_as, '-c', ' '.join(map(str, command))]
 
         try:
             p = Popen(
