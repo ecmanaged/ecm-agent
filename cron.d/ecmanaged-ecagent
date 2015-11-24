@@ -1,4 +1,4 @@
 SHELL=/bin/bash
 HOME=/opt/ecmanaged/ecagent/
-*/5 *	* * *	root	/opt/ecmanaged/ecagent/init check > /dev/null 2>&1
+*/2 *	* * *	root	/opt/ecmanaged/ecagent/init check > /dev/null 2>&1
 
