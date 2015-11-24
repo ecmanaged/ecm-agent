@@ -144,7 +144,7 @@ class ECMMonitor(ECMPlugin):
                     retval.append(self._parse_script_name(script) + GLUE + str(interval) + GLUE + from_cache)
                     
                     # Execute script if cache wont be valid on next command_get execution
-                    if not self._cache_read(script, interval - COMMAND_INTERVAL + CACHE_SOFT_TIME):
+                    if not self._cache_read(script, interval - COMMAND_INTERVAL - CACHE_SOFT_TIME):
                         to_execute.append({'script': script, 'runas': runas})
                         
         for data in to_execute:
