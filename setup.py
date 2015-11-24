@@ -16,28 +16,6 @@
 
 from distutils.core import setup
 
-
-def _create_data_files():
-    data_files=[('config', ['config/ecagent.init.cfg', 'config/xmpp_cert.pub']),
-                  ('monitor/mplugin/__base__', ['monitor/mplugin/__base__/data.json']),
-                  ('/etc/sudoers.d', ['sudoers.d/ecmanaged']),
-                  ('',['configure.py','ecagent.bat', 'ecagent.sh', 'ecagentd.tac'])
-                ]
-
-    from commands import getstatusoutput
-    retcode, systemd_system_unit_dir = getstatusoutput('pkg-config systemd --variable=systemdsystemunitdir')
-
-    if retcode == 0:
-        # systemd
-        data_files.append((systemd_system_unit_dir, ['ecagentd.service']))
-        data_files.append(('/etc/cron.d',['cron.d/ecmanaged-ecagent-systemd']))
-    else:
-        data_files.append(('/etc/init.d',['ecagentd']))
-        data_files.append(('/etc/cron.d',['cron.d/ecmanaged-ecagent-init']))
-
-    return data_files
-
-
 setup(name='ecmanaged-ecagent',
       version='3.0',
       license='Apache v2',
@@ -50,9 +28,8 @@ setup(name='ecmanaged-ecagent',
       maintainer = 'Arindam Choudhury',
       maintainer_email = 'arindam@live.com',
 
-
       url='www.ecmanaged.com',
-
+ 
       platforms=['All'],
 
       packages=['ecagent', 'plugins','monitor.mplugin.__base__'],
