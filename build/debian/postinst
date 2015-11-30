@@ -1,10 +1,16 @@
-#! /bin/bash
-# postinst script for ecmanaged-ecagent
-#
-# see: dh_installdeb(1)
+#!/bin/sh
 
-# Stop ecagent 
-INIT=/opt/ecmanaged/ecagent/init
-if [ -x ${INIT} ]; then
-  ${INIT} start
+set -e
+
+if getent passwd ecmanaged >/dev/null 2>&1; then
+    chown -R ecmanaged:ecmanaged /opt/ecmanaged
+    mkdir -p /etc/ecmanaged
+    chown -R ecmanaged:ecmanaged /etc/ecmanaged
 fi
+
+case "$1" in
+    configure)
+    if [ -f /opt/ecmanaged/ecagent/init ]; then
+        /opt/ecmanaged/ecagent/init start > /dev/null 2>&1
+    fi
+esac

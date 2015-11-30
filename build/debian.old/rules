@@ -1,0 +1,13 @@
+#!/usr/bin/make -f
+
+# Exclude git directory
+export DH_ALWAYS_EXCLUDE=GIT:ecagent/.git
+
+%:
+	dh $@
+
+override_dh_fixperms:
+	dh_fixperms
+	chmod 0700 debian/ecmanaged-ecagent/opt/ecmanaged/ecagent/config
+	chmod 0400 debian/ecmanaged-ecagent/opt/ecmanaged/ecagent/config/ecagent.cfg
+	chmod 0755 debian/ecmanaged-ecagent/opt/ecmanaged/ecagent
