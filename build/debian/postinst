@@ -3,3 +3,8 @@
 #
 # see: dh_installdeb(1)
 
+# Stop ecagent 
+INIT=/opt/ecmanaged/ecagent/init
+if [ -x ${INIT} ]; then
+  ${INIT} start
+fi

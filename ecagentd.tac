@@ -59,11 +59,6 @@ open(pid_file, 'w').write(str(os.getpid()))
 
 # Start agent and setup logging
 config_file = os.path.join(os.path.sep, root_dir, 'config', 'ecagent.cfg')
-config_file_init = os.path.join(os.path.sep, root_dir, 'config', 'ecagent.init.cfg')
-
-# Is initial config (move init to cfg)
-if not os.path.exists(config_file) and os.path.exists(config_file_init):
-    os.rename(config_file_init, config_file)
 
 os.chmod(config_file, stat.S_IRWXU)
 

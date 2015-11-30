@@ -5,13 +5,14 @@
 
 set -e
 
-CONF=/opt/ecmanaged/ecagent/config/ecagent.cfg
+# Stop ecagent 
+INIT=/opt/ecmanaged/ecagent/init
+if [ -x ${INIT} ]; then
+  ${INIT} stop
+fi
 
 case "$1" in
   remove)
-    if test ! -f "$CONF"; then	
-    	rm -f $CONF
-    fi
   ;;
   upgrade|deconfigure)
   ;;

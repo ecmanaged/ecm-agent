@@ -56,11 +56,6 @@ os.chdir(root_dir)
 
 # Parse config file or end execution
 config_file = os.path.join(os.path.sep, root_dir, 'config', 'ecagent.cfg')
-config_file_init = os.path.join(os.path.sep, root_dir, 'config', 'ecagent.init.cfg')
-
-# Is initial config (move init to cfg)
-if not os.path.exists(config_file) and os.path.exists(config_file_init):
-    os.rename(config_file_init, config_file)
 
 # manipulate configuration file
 if not os.path.isfile(config_file):
