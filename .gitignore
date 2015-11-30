@@ -2,7 +2,6 @@
 log
 monitor/mplugin/__base__/data.json
 */*.pyc
-config/ecagent.cfg
 monitor/.cache/*
 monitor/mplugin/__base__/.counter.dat
 monitor/mplugin/__base__/.touch

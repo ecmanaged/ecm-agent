@@ -17,7 +17,7 @@
 from distutils.core import setup
 
 setup(name='ecmanaged-ecagent',
-      version='3.0',
+      version='3.0.0',
       license='Apache v2',
       description='ECManaged  Agent - Monitoring and deployment agent',
       long_description='ECManaged  Agent - Monitoring and deployment agent',
