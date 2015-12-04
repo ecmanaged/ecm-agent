@@ -14,8 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import logging as log
-
+import twlogging as log
 # Twisted imports
 from twisted.internet.defer import DeferredSemaphore
 from twisted.words.xish.domish import Element
