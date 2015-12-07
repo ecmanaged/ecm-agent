@@ -147,8 +147,11 @@ class BasicClient:
 
         #Keepalive: Send a newline every 60 seconds
         #to avoid server disconnect
-        self._keep_alive_lc = LoopingCall(self._xs.send, '\n')
-        self._keep_alive_lc.start(KEEPALIVED_TIMEOUT)
+        self._keep_alive_lc = LoopingCall(self.loopcall)
+        d = self._keep_alive_lc.start(KEEPALIVED_TIMEOUT)
+        d.addCallback(self.periodic_task_good)
+        d.addErrback(self.periodic_task_crashed)
+
         self._xs.addObserver(STREAM_END_EVENT,
                              lambda _: self._keep_alive_lc.stop())
 
@@ -161,18 +164,24 @@ class BasicClient:
     def _newid(self):
         return str(int(random() * (10 ** 31)))
 
-    def send(self, elem):
-        mem_clean('core.send [start]')
+    def loopcall(self):
+        log.info("sending roster request")
+        request = Element((None, 'iq'), attribs={'type': 'get', 'id': self._newid() })
+        query = request.addElement('query')
+        query.attributes['xmlns'] = 'jabber:iq:roster'
+        self._xs.send(request)
 
+    def periodic_task_good(self, reason):
+        log.info("going good")
+
+    def periodic_task_crashed(self, reason):
+        log.info("periodic_task broken")
+
+    def send(self, elem):
         if not elem.getAttribute('id'):
             log.debug('No message ID in message, creating one')
             elem['id'] = self._newid()
 
         self._xs.send(elem.toXml())
 
-        #Reset keepalive looping call timer
-        if self._keep_alive_lc.running:
-            self._keep_alive_lc.stop()
-            self._keep_alive_lc.start(KEEPALIVED_TIMEOUT)
-            
-        mem_clean('core.send [stop]')
+
