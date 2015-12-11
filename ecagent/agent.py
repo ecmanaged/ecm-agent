@@ -109,10 +109,10 @@ class SMAgentXMPP(Client):
 
         if msg['type'] == 'set':
             if self.keepalive.running:
-                log.info("Stop keepalived")
+                log.debug("Stop keepalived")
                 self.keepalive.stop()
             
-            log.info("Starting keepalived")
+            log.debug("Starting keepalived")
             self.keepalive.start(KEEPALIVED_TIMEOUT, now=False)
 
             message = IqMessage(msg)
