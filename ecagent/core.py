@@ -84,8 +84,6 @@ class BasicClient:
         self.failed_count = 0
 
         self._xs = None
-        self._keep_alive_lc = None
-
         self._user = user
         self._password = password
         self._host = host
@@ -145,16 +143,6 @@ class BasicClient:
         """
         log.info("XMPPClient authenticated")
 
-        #Keepalive: Send a newline every 60 seconds
-        #to avoid server disconnect
-        self._keep_alive_lc = LoopingCall(self.loopcall)
-        d = self._keep_alive_lc.start(KEEPALIVED_TIMEOUT)
-        d.addCallback(self.periodic_task_good)
-        d.addErrback(self.periodic_task_crashed)
-
-        self._xs.addObserver(STREAM_END_EVENT,
-                             lambda _: self._keep_alive_lc.stop())
-
         for message, callable in self._observers:
             self._xs.addObserver(message, callable)
 
@@ -164,24 +152,9 @@ class BasicClient:
     def _newid(self):
         return str(int(random() * (10 ** 31)))
 
-    def loopcall(self):
-        log.info("sending roster request")
-        request = Element((None, 'iq'), attribs={'type': 'get', 'id': self._newid() })
-        query = request.addElement('query')
-        query.attributes['xmlns'] = 'jabber:iq:roster'
-        self._xs.send(request)
-
-    def periodic_task_good(self, reason):
-        log.info("going good")
-
-    def periodic_task_crashed(self, reason):
-        log.info("periodic_task broken")
-
     def send(self, elem):
         if not elem.getAttribute('id'):
             log.debug('No message ID in message, creating one')
             elem['id'] = self._newid()
 
         self._xs.send(elem.toXml())
-
-
