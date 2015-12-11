@@ -36,7 +36,7 @@ class Client(BasicClient):
         """
         my_observers = [
             ('/presence', self._onPresence),
-            ('/iq', self._onPossibleErrorIq),
+            ("/iq[@type='error']", self._onPossibleErrorIq),
         ]
         my_observers.extend(observers)
 

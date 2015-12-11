@@ -90,7 +90,7 @@ class SMAgentXMPP(Client):
         Client.__init__(
             self,
             config['XMPP'],
-            [('/iq', self.__onIq), ],
+            [("/iq[@type='set']", self.__onIq), ],
             resource='ecm_agent-%d' % AGENT_VERSION_PROTOCOL)
 
     def _stop(self):
