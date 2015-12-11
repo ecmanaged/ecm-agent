@@ -38,6 +38,8 @@ _E_UNVERIFIED_COMMAND = 251
 _CHECK_RAM_MAX_RSS_MB = 125
 _CHECK_RAM_INTERVAL = 60
 
+KEEPALIVED_TIMEOUT = 120
+
 class SMAgent:
     def __init__(self, config):
         reactor.callWhenRunning(self._check_config)
@@ -81,6 +83,8 @@ class SMAgentXMPP(Client):
 
         self.memory_checker = LoopingCall(self._check_memory, self.running_commands)
         self.memory_checker.start(_CHECK_RAM_INTERVAL)
+        
+        self.keepalive = LoopingCall(self._stop)
 
         log.debug("Loading XMPP...")
         Client.__init__(
@@ -88,6 +92,10 @@ class SMAgentXMPP(Client):
             config['XMPP'],
             [('/iq', self.__onIq), ],
             resource='ecm_agent-%d' % AGENT_VERSION_PROTOCOL)
+
+    def _stop(self):
+	log.info("No data received!!! michael naig")
+	reactor.stop()
             
     def __onIq(self, msg):
         """
@@ -100,6 +108,13 @@ class SMAgentXMPP(Client):
         log.debug("Message type: %s" % msg['type'])
 
         if msg['type'] == 'set':
+            if self.keepalive.running:
+                log.info("Stop keepalived")
+                self.keepalive.stop()
+            
+            log.info("Starting keepalived")
+            self.keepalive.start(KEEPALIVED_TIMEOUT, now=False)
+
             message = IqMessage(msg)
             recv_command = message.command.replace('.', '_')
 
