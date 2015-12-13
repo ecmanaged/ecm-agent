@@ -14,7 +14,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import twlogging as log
+import logging as log
+
 # Twisted imports
 from twisted.internet.defer import DeferredSemaphore
 from twisted.words.xish.domish import Element
@@ -36,7 +37,7 @@ class Client(BasicClient):
         """
         my_observers = [
             ('/presence', self._onPresence),
-            ("/iq[@type='error']", self._onPossibleErrorIq),
+            ('/iq', self._onPossibleErrorIq),
         ]
         my_observers.extend(observers)
 
@@ -83,6 +84,7 @@ class Client(BasicClient):
             log.debug("%s is now available" % presence.sender)
             #Store full jid.
             self._online_contacts.add(presence.sender)
+
         else:
             log.debug("%s is not available anymore" % presence.sender)
             if presence.jid in self._online_contacts:

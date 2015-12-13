@@ -84,7 +84,7 @@ class SMAgentXMPP(Client):
         self.memory_checker = LoopingCall(self._check_memory, self.running_commands)
         self.memory_checker.start(_CHECK_RAM_INTERVAL)
         
-        self.keepalive = LoopingCall(self._stop)
+        self.keepalive = LoopingCall(self._reconnect)
 
         log.debug("Loading XMPP...")
         Client.__init__(
@@ -93,9 +93,12 @@ class SMAgentXMPP(Client):
             [("/iq[@type='set']", self.__onIq), ],
             resource='ecm_agent-%d' % AGENT_VERSION_PROTOCOL)
 
-    def _stop(self):
-	log.info("No data received!!! michael naig")
-	reactor.stop()
+    def _reconnect(self):
+        """ 
+        Disconnect the current reactor to try to connect again
+        """
+	log.info("No data received in %ss: Trying to reconnect" % KEEPALIVED_TIMEOUT)
+        reactor.disconnectAll()	
             
     def __onIq(self, msg):
         """
@@ -107,48 +110,44 @@ class SMAgentXMPP(Client):
         log.debug("q Message received: \n%s" % msg.toXml())
         log.debug("Message type: %s" % msg['type'])
 
-        if msg['type'] == 'set':
-            if self.keepalive.running:
-                log.debug("Stop keepalived")
-                self.keepalive.stop()
-            
-            log.debug("Starting keepalived")
-            self.keepalive.start(KEEPALIVED_TIMEOUT, now=False)
+        if self.keepalive.running:
+            log.debug("Stop keepalived")
+            self.keepalive.stop()
+        
+        log.debug("Starting keepalived")
+        self.keepalive.start(KEEPALIVED_TIMEOUT, now=False)
 
-            message = IqMessage(msg)
-            recv_command = message.command.replace('.', '_')
+        message = IqMessage(msg)
+        recv_command = message.command.replace('.', '_')
 
-            if recv_command in self.running_commands:
-                if time() > self.running_commands[recv_command]:
-                    del self.running_commands[recv_command]
-                    self.num_running_commands -= 1
-                    log.debug("Deleted %s from running_commands dict as should have been completed" % (recv_command))
+        if recv_command in self.running_commands:
+            if time() > self.running_commands[recv_command]:
+                del self.running_commands[recv_command]
+                self.num_running_commands -= 1
+                log.debug("Deleted %s from running_commands dict as should have been completed" % (recv_command))
 
-            if recv_command not in self.running_commands:
-                log.debug('recieved new command: %s with message: %s' % (message.command, message))
+        if recv_command not in self.running_commands:
+            log.debug('recieved new command: %s with message: %s' % (message.command, message))
 
-                if hasattr(message, 'command') and hasattr(message, 'from_'):
-                    log.debug('online contacts: %s' % self._online_contacts)
+            if hasattr(message, 'command') and hasattr(message, 'from_'):
+                log.debug('online contacts: %s' % self._online_contacts)
 
-                    if message.from_ not in self._online_contacts:
-                        log.warn('IQ sender not in roster (%s), dropping message' % message.from_)
-                    else:
-                        self.running_commands[recv_command] = time() + int(message.command_args['timeout'])
-                        self.num_running_commands += 1
-                        log.debug("Running commands: names: %s numbers: %i" % (self.running_commands, self.num_running_commands))
-                        self._processCommand(message)
-
+                if message.from_ not in self._online_contacts:
+                    log.warn('IQ sender not in roster (%s), dropping message' % message.from_)
                 else:
-                    log.warn('Unknown ecm_message received: Full XML:\n%s' % (msg.toXml()))
+                    self.running_commands[recv_command] = time() + int(message.command_args['timeout'])
+                    self.num_running_commands += 1
+                    log.debug("Running commands: names: %s numbers: %i" % (self.running_commands, self.num_running_commands))
+                    self._processCommand(message)
 
-                del message
             else:
-                log.debug("already running given command %s" %recv_command)
-                result = (_E_RUNNING_COMMAND, '', 'another command is running', 0)
-                self._send(result, message)
+                log.warn('Unknown ecm_message received: Full XML:\n%s' % (msg.toXml()))
 
+            del message
         else:
-            log.warn('Unknown IQ type received: Full XML:\n%s' % (msg.toXml()))
+            log.debug("already running given command %s" %recv_command)
+            result = (_E_RUNNING_COMMAND, '', 'another command is running', 0)
+            self._send(result, message)
 
         del msg
         mem_clean('__onIq [end]')
