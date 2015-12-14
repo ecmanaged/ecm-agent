@@ -37,7 +37,7 @@ class Client(BasicClient):
         """
         my_observers = [
             ('/presence', self._onPresence),
-            ('/iq', self._onPossibleErrorIq),
+            ("/iq[@type='error']", self._onPossibleErrorIq),
         ]
         my_observers.extend(observers)
 
@@ -63,15 +63,14 @@ class Client(BasicClient):
         )
 
     def _onPossibleErrorIq(self, elem):
-        if elem['type'] == "error":
-            sender = elem['from']
-            for el in elem.elements():
-                if el.name == 'error' and el['code'] == '404':
-                    log.warn('Received a 404 code from the server, setting the target user as offline')
-                    if sender in self._online_contacts:
-                        self._online_contacts.remove(sender)
-                    else:
-                        log.debug('Received a 404 from %s which not (anymore?) in the online contacts list.')
+        sender = elem['from']
+        for el in elem.elements():
+            if el.name == 'error' and el['code'] == '404':
+                log.warn('Received a 404 code from the server, setting the target user as offline')
+                if sender in self._online_contacts:
+                    self._online_contacts.remove(sender)
+                else:
+                    log.debug('Received a 404 from %s which not (anymore?) in the online contacts list.')
 
     def _onPresence(self, elem):
         """
