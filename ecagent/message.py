@@ -23,7 +23,6 @@ from twisted.words.xish.domish import Element
 
 # Local
 import ecagent.twlogging as log
-from ecagent.functions import mem_clean
 
 AGENT_VERSION_CORE = 3
 AGENT_VERSION_PROTOCOL = 1
@@ -121,7 +120,6 @@ class IqMessage:
         return msg
 
     def toXml(self):
-        mem_clean('toXml [start]')
         return self.toXml()
 
     def toResult(self, retvalue, stdout, stderr, timed_out, partial=0):

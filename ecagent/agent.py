@@ -109,8 +109,6 @@ class SMAgentXMPP(Client):
         A new IQ message has been received and we should process it.
         """
         log.debug('__onIq')
-        mem_clean('__onIq [start]')
-
         log.debug("q Message received: \n%s" % msg.toXml())
         log.debug("Message type: %s" % msg['type'])
 
@@ -153,7 +151,6 @@ class SMAgentXMPP(Client):
             self._send(result, message)
 
         del msg
-        mem_clean('__onIq [end]')
 
     def _processCommand(self, message):
         if not self.verify.signature(message):
@@ -164,7 +161,6 @@ class SMAgentXMPP(Client):
         flush_callback = self._flush
         message.command_name = message.command.replace('.', '_')
 
-        mem_clean('run_command [start]')
         d = self.command_runner.run_command(message, flush_callback)
         
         # Clean message
@@ -176,7 +172,6 @@ class SMAgentXMPP(Client):
                            errbackKeywords={'message': message},
             )
             del message
-            mem_clean('run_command [end]')
             return d
 
         else:
@@ -185,11 +180,9 @@ class SMAgentXMPP(Client):
             self._onCallFinished(result, message)
 
         del message
-        mem_clean('run_command [end]')
         return
         
     def _onCallFinished(self, result, message):
-        mem_clean('agent._onCallFinished')
         log.debug('Call Finished')
         self._send(result, message)
         del self.running_commands[message.command_name]
@@ -213,20 +206,17 @@ class SMAgentXMPP(Client):
 
     def _send(self, result, message):
         log.debug('Send Response')
-        mem_clean('agent._send')
         message.toResult(*result)
 
         del result
 
-        mem_clean('agent._send')
         self.send(message.toEtree())
 
     def _check_memory(self, num_running_commands):
-        log.info("Value of counter : %s" % self.counter)
         if (_CHECK_RAM_INTERVAL * self.counter) >= KEEPALIVED_TIMEOUT:
             log.info("No data received in %s sec: Trying to reconnect" % KEEPALIVED_TIMEOUT)
             reactor.disconnectAll()
-
+        mem_clean('periodic memory clean')
         rss, vms = mem_usage()
         log.info("Current Memory usage: rss=%sMB | vms=%sMB" % (rss, vms))
         if not num_running_commands and rss > _CHECK_RAM_MAX_RSS_MB:

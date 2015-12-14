@@ -28,7 +28,6 @@ from twisted.words.protocols.jabber.client import IQ
 
 # Local
 import twlogging as log
-from functions import mem_clean
 
 
 # Add registerAccount to XMPPAuthenticator

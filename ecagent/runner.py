@@ -33,7 +33,6 @@ from twisted.internet.protocol import ProcessProtocol
 from twisted.internet.error import ProcessTerminated, ProcessDone
 
 import ecagent.twlogging as log
-from ecagent.functions import mem_clean
 
 
 class CommandRunner():
@@ -65,10 +64,6 @@ class CommandRunner():
 
         self._commands = {}
         reactor.callWhenRunning(self._load_commands)
-
-    def __del__(self):
-        log.debug("__del__ CommandRunner()")
-        mem_clean("__del__: CommandRunner")
 
     def _load_commands(self):
         for path in self.command_paths:
@@ -134,7 +129,6 @@ class CommandRunner():
         else:
             log.info("[INIT] Loading commands from %s" % filename)
 
-        mem_clean('spawnProcess [start]')
         crp = CommandRunnerProcess(cmd_timeout, command_args, flush_callback, message)
         d = crp.getDeferredResult()
         reactor.spawnProcess(crp, command, args, env=self.env)
@@ -142,7 +136,6 @@ class CommandRunner():
         del cmd_timeout, filename, command_name, command_args
         del flush_callback, message, args
 
-        mem_clean('spawnProcess [end]')
         return d
 
 
