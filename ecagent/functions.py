@@ -36,20 +36,18 @@ def mem_usage():
         vms /= 1000000.0
     except:
         pass
+    log.info("Current Memory usage: rss=%sMB | vms=%sMB" % (rss, vms))
 
     return rss, vms
 
 
-def mem_clean(where='', dolog=False):
+def mem_clean(where=''):
     _collect = collect()
     rss, vms = mem_usage()
     string = "_mem_clean: %s collected %d objects. (current mem: rss=%sMB | vms=%sMB)" % (where, _collect, rss, vms)
 
-    if dolog:
-        log.info(string)
+    log.debug(string)
 
-    else:
-        log.debug(string)
+    del _collect, where, vms, string
 
-    del _collect, where, dolog, rss, vms, string
-
+    return rss

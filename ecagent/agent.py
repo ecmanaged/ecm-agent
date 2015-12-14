@@ -144,13 +144,13 @@ class SMAgentXMPP(Client):
                     self.num_running_commands += 1
                     log.debug("Running commands: names: %s numbers: %i" % (self.running_commands, self.num_running_commands))
                     self._processCommand(message)
-            del message
         else:
             log.debug("already running given command %s" %recv_command)
             result = (_E_RUNNING_COMMAND, '', 'another command is running', 0)
             self._send(result, message)
 
         del msg
+        del message
 
     def _processCommand(self, message):
         if not self.verify.signature(message):
@@ -216,11 +216,10 @@ class SMAgentXMPP(Client):
         if (_CHECK_RAM_INTERVAL * self.counter) >= KEEPALIVED_TIMEOUT:
             log.info("No data received in %s sec: Trying to reconnect" % KEEPALIVED_TIMEOUT)
             reactor.disconnectAll()
-        mem_clean('periodic memory clean')
-        rss, vms = mem_usage()
-        log.info("Current Memory usage: rss=%sMB | vms=%sMB" % (rss, vms))
+        rss = mem_clean('periodic memory clean')
         if not num_running_commands and rss > _CHECK_RAM_MAX_RSS_MB:
             log.critical("Max allowed RSS memory exceeded: %s MB, exiting."
                          % _CHECK_RAM_MAX_RSS_MB)
             reactor.stop()
+        del rss
         self.counter += 1
