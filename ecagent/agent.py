@@ -81,6 +81,7 @@ class SMAgentXMPP(Client):
         self.running_commands = {}
         self.num_running_commands = 0
         self.check_timeout = False
+        self.counter = 0
 
         self.memory_checker = LoopingCall(self._check_memory, self.running_commands)
         self.memory_checker.start(_CHECK_RAM_INTERVAL)
@@ -113,7 +114,7 @@ class SMAgentXMPP(Client):
         log.debug("q Message received: \n%s" % msg.toXml())
         log.debug("Message type: %s" % msg['type'])
 
-        self.check_timeout = False
+        self.counter = 0
         self.timestamp = time()
 
         # if self.keepalive.running:
@@ -221,11 +222,10 @@ class SMAgentXMPP(Client):
         self.send(message.toEtree())
 
     def _check_memory(self, num_running_commands):
-
-        if self.check_timeout:
-            if time() >=  self.timestamp + KEEPALIVED_TIMEOUT:
-                log.info("No data received in %s sec: Trying to reconnect" % KEEPALIVED_TIMEOUT)
-                reactor.disconnectAll()
+        log.info("Value of counter : %s" % self.counter)
+        if (_CHECK_RAM_INTERVAL * self.counter) >= KEEPALIVED_TIMEOUT:
+            log.info("No data received in %s sec: Trying to reconnect" % KEEPALIVED_TIMEOUT)
+            reactor.disconnectAll()
 
         rss, vms = mem_usage()
         log.info("Current Memory usage: rss=%sMB | vms=%sMB" % (rss, vms))
@@ -233,4 +233,4 @@ class SMAgentXMPP(Client):
             log.critical("Max allowed RSS memory exceeded: %s MB, exiting."
                          % _CHECK_RAM_MAX_RSS_MB)
             reactor.stop()
-        self.check_timeout = True
+        self.counter += 1
