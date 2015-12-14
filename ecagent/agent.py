@@ -80,11 +80,14 @@ class SMAgentXMPP(Client):
 
         self.running_commands = {}
         self.num_running_commands = 0
+        self.check_timeout = False
 
         self.memory_checker = LoopingCall(self._check_memory, self.running_commands)
         self.memory_checker.start(_CHECK_RAM_INTERVAL)
         
-        self.keepalive = LoopingCall(self._reconnect)
+        # self.keepalive = LoopingCall(self._reconnect)
+
+        self.timestamp = 0
 
         log.debug("Loading XMPP...")
         Client.__init__(
@@ -93,12 +96,12 @@ class SMAgentXMPP(Client):
             [("/iq[@type='set']", self.__onIq), ],
             resource='ecm_agent-%d' % AGENT_VERSION_PROTOCOL)
 
-    def _reconnect(self):
-        """ 
-        Disconnect the current reactor to try to connect again
-        """
-	log.info("No data received in %ss: Trying to reconnect" % KEEPALIVED_TIMEOUT)
-        reactor.disconnectAll()	
+    # def _reconnect(self):
+    #     """
+    #     Disconnect the current reactor to try to connect again
+    #     """
+    #     log.info("No data received in %s sec: Trying to reconnect" % KEEPALIVED_TIMEOUT)
+    #     reactor.disconnectAll()
             
     def __onIq(self, msg):
         """
@@ -110,18 +113,21 @@ class SMAgentXMPP(Client):
         log.debug("q Message received: \n%s" % msg.toXml())
         log.debug("Message type: %s" % msg['type'])
 
-        if self.keepalive.running:
-            log.debug("Stop keepalived")
-            self.keepalive.stop()
-        
-        log.debug("Starting keepalived")
-        self.keepalive.start(KEEPALIVED_TIMEOUT, now=False)
+        self.check_timeout = False
+        self.timestamp = time()
+
+        # if self.keepalive.running:
+        #     log.debug("Stop keepalived")
+        #     self.keepalive.stop()
+        #
+        # log.debug("Starting keepalived")
+        # self.keepalive.start(KEEPALIVED_TIMEOUT, now=False)
 
         message = IqMessage(msg)
         recv_command = message.command.replace('.', '_')
 
         if recv_command in self.running_commands:
-            if time() > self.running_commands[recv_command]:
+            if self.timestamp > self.running_commands[recv_command]:
                 del self.running_commands[recv_command]
                 self.num_running_commands -= 1
                 log.debug("Deleted %s from running_commands dict as should have been completed" % (recv_command))
@@ -135,14 +141,10 @@ class SMAgentXMPP(Client):
                 if message.from_ not in self._online_contacts:
                     log.warn('IQ sender not in roster (%s), dropping message' % message.from_)
                 else:
-                    self.running_commands[recv_command] = time() + int(message.command_args['timeout'])
+                    self.running_commands[recv_command] = self.timestamp + int(message.command_args['timeout'])
                     self.num_running_commands += 1
                     log.debug("Running commands: names: %s numbers: %i" % (self.running_commands, self.num_running_commands))
                     self._processCommand(message)
-
-            else:
-                log.warn('Unknown ecm_message received: Full XML:\n%s' % (msg.toXml()))
-
             del message
         else:
             log.debug("already running given command %s" %recv_command)
@@ -219,9 +221,16 @@ class SMAgentXMPP(Client):
         self.send(message.toEtree())
 
     def _check_memory(self, num_running_commands):
+
+        if self.check_timeout:
+            if time() >=  self.timestamp + KEEPALIVED_TIMEOUT:
+                log.info("No data received in %s sec: Trying to reconnect" % KEEPALIVED_TIMEOUT)
+                reactor.disconnectAll()
+
         rss, vms = mem_usage()
         log.info("Current Memory usage: rss=%sMB | vms=%sMB" % (rss, vms))
         if not num_running_commands and rss > _CHECK_RAM_MAX_RSS_MB:
             log.critical("Max allowed RSS memory exceeded: %s MB, exiting."
                          % _CHECK_RAM_MAX_RSS_MB)
             reactor.stop()
+        self.check_timeout = True
