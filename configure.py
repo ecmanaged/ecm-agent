@@ -32,12 +32,13 @@ if "." not in sys.path:
     sys.path.append(".")
 
 configure_account = None
+configure_server_groups = None
 configure_groups = None
 
 try:
-    optlist, args = getopt.getopt(sys.argv[1:], 'a:s:', ["account=", "server-groups="])
+    optlist, args = getopt.getopt(sys.argv[1:], 'a:s:g:', ["account=", "server-groups=", "groups="])
 except getopt.GetoptError:
-    print 'Please configure agent with ./configure --account=XXXXX'
+    print 'Please configure agent with ./configure.py --account=XXXXX'
     sys.exit(-1)
 
 for option, value in optlist:
@@ -45,10 +46,13 @@ for option, value in optlist:
         configure_account = value
 
     elif option in ("-s", "--server-groups"):
+        configure_server_groups = value
+
+    elif option in ("-g", "--groups"):
         configure_groups = value
 
-if not configure_account and not configure_groups:
-    print 'Please configure agent with ./configure --account=XXXXX'
+if not configure_account and not configure_server_groups:
+    print 'Please configure agent with ./configure.py --account=XXXXX'
     sys.exit(-1)
 
 root_dir = os.path.dirname(os.path.realpath(__file__))
@@ -68,8 +72,11 @@ config = SMConfigObj(config_file)
 if configure_account:
     config['XMPP']['account'] = configure_account
 
+if configure_server_groups:
+    config['XMPP']['groups'] = configure_server_groups
+
 if configure_groups:
-    config['XMPP']['groups'] = configure_groups
+    config['XMPP']['agent_groups'] = configure_groups
 
 config.write()
 print 'Manual configuration override succeeded.'
