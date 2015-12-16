@@ -110,6 +110,7 @@ class SMConfigObj(ConfigObj):
         address = self._get_ip()
         uuid = self._get_stored_uuid()
         account = self.get_stored_account()
+        agent_groups = self.get_stored_agent_groups
 
         params = "?uuid=%s&ipaddress=%s&hostname=%s&unique_id=%s&account=%s" \
                  % (uuid, address, hostname, unique_id, account)
@@ -147,6 +148,10 @@ class SMConfigObj(ConfigObj):
 
     def get_stored_account(self):
         return self['XMPP'].get('account', '')
+
+
+    def get_stored_agent_groups(self):
+        return self['XMPP'].get('agent_groups', '')
 
     def parse_meta_data(self, json_data):
         meta_data = None
@@ -217,3 +222,5 @@ class SMConfigObj(ConfigObj):
             unique_id = 'mac::' + ':'.join(findall('..', '%012x' % getnode()))
 
         return unique_id
+
+
