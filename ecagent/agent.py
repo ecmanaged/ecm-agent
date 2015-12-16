@@ -1,4 +1,4 @@
-	# -*- coding:utf-8 -*-
+# -*- coding:utf-8 -*-
 
 # Copyright (C) 2012 Juan Carlos Moreno <juancarlos.moreno at ecmanaged.com>
 #
@@ -38,6 +38,7 @@ _E_UNVERIFIED_COMMAND = 251
 _CHECK_RAM_MAX_RSS_MB = 125
 _CHECK_RAM_INTERVAL = 60
 
+KEEPALIVED_TIMEOUT = 120
 
 class SMAgent:
     def __init__(self, config):
@@ -79,15 +80,12 @@ class SMAgentXMPP(Client):
 
         self.running_commands = {}
         self.num_running_commands = 0
-        self.check_timeout = False
-        self.counter = 0
+        self.timestamp = 0
 
         self.memory_checker = LoopingCall(self._check_memory, self.running_commands)
         self.memory_checker.start(_CHECK_RAM_INTERVAL)
         
-        # self.keepalive = LoopingCall(self._reconnect)
-
-        self.timestamp = 0
+        self.keepalive = LoopingCall(self._reconnect)
 
         log.debug("Loading XMPP...")
         Client.__init__(
@@ -96,33 +94,30 @@ class SMAgentXMPP(Client):
             [("/iq[@type='set']", self.__onIq), ],
             resource='ecm_agent-%d' % AGENT_VERSION_PROTOCOL)
 
-    # def _reconnect(self):
-    #     """
-    #     Disconnect the current reactor to try to connect again
-    #     """
-    #     log.info("No data received in %s sec: Trying to reconnect" % KEEPALIVED_TIMEOUT)
-    #     reactor.disconnectAll()
+    def _reconnect(self):
+        """ 
+        Disconnect the current reactor to try to connect again
+        """
+        log.info("No data received in %ss: Trying to reconnect" % KEEPALIVED_TIMEOUT)
+        reactor.disconnectAll()	
             
     def __onIq(self, msg):
         """
         A new IQ message has been received and we should process it.
         """
-        if self.memory_checker.running:
-            self.memory_checker.stop()
-            
         log.debug('__onIq')
+
         log.debug("q Message received: \n%s" % msg.toXml())
         log.debug("Message type: %s" % msg['type'])
 
-        self.counter = 0
-        self.timestamp = time()
+        if self.keepalive.running:
+            log.debug("Stop keepalived")
+            self.keepalive.stop()
+        
+        log.debug("Starting keepalived")
+        self.keepalive.start(KEEPALIVED_TIMEOUT, now=False)
 
-        # if self.keepalive.running:
-        #     log.debug("Stop keepalived")
-        #     self.keepalive.stop()
-        #
-        # log.debug("Starting keepalived")
-        # self.keepalive.start(KEEPALIVED_TIMEOUT, now=False)
+        self.timestamp = time()
 
         message = IqMessage(msg)
         recv_command = message.command.replace('.', '_')
@@ -146,6 +141,7 @@ class SMAgentXMPP(Client):
                     self.num_running_commands += 1
                     log.debug("Running commands: names: %s numbers: %i" % (self.running_commands, self.num_running_commands))
                     self._processCommand(message)
+
         else:
             log.debug("already running given command %s" %recv_command)
             result = (_E_RUNNING_COMMAND, '', 'another command is running', 0)
@@ -190,9 +186,6 @@ class SMAgentXMPP(Client):
         del self.running_commands[message.command_name]
         self.num_running_commands -= 1
         log.debug('command finished %s' %message.command_name)
-        
-        if self.num_running_commands == 0 and not self.memory_checker.running:
-            self.memory_checker.start(_CHECK_RAM_INTERVAL)
 
     def _onCallFailed(self, failure, *argv, **kwargs):
         log.error("onCallFailed")
@@ -204,9 +197,6 @@ class SMAgentXMPP(Client):
             del self.running_commands[message.command_name]
             self.num_running_commands -= 1
             self._onCallFinished(result, message)
-        
-        if self.num_running_commands == 0 and not self.memory_checker.running:
-            self.memory_checker.start(_CHECK_RAM_INTERVAL)
 
     def _flush(self, result, message):
         log.debug('Flush Message')
@@ -221,13 +211,9 @@ class SMAgentXMPP(Client):
         self.send(message.toEtree())
 
     def _check_memory(self, num_running_commands):
-        if self.counter == 2:
-            log.info("No data received in %s sec: Trying to reconnect" % (time() -  self.timestamp))
-            reactor.disconnectAll()
         rss = mem_clean('periodic memory clean')
         if not num_running_commands and rss > _CHECK_RAM_MAX_RSS_MB:
             log.critical("Max allowed RSS memory exceeded: %s MB, exiting."
                          % _CHECK_RAM_MAX_RSS_MB)
             reactor.stop()
         del rss
-        self.counter += 1
