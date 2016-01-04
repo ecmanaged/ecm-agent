@@ -53,8 +53,9 @@ class MPlugin:
     def __init__(self, plugin_path=None):
 
         # set alarm for timeout
-        signal.signal(signal.SIGALRM, _timeout)
-        signal.alarm(CHECK_TIMEOUT)
+        if not self.is_win():
+            signal.signal(signal.SIGALRM, _timeout)
+            signal.alarm(CHECK_TIMEOUT)
 
         if plugin_path:
             self.path = abspath(plugin_path)

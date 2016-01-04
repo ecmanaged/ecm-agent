@@ -24,7 +24,13 @@ import random
 # Twisted
 from twisted.application.service import Application
 
-root_dir = os.path.dirname(os.path.realpath(__file__))
+
+try:
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+except NameError:  # We are the main py2exe script, not a module
+    import sys
+    root_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+
 os.chdir(root_dir)
 
 if root_dir not in sys.path:

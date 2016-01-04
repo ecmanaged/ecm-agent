@@ -420,14 +420,17 @@ class BaseMPlugin(MPlugin):
         except:
             return
 
-    @staticmethod
-    def _get_load():
-        m1, m5, m15 = getloadavg()
-        return {
-            '1m': m1,
-            '5m': m5,
-            '15m': m15
-        }
+    def _get_load(self):
+        if not self.is_win():
+            from os import getloadavg
+            m1, m5, m15 = getloadavg()
+            return {
+                '1m': m1,
+                '5m': m5,
+                '15m': m15
+            }
+
+        return 0
 
     @staticmethod
     def _to_dict(obj):
