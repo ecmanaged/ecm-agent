@@ -108,10 +108,11 @@ class CommandRunner():
         need_sudo = ['plugin_pip.py', 'plugin_service.py', 'plugin_update.py', 'plugin_haproxy.py', 'plugin_monitor.py', 'plugin_pip_extra.py', 'plugin_puppet.py', 'plugin_saltstack.py', 'plugin_proc.py']
         ext = os.path.splitext(filename)[1]
         if ext == '.py':
-            if os.path.split(filename)[1] in need_sudo:
-                command = 'sudo'
-                # -u: sets unbuffered output
-                args = [command, self._python_runner,  '-u', '-W ignore::DeprecationWarning', filename, command_name]
+            from sys import platform
+            if platform.startswith("win32") or os.path.split(filename)[1] not in need_sudo:
+                command = self._python_runner
+                args = [command, '-u', '-W ignore::DeprecationWarning', filename, command_name]
+
             else:
                 command = self._python_runner
                 # -u: sets unbuffered output
