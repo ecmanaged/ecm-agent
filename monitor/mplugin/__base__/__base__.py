@@ -50,6 +50,7 @@ class BaseMPlugin(MPlugin):
             'net': self._get_network(),
             'netstat': self._get_netstat(),
             'disk_io': self._get_disk_io(),
+            'inodes' : self._get_inodes(),
             'cputimes': self._get_cpu_times(),
             'process': self._get_processes(),
             'swap': self._get_swap(),
@@ -231,7 +232,7 @@ class BaseMPlugin(MPlugin):
 
         return retval
 
-    def _get_partition_inodes(self):
+    def _get_inodes(self):
         """
         runs df -i
         Filesystem               Inodes  IUsed   IFree IUse% Mounted on
@@ -253,6 +254,8 @@ class BaseMPlugin(MPlugin):
                 'Inodes': '1310720',
                 'Mounted on': '/home'}]
         """
+        if self.is_win():
+            return []
 
         from commands import getstatusoutput
 
@@ -268,7 +271,14 @@ class BaseMPlugin(MPlugin):
             inode_list.append({'Filesystem': inode[i], 'Inodes': inode[i + 1], 'IUsed': inode[i + 2], 'IFree': inode[i + 3], 'IUse%': inode[i + 4], 'Mounted on': inode[i + 5]})
             i += 6
 
-        return inode_list
+        ret_inodes = []
+
+        for part in psutil.disk_partitions(all=False):
+            for inode in inode_list:
+                if part.mountpoint == inode['Mounted on']:
+                    ret_inodes.append(inode)
+
+        return ret_inodes
 
                 
     def _get_netstat(self):
