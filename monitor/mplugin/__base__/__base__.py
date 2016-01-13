@@ -230,6 +230,46 @@ class BaseMPlugin(MPlugin):
             pass        
 
         return retval
+
+    def _get_partition_inodes(self):
+        """
+        runs df -i
+        Filesystem               Inodes  IUsed   IFree IUse% Mounted on
+        /dev/mapper/fedora-root 2436448 335632 2100816   14% /
+        /dev/mapper/fedora-home 1310720  49938 1260782    4% /home
+
+        and returns output as list of dictionaries
+
+        [   {   'Filesystem': '/dev/mapper/fedora-root',
+                'IFree': '2100817',
+                'IUse%': '14%',
+                'IUsed': '335631',
+                'Inodes': '2436448',
+                'Mounted on': '/'},
+            {   'Filesystem': '/dev/mapper/fedora-home',
+                'IFree': '1260404',
+                'IUse%': '4%',
+                'IUsed': '50316',
+                'Inodes': '1310720',
+                'Mounted on': '/home'}]
+        """
+
+        from commands import getstatusoutput
+
+        retcode, inodes = getstatusoutput('df -i')
+
+        inodes = inodes.split()
+        inode = inodes[7:]
+
+        inode_list  = []
+        i = 0
+
+        while i<len(inode):
+            inode_list.append({'Filesystem': inode[i], 'Inodes': inode[i + 1], 'IUsed': inode[i + 2], 'IFree': inode[i + 3], 'IUse%': inode[i + 4], 'Mounted on': inode[i + 5]})
+            i += 6
+
+        return inode_list
+
                 
     def _get_netstat(self):
         try:
