@@ -264,21 +264,21 @@ class BaseMPlugin(MPlugin):
         inodes = inodes.split()
         inode = inodes[7:]
 
+        partitions_list = []
+
+        for part in psutil.disk_partitions(all=False):
+            partitions_list.append(part.mountpoint)
+
         inode_list  = []
         i = 0
 
         while i<len(inode):
-            inode_list.append({'Filesystem': inode[i], 'Inodes': inode[i + 1], 'IUsed': inode[i + 2], 'IFree': inode[i + 3], 'IUse%': inode[i + 4], 'Mounted on': inode[i + 5]})
+            if inode[i + 5] in partitions_list:
+                inode_list.append({'Filesystem': inode[i], 'Inodes': inode[i + 1], 'IUsed': inode[i + 2],
+                                   'IFree': inode[i + 3], 'IUse%': inode[i + 4], 'Mounted on': inode[i + 5]})
             i += 6
 
-        ret_inodes = []
-
-        for part in psutil.disk_partitions(all=False):
-            for inode in inode_list:
-                if part.mountpoint == inode['Mounted on']:
-                    ret_inodes.append(inode)
-
-        return ret_inodes
+        return inode_list
 
                 
     def _get_netstat(self):
