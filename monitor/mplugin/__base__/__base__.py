@@ -131,7 +131,7 @@ class BaseMPlugin(MPlugin):
                     if hasattr(usage, 'free'):
                         tmp['free'] = self.to_gb(usage.free)
                     if hasattr(usage, 'percent'):
-                        tmp['percent'] = usage.percent
+                        tmp['percent'] = (float(usage.total - usage.free) / float(usage.total)) * 100
 
                     retval[part.mountpoint] = tmp
 
