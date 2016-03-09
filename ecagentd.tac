@@ -68,7 +68,9 @@ config_file_init = os.path.join(os.path.sep, root_dir, 'config', 'ecagent.cfg.in
 
 # rename config/ecagent.cfg.init to config/ecagent.cfg for fresh install
 
-if os.path.exists(config_file_init):
+if os.path.exists(config_file) and os.path.exists(config_file_init):
+    os.remove(config_file_init)
+else:
     os.rename(config_file_init, config_file)
 
 
