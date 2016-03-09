@@ -18,7 +18,7 @@ Vendor: Juan Carlos Moreno<juancarlos.moreno@ecmanaged.com>
 Packager: Arindam Choudhury<arindam@live.com>
 Provides: ecmanaged-ecagent
 #fedora
-Requires:  python2 python-devel python-twisted python-protocols python-configobj python-psutil libxml2-python python-simplejson rpm-python python-crypto python-httplib2 shadow-utils dbus-python sudo
+Requires:  python2 python-devel python-twisted python-protocols python-configobj python-psutil libxml2-python python-simplejson rpm-python python-crypto python-httplib2 shadow-utils sudo
 #centos
 Requires:  python2 python-devel python-twisted-core python-twisted-web python-twisted-words python-configobj python-psutil libxml2-python python-simplejson rpm-python python-crypto python-httplib2 shadow-utils dbus-python sudo
 Url: www.ecmanaged.com
