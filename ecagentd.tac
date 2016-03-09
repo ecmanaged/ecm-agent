@@ -19,7 +19,6 @@ import os
 import gc
 import sys
 import stat
-import random
 
 # Twisted
 from twisted.application.service import Application
@@ -65,6 +64,17 @@ open(pid_file, 'w').write(str(os.getpid()))
 
 # Start agent and setup logging
 config_file = os.path.join(os.path.sep, root_dir, 'config', 'ecagent.cfg')
+config_file_init = os.path.join(os.path.sep, root_dir, 'config', 'ecagent.cfg.init')
+
+# rename config/ecagent.cfg.init to config/ecagent.cfg for fresh install
+
+if os.path.exists(config_file_init):
+    os.rename(config_file_init, config_file)
+
+
+if not os.path.isfile (config_file):
+    print "Failed to find config file."
+    sys.exit(-1)
 
 os.chmod(config_file, stat.S_IRWXU)
 
