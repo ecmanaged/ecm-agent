@@ -70,9 +70,9 @@ config_file_init = os.path.join(os.path.sep, root_dir, 'config', 'ecagent.cfg.in
 
 if os.path.exists(config_file) and os.path.exists(config_file_init):
     os.remove(config_file_init)
-else:
-    os.rename(config_file_init, config_file)
 
+if os.path.exists(config_file_init) and not os.path.exists(config_file):
+    os.rename(config_file_init, config_file)
 
 if not os.path.isfile (config_file):
     print "Failed to find config file."
