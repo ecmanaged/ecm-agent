@@ -32,8 +32,7 @@ if "." not in sys.path:
     sys.path.append(".")
 
 configure_account = None
-configure_server_groups = None
-configure_groups = None
+configure_tags = None
 
 try:
     optlist, args = getopt.getopt(sys.argv[1:], 'a:t:', ["account=", "tags="])
