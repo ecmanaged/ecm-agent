@@ -60,12 +60,15 @@ os.chdir(root_dir)
 
 # Parse config file or end execution
 config_file = os.path.join(os.path.sep, root_dir, 'config', 'ecagent.cfg')
+config_file_init = os.path.join(os.path.sep, root_dir, 'config', 'ecagent.cfg.init
 
 # manipulate configuration file
 if not os.path.isfile(config_file):
-    print 'Unable to read the config file at %s' % config_file
-    print 'Agent will now quit'
-    sys.exit(-1)
+    config_file = config_file_init
+    if not os.path.isfile(config_file):
+        print 'Unable to read the config file at %s' % config_file
+        print 'Agent will now quit'
+        sys.exit(-1)
 
 config = SMConfigObj(config_file)
 
