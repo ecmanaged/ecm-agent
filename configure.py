@@ -36,23 +36,20 @@ configure_server_groups = None
 configure_groups = None
 
 try:
-    optlist, args = getopt.getopt(sys.argv[1:], 'a:s:g:', ["account=", "server-groups=", "groups="])
+    optlist, args = getopt.getopt(sys.argv[1:], 'a:t:', ["account=", "tags="])
 except getopt.GetoptError:
-    print 'Please configure agent with ./configure.py --account=XXXXX'
+    print 'Please configure agent with ./configure.py --account=XXXXX --tags=XXX,XXX'
     sys.exit(-1)
 
 for option, value in optlist:
     if option in ("-a", "--account"):
         configure_account = value
 
-    elif option in ("-s", "--server-groups"):
-        configure_server_groups = value
+    elif option in ("-t", "--tags"):
+        configure_tags = value
 
-    elif option in ("-g", "--groups"):
-        configure_groups = value
-
-if not configure_account and not configure_server_groups:
-    print 'Please configure agent with ./configure.py --account=XXXXX'
+if not configure_account and not configure_tags:
+    print 'Please configure agent with ./configure.py --account=XXXXX --tags=XXX'
     sys.exit(-1)
 
 root_dir = os.path.dirname(os.path.realpath(__file__))
@@ -60,26 +57,24 @@ os.chdir(root_dir)
 
 # Parse config file or end execution
 config_file = os.path.join(os.path.sep, root_dir, 'config', 'ecagent.cfg')
-config_file_init = os.path.join(os.path.sep, root_dir, 'config', 'ecagent.cfg.init
+config_file_init = os.path.join(os.path.sep, root_dir, 'config', 'ecagent.cfg.init')
 
 # manipulate configuration file
 if not os.path.isfile(config_file):
     config_file = config_file_init
-    if not os.path.isfile(config_file):
-        print 'Unable to read the config file at %s' % config_file
-        print 'Agent will now quit'
-        sys.exit(-1)
+
+if not os.path.isfile(config_file):
+    print 'Unable to read the config file at %s' % config_file
+    print 'Agent will now quit'
+    sys.exit(-1)
 
 config = SMConfigObj(config_file)
 
 if configure_account:
     config['XMPP']['account'] = configure_account
 
-if configure_server_groups:
-    config['XMPP']['groups'] = configure_server_groups
-
-if configure_groups:
-    config['XMPP']['agent_groups'] = configure_groups
+if configure_tags:
+    config['XMPP']['tags'] = configure_tags
 
 config.write()
 print 'Manual configuration override succeeded.'
