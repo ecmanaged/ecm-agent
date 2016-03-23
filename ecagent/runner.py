@@ -114,9 +114,9 @@ class CommandRunner():
                 args = [command, '-u', '-W ignore::DeprecationWarning', filename, command_name]
 
             else:
-                command = self._python_runner
+                command = 'sudo'
                 # -u: sets unbuffered output
-                args = [command, '-u', '-W ignore::DeprecationWarning', filename, command_name]
+                args = [command, self._python_runner, '-u', '-W ignore::DeprecationWarning', filename, command_name]
 
         else:
             command = filename
