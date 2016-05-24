@@ -16,8 +16,6 @@
 
 from time import time
 
-#test branch v4.0
-
 # Twisted imports
 from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
@@ -41,6 +39,8 @@ _CHECK_RAM_INTERVAL = 60
 
 KEEPALIVED_TIMEOUT = 180
 
+PERIODIC_INFO = 60
+
 class SMAgent:
     def __init__(self, config):
         reactor.callWhenRunning(self._check_config)
@@ -55,7 +55,7 @@ class SMAgent:
         # Ok, now everything should be correctly configured,
         # let's start the party.
         if success:
-            SMAgentXMPP(self.config)
+            SMAgent(self.config)
 
     @staticmethod
     def _on_config_failed(failure):
@@ -64,7 +64,7 @@ class SMAgent:
         reactor.stop()
 
 
-class SMAgentXMPP(Client):
+class SMAgent(Client):
     def __init__(self, config):
         """
         XMPP agent class.
@@ -85,15 +85,41 @@ class SMAgentXMPP(Client):
 
         self.memory_checker = LoopingCall(self._check_memory, self.running_commands)
         self.memory_checker.start(_CHECK_RAM_INTERVAL)
+
+        self.periodic_info = LoopingCall(self._send_info)
+        self.periodic_info.start(PERIODIC_INFO)
         
         self.keepalive = LoopingCall(self._reconnect)
 
         log.debug("Loading XMPP...")
+        #TODO: redefine Client
         Client.__init__(
             self,
             config['XMPP'],
             [("/iq[@type='set']", self.__onIq), ],
             resource='ecm_agent-%d' % AGENT_VERSION_PROTOCOL)
+
+    def _send_info(self):
+        '''
+        send periodic health info to the backend
+        :return:
+        '''
+        log.info("sending periodic info to the server")
+
+        message = IqMessage()
+
+        message.version = '1'
+        message.type = 'set'
+        message.id = '989b3c79caf30c9b0df05083d47809f381fe9e83::VMOsVbQxj1Tml0kJotr76Q'
+        message.to = '989b3c79caf30c9b0df05083d47809f381fe9e83@xmpp.ecmanaged.net/ecm_agent-1'
+        message.from_ = 'monitor1@xmpp.ecmanaged.net/monitor-cZlZq4jTtnjMKa9oITcSwQ'
+        message.resource = 'ecm_agent-1'
+        message.command = 'monitor.get'
+        message.command_args = "{u'config': u'eyJfX2Jhc2VfXyI6eyJuYW1lIjoiU1lTVEVNIEhFQUxUSCIsImNvbmZpZyI6e30sImlkIjoiX19iYXNlX18iLCJpbnRlcnZhbCI6NjB9fQ==', u'timeout': u'30'}"
+        message.signature = 'LBUMPl+ypXrRa98L6fa/wu2K9Rgeh5pxk1J1DkICovvZwdp6MQl5lB5aJVsCZ4sdjm3Q4ME+XDAWXO26J954UNzu0qT404JAGaz52SWcE93D5HuXHK5izPDv30QFZVS6+LVol3OBdXAHBn23HEMuNJiU4Ztkeu2e6uB0lr8qFfk='
+
+        self._processCommand(message)
+
 
     def _reconnect(self):
         """ 

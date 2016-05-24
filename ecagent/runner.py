@@ -105,6 +105,7 @@ class CommandRunner():
         return
 
     def _run_process(self, filename, command_name, command_args, flush_callback=None, message=None):
+        log.info("filename: %s command_name: %s command_args: %s flush_callback: %s message: %s" % (filename, command_name, command_args, flush_callback, message))
         need_sudo = ['plugin_pip.py', 'plugin_service.py', 'plugin_update.py', 'plugin_haproxy.py', 'plugin_monitor.py', 'plugin_pip_extra.py', 'plugin_puppet.py', 'plugin_saltstack.py', 'plugin_proc.py']
         ext = os.path.splitext(filename)[1]
         if ext == '.py':
