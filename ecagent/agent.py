@@ -14,19 +14,15 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from time import time
-
 # Twisted imports
 from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
 
 # Local
-from ecagent.client import Client
 from ecagent.runner import CommandRunner
-from ecagent.message import IqMessage
+from ecagent.message import ECMessage
 
 import ecagent.twlogging as log
-from ecagent.verify import ECVerify
 from ecagent.functions import mem_clean
 
 from message import AGENT_VERSION_PROTOCOL
@@ -39,7 +35,8 @@ _CHECK_RAM_INTERVAL = 60
 
 KEEPALIVED_TIMEOUT = 180
 
-PERIODIC_INFO = 60
+MAIN_LOOP_TIME = 5
+SYSTEM_LOOP_TIME = 10
 
 class SMAgent:
     def __init__(self, config):
@@ -64,7 +61,7 @@ class SMAgent:
         reactor.stop()
 
 
-class SMAgent(Client):
+class SMAgent():
     def __init__(self, config):
         """
         XMPP agent class.
@@ -74,120 +71,38 @@ class SMAgent(Client):
         log.info("Loading Commands...")
         self.command_runner = CommandRunner(config['Plugins'])
 
-        log.info("Setting up Certificate")
-        self.verify = ECVerify()
+        try:
+            #self._info()
+            reactor.callLater(5, self._info)
+        except Exception, e:
+            log.info('error: %s' %str(e))
 
-        log.info("Setting up Memory checker")
+        #self.memory_checker = LoopingCall(self._check_memory, self.running_commands)
+        #self.memory_checker.start(_CHECK_RAM_INTERVAL)
 
-        self.running_commands = {}
-        self.num_running_commands = 0
-        self.timestamp = 0
 
-        self.memory_checker = LoopingCall(self._check_memory, self.running_commands)
-        self.memory_checker.start(_CHECK_RAM_INTERVAL)
+        self.periodic_info = LoopingCall(self._main)
+        self.periodic_info.start(MAIN_LOOP_TIME, now=True)
 
-        self.periodic_info = LoopingCall(self._send_info)
-        self.periodic_info.start(PERIODIC_INFO)
-        
-        self.keepalive = LoopingCall(self._reconnect)
-
-        log.debug("Loading XMPP...")
-        #TODO: redefine Client
-        Client.__init__(
-            self,
-            config['XMPP'],
-            [("/iq[@type='set']", self.__onIq), ],
-            resource='ecm_agent-%d' % AGENT_VERSION_PROTOCOL)
-
-    def _send_info(self):
-        '''
-        send periodic health info to the backend
-        :return:
-        '''
-        log.info("sending periodic info to the server")
-
-        message = IqMessage()
-
+    def _info(self):
+        # Simulate a received task
+        message = ECMessage()
         message.version = '1'
         message.type = 'set'
         message.id = '989b3c79caf30c9b0df05083d47809f381fe9e83::VMOsVbQxj1Tml0kJotr76Q'
-        message.to = '989b3c79caf30c9b0df05083d47809f381fe9e83@xmpp.ecmanaged.net/ecm_agent-1'
-        message.from_ = 'monitor1@xmpp.ecmanaged.net/monitor-cZlZq4jTtnjMKa9oITcSwQ'
-        message.resource = 'ecm_agent-1'
-        message.command = 'monitor.get'
-        message.command_args = "{u'config': u'eyJfX2Jhc2VfXyI6eyJuYW1lIjoiU1lTVEVNIEhFQUxUSCIsImNvbmZpZyI6e30sImlkIjoiX19iYXNlX18iLCJpbnRlcnZhbCI6NjB9fQ==', u'timeout': u'30'}"
-        message.signature = 'LBUMPl+ypXrRa98L6fa/wu2K9Rgeh5pxk1J1DkICovvZwdp6MQl5lB5aJVsCZ4sdjm3Q4ME+XDAWXO26J954UNzu0qT404JAGaz52SWcE93D5HuXHK5izPDv30QFZVS6+LVol3OBdXAHBn23HEMuNJiU4Ztkeu2e6uB0lr8qFfk='
+        message.command = 'system.info'
+        message.command_args = {'timeout': '30'}
 
-        self._processCommand(message)
-
-
-    def _reconnect(self):
-        """ 
-        Disconnect the current reactor to try to connect again
-        """
-        log.info("No data received in %ss: Trying to reconnect" % KEEPALIVED_TIMEOUT)
-        reactor.disconnectAll()	
-            
-    def __onIq(self, msg):
-        """
-        A new IQ message has been received and we should process it.
-        """
-        log.debug('__onIq')
-
-        log.debug("q Message received: \n%s" % msg.toXml())
-        log.debug("Message type: %s" % msg['type'])
-
-        if self.keepalive.running:
-            log.debug("Stop keepalived")
-            self.keepalive.stop()
-        
-        log.debug("Starting keepalived")
-        self.keepalive.start(KEEPALIVED_TIMEOUT, now=False)
-
-        self.timestamp = time()
-
-        message = IqMessage(msg)
-        recv_command = message.command.replace('.', '_')
-
-        if recv_command in self.running_commands:
-            if self.timestamp > self.running_commands[recv_command]:
-                del self.running_commands[recv_command]
-                self.num_running_commands -= 1
-                log.debug("Deleted %s from running_commands dict as should have been completed" % (recv_command))
-
-        if recv_command not in self.running_commands:
-            log.debug('recieved new command: %s with message: %s' % (message.command, message))
-
-            if hasattr(message, 'command') and hasattr(message, 'from_'):
-                log.debug('online contacts: %s' % self._online_contacts)
-
-                if message.from_ not in self._online_contacts:
-                    log.warn('IQ sender not in roster (%s), dropping message' % message.from_)
-                else:
-                    self.running_commands[recv_command] = self.timestamp + int(message.command_args['timeout'])
-                    self.num_running_commands += 1
-                    log.debug("Running commands: names: %s numbers: %i" % (self.running_commands, self.num_running_commands))
-                    self._processCommand(message)
-
-        else:
-            log.debug("already running given command %s" %recv_command)
-            result = (_E_RUNNING_COMMAND, '', 'another command is running', 0)
-            self._send(result, message)
-
-        del msg
-        del message
-
-    def _processCommand(self, message):
-        if not self.verify.signature(message):
-            result = (_E_UNVERIFIED_COMMAND, '', 'Bad signature', 0)
-            self._onCallFinished(result, message)
-            return
+        log.info("system.info")
+        log.info('loaded commands: %s' %self.command_runner._commands)
 
         flush_callback = self._flush
         message.command_name = message.command.replace('.', '_')
 
+        log.info("command: %s" %message.command_name)
+
         d = self.command_runner.run_command(message, flush_callback)
-        
+
         # Clean message
         message.command_args = {}
 
@@ -206,12 +121,67 @@ class SMAgent(Client):
 
         del message
         return
-        
+
+
+    def _main(self):
+        '''
+        send periodic health info to the backend
+        :return:
+        '''
+        # Simulate a received task
+        message = ECMessage()
+        message.version = '1'
+        message.type = 'set'
+        message.id = '989b3c79caf30c9b0df05083d47809f381fe9e83::VMOsVbQxj1Tml0kJotr76Q'
+        message.command = 'monitor.get'
+        message.command_args = {'config': 'eyJfX2Jhc2VfXyI6eyJuYW1lIjoiU1lTVEVNIEhFQUxUSCIsImNvbmZpZyI6e30sImlkIjoiX19iYXNlX18iLCJpbnRlcnZhbCI6NjB9fQ==', 'timeout': '30'}
+        try:
+            self._new_task(message)
+        except Exception, e:
+            log.info('error: %s' %str(e))
+
+
+    def _new_task(self, msg):
+        """
+        A new IQ message has been received and we should process it.
+        """
+        log.debug('_new_task')
+
+        # check if message is TASK
+        log.debug("Message type: %s" % msg['type'])
+
+        self._processCommand(msg)
+
+    def _processCommand(self, message):
+        flush_callback = self._flush
+        message.command_name = message.command.replace('.', '_')
+
+        log.info("command: %s" %message.command_name)
+
+        d = self.command_runner.run_command(message, flush_callback)
+
+        # Clean message
+        message.command_args = {}
+
+        if d:
+            d.addCallbacks(self._onCallFinished, self._onCallFailed,
+                           callbackKeywords={'message': message},
+                           errbackKeywords={'message': message},
+            )
+            del message
+            return d
+
+        else:
+            log.info("Command Ignored: Unknown command: %s" % message.command)
+            result = (_E_RUNNING_COMMAND, '', "Unknown command: %s" % message.command, 0)
+            self._onCallFinished(result, message)
+
+        del message
+        return
+
     def _onCallFinished(self, result, message):
         log.debug('Call Finished')
         self._send(result, message)
-        del self.running_commands[message.command_name]
-        self.num_running_commands -= 1
         log.debug('command finished %s' %message.command_name)
 
     def _onCallFailed(self, failure, *argv, **kwargs):
@@ -221,8 +191,6 @@ class SMAgent(Client):
         if 'message' in kwargs:
             message = kwargs['message']
             result = (2, '', failure, 0)
-            del self.running_commands[message.command_name]
-            self.num_running_commands -= 1
             self._onCallFinished(result, message)
 
     def _flush(self, result, message):
@@ -231,16 +199,23 @@ class SMAgent(Client):
 
     def _send(self, result, message):
         log.debug('Send Response')
-        message.toResult(*result)
+        log.info("POST TO URL. %s" %str(result))
 
-        del result
+        #log.info("Simulate received task")
 
-        self.send(message.toEtree())
+        # Simulate a received tastaskk
+        task = ECMessage()
+        task.version = '1'
+        task.type = 'set'
+        task.id = '989b3c79caf30c9b0df05083d47809f381fe9e83::VMOsVbQxj1Tml0kJotr76Q'
+        task.command = 'sysmtem.info'
+        task.command_args = {'timeout': '30'}
+        #self._new_task(task)
 
-    def _check_memory(self, num_running_commands):
-        rss = mem_clean('periodic memory clean')
-        if not num_running_commands and rss > _CHECK_RAM_MAX_RSS_MB:
-            log.critical("Max allowed RSS memory exceeded: %s MB, exiting."
-                         % _CHECK_RAM_MAX_RSS_MB)
-            reactor.stop()
-        del rss
+    # def _check_memory(self, num_running_commands):
+    #     rss = mem_clean('periodic memory clean')
+    #     if not num_running_commands and rss > _CHECK_RAM_MAX_RSS_MB:
+    #         log.critical("Max allowed RSS memory exceeded: %s MB, exiting."
+    #                      % _CHECK_RAM_MAX_RSS_MB)
+    #         reactor.stop()
+    #     del rss
