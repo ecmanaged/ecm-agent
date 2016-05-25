@@ -19,14 +19,14 @@ AGENT_VERSION_PROTOCOL = 1
 
 from twisted.words.xish.domish import Element
 class ECMessage(object):
-    def __init__(self, elem=None):
-        self.id = ''
-        self.type = ''
-        self.command = ''
-        self.command_name = ''
-        self.command_args = ''
-        self.data = ''
-        self.timeout = ''
+    def __init__(self, id = '', type= '', command = '', command_args= '', data = '', timeout = '' ):
+        self.id = id
+        self.type = type
+        self.command = command
+        self.command_name = command.replace('.', '_')
+        self.command_args = command_args
+        self.data = data
+        self.timeout = timeout
         self.version = AGENT_VERSION_CORE
         self.protocol = AGENT_VERSION_PROTOCOL
 

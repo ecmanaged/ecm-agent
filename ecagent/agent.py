@@ -86,18 +86,13 @@ class SMAgent():
 
     def _info(self):
         # Simulate a received task
-        message = ECMessage()
-        message.version = '1'
-        message.type = 'set'
-        message.id = '989b3c79caf30c9b0df05083d47809f381fe9e83::VMOsVbQxj1Tml0kJotr76Q'
-        message.command = 'system.info'
-        message.command_args = {'timeout': '30'}
+        message = ECMessage('989b3c79caf30c9b0df05083d47809f381fe9e83::VMOsVbQxj1Tml0kJotr76Q', 'set', 'system.info', {'timeout': '30'})
 
         log.info("system.info")
         log.info('loaded commands: %s' %self.command_runner._commands)
 
         flush_callback = self._flush
-        message.command_name = message.command.replace('.', '_')
+        #message.command_name = message.command.replace('.', '_')
 
         log.info("command: %s" %message.command_name)
 
@@ -129,12 +124,8 @@ class SMAgent():
         :return:
         '''
         # Simulate a received task
-        message = ECMessage()
-        message.version = '1'
-        message.type = 'set'
-        message.id = '989b3c79caf30c9b0df05083d47809f381fe9e83::VMOsVbQxj1Tml0kJotr76Q'
-        message.command = 'monitor.get'
-        message.command_args = {'config': 'eyJfX2Jhc2VfXyI6eyJuYW1lIjoiU1lTVEVNIEhFQUxUSCIsImNvbmZpZyI6e30sImlkIjoiX19iYXNlX18iLCJpbnRlcnZhbCI6NjB9fQ==', 'timeout': '30'}
+        message = ECMessage('989b3c79caf30c9b0df05083d47809f381fe9e83::VMOsVbQxj1Tml0kJotr76Q', 'set', 'monitor.get', {'config': 'eyJfX2Jhc2VfXyI6eyJuYW1lIjoiU1lTVEVNIEhFQUxUSCIsImNvbmZpZyI6e30sImlkIjoiX19iYXNlX18iLCJpbnRlcnZhbCI6NjB9fQ==', 'timeout': '30'})
+
         try:
             self._new_task(message)
         except Exception, e:
@@ -154,7 +145,7 @@ class SMAgent():
 
     def _processCommand(self, message):
         flush_callback = self._flush
-        message.command_name = message.command.replace('.', '_')
+        #message.command_name = message.command.replace('.', '_')
 
         log.info("command: %s" %message.command_name)
 
@@ -204,12 +195,7 @@ class SMAgent():
         #log.info("Simulate received task")
 
         # Simulate a received tastaskk
-        task = ECMessage()
-        task.version = '1'
-        task.type = 'set'
-        task.id = '989b3c79caf30c9b0df05083d47809f381fe9e83::VMOsVbQxj1Tml0kJotr76Q'
-        task.command = 'sysmtem.info'
-        task.command_args = {'timeout': '30'}
+        task = ECMessage('989b3c79caf30c9b0df05083d47809f381fe9e83::VMOsVbQxj1Tml0kJotr76Q', 'set', 'sysmtem.info', {'timeout': '30'} )
         #self._new_task(task)
 
     # def _check_memory(self, num_running_commands):
