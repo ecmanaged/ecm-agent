@@ -17,14 +17,18 @@
 AGENT_VERSION_CORE = 3
 AGENT_VERSION_PROTOCOL = 1
 
-from twisted.words.xish.domish import Element
+import ast
+
 class ECMessage(object):
     def __init__(self, id = '', type= '', command = '', command_args= '', data = '', timeout = '' ):
         self.id = id
         self.type = type
         self.command = command
         self.command_name = command.replace('.', '_')
-        self.command_args = command_args
+        if isinstance(command_args, unicode):
+            self.command_args = ast.literal_eval(command_args)
+        else:
+            self.command_args = command_args
         self.data = data
         self.timeout = timeout
         self.version = AGENT_VERSION_CORE
