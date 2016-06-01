@@ -15,7 +15,7 @@
 #    under the License.
 
 AGENT_VERSION_CORE = 3
-AGENT_VERSION_PROTOCOL = 1
+AGENT_VERSION_PROTOCOL = 2
 
 import ast
 import base64
@@ -29,7 +29,7 @@ class ECMessage(object):
         self.command_name = command.replace('.', '_')
         if isinstance(command_args, unicode):
             if self.command_name == 'monitor_plugin_install':
-            	self.command_args = ast.literal_eval(command_args)
+                self.command_args = ast.literal_eval(command_args)
             else:
                 args = base64.b64decode(command_args)
                 self.command_args = ast.literal_eval(args)
