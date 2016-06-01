@@ -63,7 +63,8 @@ class ECMMonitor(ECMPlugin):
         b64_config = kwargs.get('config', None)
         
         try:
-            config = json.loads(b64decode(b64_config))
+            if isinstance(b64_config, str):
+                config = json.loads(b64decode(b64_config))
         except:
             pass
         

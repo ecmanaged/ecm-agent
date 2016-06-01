@@ -35,8 +35,8 @@ _CHECK_RAM_INTERVAL = 60
 
 KEEPALIVED_TIMEOUT = 180
 
-MAIN_LOOP_TIME = 5
-SYSTEM_LOOP_TIME = 10
+MAIN_LOOP_TIME = 15
+SYSTEM_LOOP_TIME = 15
 
 class SMAgent:
     def __init__(self, config):
@@ -88,13 +88,13 @@ class SMAgent():
         # Simulate a received task
         message = ECMessage('989b3c79caf30c9b0df05083d47809f381fe9e83::VMOsVbQxj1Tml0kJotr76Q', 'info', 'system.info', {'timeout': '30'})
 
-        log.info("system.info")
+        #log.info("system.info")
         log.info('loaded commands: %s' %self.command_runner._commands)
 
         flush_callback = self._flush
         #message.command_name = message.command.replace('.', '_')
 
-        log.info("command: %s" %message.command_name)
+        #log.info("command: %s" %message.command_name)
 
         d = self.command_runner.run_command(message, flush_callback)
 
@@ -147,7 +147,7 @@ class SMAgent():
         flush_callback = self._flush
         #message.command_name = message.command.replace('.', '_')
 
-        log.info("command: %s" %message.command_name)
+        #log.info("command: %s" %message.command_name)
 
         d = self.command_runner.run_command(message, flush_callback)
 
@@ -209,20 +209,19 @@ class SMAgent():
                 #content = urlopen.readlines()
                 for task in content:
                     task = content[task]
-                    log.info('got tasks: %s %s' %(task, type(task)))
-                    log.info('task %s %s %s %s' %(task['id'], task['type'], task['command'], task['command_args']))
-                    
+                    #log.info('task %s %s %s %s' %(task['id'], task['type'], task['command'], task['command_args']))
+                    #log.info('task %s %s %s %s' %(type(task['id']), type(task['type']), type(task['command']), type(task['command_args'])))
+
                     message = ECMessage(task['id'], task['type'], task['command'], task['command_args'])
-                    log.info('   %s %s %s %s ' %(message.id, message.type, message.command, message.command_args))
+                    #log.info('after converting to message:   %s %s %s %s ' %(message.id, message.type, message.command, message.command_args))
 
                     flush_callback = self._flush
-                    #message.command_name = message.command.replace('.', '_')
-            
+
                     d = self.command_runner.run_command(message, flush_callback)
-            
+
                     # Clean message
                     message.command_args = {}
-            
+
                     if d:
                         d.addCallbacks(self._onCallFinished, self._onCallFailed,
                                        callbackKeywords={'message': message},
@@ -230,18 +229,19 @@ class SMAgent():
                         )
                         del message
                         return d
-            
+
                     else:
                         log.info("Command Ignored: Unknown command: %s" % message.command)
                         result = (_E_RUNNING_COMMAND, '', "Unknown command: %s" % message.command, 0)
                         self._onCallFinished(result, message)
-            
+
                     del message
-                    
+
             except Exception, e:
                 log.info('post error: %s' %str(e))
         else:
             log.info('send result for %s %s: %s' %(message.type, message.command, result))
+            #log.info('send result for %s %s' %(message.type, message.command))
         #log.info("Simulate received task")
 
         # Simulate a received tastaskk
