@@ -23,6 +23,11 @@ from ecagent.runner import CommandRunner
 from ecagent.message import ECMessage
 
 import ecagent.twlogging as log
+
+import urllib
+import urllib2
+import json
+
 from ecagent.functions import mem_clean
 
 from message import AGENT_VERSION_PROTOCOL
@@ -91,6 +96,42 @@ class SMAgent():
         #log.info("system.info")
         log.info('loaded commands: %s' %self.command_runner._commands)
 
+        self._new_task(message)
+
+    def _main(self):
+        '''
+        send periodic health info to the backend
+        :return:
+        '''
+        url = 'http://localhost:5000/todos'
+        data = {}
+        data['result']= 'dummy result'
+
+        #log.info('posting data %s' %data)
+
+        try:
+            req = urllib2.Request(url, urllib.urlencode(data))
+            urlopen = urllib2.urlopen(req)
+            content = ''.join(urlopen.readlines())
+            content = json.loads(content)
+        except Exception, e:
+            log.info('error in main loop getting tasks %s' % str(e))
+
+        for task in content:
+            task = content[task]
+            #log.info('task %s %s %s %s' %(task['id'], task['type'], task['command'], task['command_args']))
+            #log.info('task %s %s %s %s' %(type(task['id']), type(task['type']), type(task['command']), type(task['command_args'])))
+            try:
+                message = ECMessage(task['id'], task['type'], task['command'], task['command_args'])
+            except Exception, e:
+                log.info('error in main loop while generating message for task %s: %s' %(task['id'], str(e)))
+            #log.info('after converting to message:   %s %s %s %s ' %(message.id, message.type, message.command, message.command_args))
+            try:
+                self._new_task(message)
+            except Exception, e:
+                log.info('error in main loop while running task %s: %s' %(task['id'], str(e)))
+
+    def _new_task(self, message):
         flush_callback = self._flush
         #message.command_name = message.command.replace('.', '_')
 
@@ -116,32 +157,6 @@ class SMAgent():
 
         del message
         return
-
-
-    def _main(self):
-        '''
-        send periodic health info to the backend
-        :return:
-        '''
-        # Simulate a received task
-        message = ECMessage('989b3c79caf30c9b0df05083d47809f381fe9e83::VMOsVbQxj1Tml0kJotr76Q', 'main', 'monitor.get', {'config': 'eyJfX2Jhc2VfXyI6eyJuYW1lIjoiU1lTVEVNIEhFQUxUSCIsImNvbmZpZyI6e30sImlkIjoiX19iYXNlX18iLCJpbnRlcnZhbCI6NjB9fQ==', 'timeout': '30'})
-
-        try:
-            self._new_task(message)
-        except Exception, e:
-            log.info('error: %s' %str(e))
-
-
-    def _new_task(self, msg):
-        """
-        A new IQ message has been received and we should process it.
-        """
-        log.debug('_new_task')
-
-        # check if message is TASK
-        log.debug("Message type: %s" % msg['type'])
-
-        self._processCommand(msg)
 
     def _processCommand(self, message):
         flush_callback = self._flush
@@ -190,58 +205,8 @@ class SMAgent():
 
     def _send(self, result, message):
         log.debug('Send Response')
-        import urllib
-        import urllib2
-        import json
-
-        if message.type == 'main':
-            url = 'http://localhost:5000/todos'
-            data = {}
-            data['result']= result
-
-            #log.info('posting data %s' %data)
-
-            try:
-                req = urllib2.Request(url, urllib.urlencode(data))
-                urlopen = urllib2.urlopen(req)
-                content = ''.join(urlopen.readlines())
-                content = json.loads(content)
-                #content = urlopen.readlines()
-                for task in content:
-                    task = content[task]
-                    #log.info('task %s %s %s %s' %(task['id'], task['type'], task['command'], task['command_args']))
-                    #log.info('task %s %s %s %s' %(type(task['id']), type(task['type']), type(task['command']), type(task['command_args'])))
-
-                    message = ECMessage(task['id'], task['type'], task['command'], task['command_args'])
-                    #log.info('after converting to message:   %s %s %s %s ' %(message.id, message.type, message.command, message.command_args))
-
-                    flush_callback = self._flush
-
-                    d = self.command_runner.run_command(message, flush_callback)
-
-                    # Clean message
-                    message.command_args = {}
-
-                    if d:
-                        d.addCallbacks(self._onCallFinished, self._onCallFailed,
-                                       callbackKeywords={'message': message},
-                                       errbackKeywords={'message': message},
-                        )
-                        del message
-                        return d
-
-                    else:
-                        log.info("Command Ignored: Unknown command: %s" % message.command)
-                        result = (_E_RUNNING_COMMAND, '', "Unknown command: %s" % message.command, 0)
-                        self._onCallFinished(result, message)
-
-                    del message
-
-            except Exception, e:
-                log.info('post error: %s' %str(e))
-        else:
-            log.info('send result for %s %s: %s' %(message.type, message.command, result))
-            #log.info('send result for %s %s' %(message.type, message.command))
+        #log.info('send result for %s %s: %s' %(message.type, message.command, result))
+        log.info('send result for %s %s' %(message.type, message.command))
         #log.info("Simulate received task")
 
         # Simulate a received tastaskk
