@@ -25,12 +25,7 @@ from ecagent.message import ECMessage
 import ecagent.twlogging as log
 from ecagent.functions import mem_clean
 
-from monitor import ECMMonitor
-from system import ECMInfo
-
 from message import AGENT_VERSION_PROTOCOL
-
-AGENT_VERSION = 4
 
 _E_RUNNING_COMMAND = 253
 _E_UNVERIFIED_COMMAND = 251
@@ -90,12 +85,37 @@ class SMAgent():
         self.periodic_info.start(MAIN_LOOP_TIME, now=True)
 
     def _info(self):
-        '''
-        send periodic health info to the backend
-        :return:
-        '''
-        message = ECMessage(type="info", data=ECMInfo.system_info())
-        self._send(message)
+        # Simulate a received task
+        message = ECMessage('989b3c79caf30c9b0df05083d47809f381fe9e83::VMOsVbQxj1Tml0kJotr76Q', 'info', 'system.info', {'timeout': '30'})
+
+        #log.info("system.info")
+        log.info('loaded commands: %s' %self.command_runner._commands)
+
+        flush_callback = self._flush
+        #message.command_name = message.command.replace('.', '_')
+
+        #log.info("command: %s" %message.command_name)
+
+        d = self.command_runner.run_command(message, flush_callback)
+
+        # Clean message
+        #message.command_args = {}
+
+        if d:
+            d.addCallbacks(self._onCallFinished, self._onCallFailed,
+                           callbackKeywords={'message': message},
+                           errbackKeywords={'message': message},
+            )
+            del message
+            return d
+
+        else:
+            log.info("Command Ignored: Unknown command: %s" % message.command)
+            result = (_E_RUNNING_COMMAND, '', "Unknown command: %s" % message.command, 0)
+            self._onCallFinished(result, message)
+
+        del message
+        return
 
 
     def _main(self):
@@ -103,12 +123,33 @@ class SMAgent():
         send periodic health info to the backend
         :return:
         '''
-        message = ECMessage(type="monitor", data=ECMMonitor.monitor_get())
-        self._send(message)
+        # Simulate a received task
+        message = ECMessage('989b3c79caf30c9b0df05083d47809f381fe9e83::VMOsVbQxj1Tml0kJotr76Q', 'main', 'monitor.get', {'config': 'eyJfX2Jhc2VfXyI6eyJuYW1lIjoiU1lTVEVNIEhFQUxUSCIsImNvbmZpZyI6e30sImlkIjoiX19iYXNlX18iLCJpbnRlcnZhbCI6NjB9fQ==', 'timeout': '30'})
+
+        try:
+            self._new_task(message)
+        except Exception, e:
+            log.info('error: %s' %str(e))
+
+
+    def _new_task(self, msg):
+        """
+        A new IQ message has been received and we should process it.
+        """
+        log.debug('_new_task')
+
+        # check if message is TASK
+        log.debug("Message type: %s" % msg['type'])
+
+        self._processCommand(msg)
 
     def _processCommand(self, message):
+        flush_callback = self._flush
+        #message.command_name = message.command.replace('.', '_')
 
-        d = self.command_runner.run_command(message, self._send)
+        #log.info("command: %s" %message.command_name)
+
+        d = self.command_runner.run_command(message, flush_callback)
 
         # Clean message
         message.command_args = {}
@@ -131,71 +172,86 @@ class SMAgent():
 
     def _onCallFinished(self, result, message):
         log.debug('Call Finished')
-        message.data = result
-
-        self._send(message)
-        log.debug('task finished %s' %message.id)
+        self._send(result, message)
+        log.debug('command finished %s' %message.command_name)
 
     def _onCallFailed(self, failure, *argv, **kwargs):
         log.error("onCallFailed")
-
         log.info(failure)
 
         if 'message' in kwargs:
             message = kwargs['message']
             result = (2, '', failure, 0)
-            log.debug('task failed %s' %message.id)
             self._onCallFinished(result, message)
 
-    def _send(self, message):
+    def _flush(self, result, message):
+        log.debug('Flush Message')
+        self._send(result, message)
+
+    def _send(self, result, message):
         log.debug('Send Response')
+        import urllib
+        import urllib2
+        import json
 
-
-        if message.type == 'monitor':
+        if message.type == 'main':
             url = 'http://localhost:5000/todos'
-            log.info('send info for %s to %s: %s' %(message.type, url, message))
+            data = {}
+            data['result']= result
+
+            #log.info('posting data %s' %data)
 
             try:
-                content = self._tmp_post(url, message)
+                req = urllib2.Request(url, urllib.urlencode(data))
+                urlopen = urllib2.urlopen(req)
+                content = ''.join(urlopen.readlines())
+                content = json.loads(content)
                 #content = urlopen.readlines()
-
                 for task in content:
                     task = content[task]
                     #log.info('task %s %s %s %s' %(task['id'], task['type'], task['command'], task['command_args']))
                     #log.info('task %s %s %s %s' %(type(task['id']), type(task['type']), type(task['command']), type(task['command_args'])))
 
                     message = ECMessage(task['id'], task['type'], task['command'], task['command_args'])
-                    self._processCommand(message)
+                    #log.info('after converting to message:   %s %s %s %s ' %(message.id, message.type, message.command, message.command_args))
+
+                    flush_callback = self._flush
+
+                    d = self.command_runner.run_command(message, flush_callback)
+
+                    # Clean message
+                    message.command_args = {}
+
+                    if d:
+                        d.addCallbacks(self._onCallFinished, self._onCallFailed,
+                                       callbackKeywords={'message': message},
+                                       errbackKeywords={'message': message},
+                        )
+                        del message
+                        return d
+
+                    else:
+                        log.info("Command Ignored: Unknown command: %s" % message.command)
+                        result = (_E_RUNNING_COMMAND, '', "Unknown command: %s" % message.command, 0)
+                        self._onCallFinished(result, message)
+
                     del message
 
             except Exception, e:
                 log.info('post error: %s' %str(e))
+        else:
+            log.info('send result for %s %s: %s' %(message.type, message.command, result))
+            #log.info('send result for %s %s' %(message.type, message.command))
+        #log.info("Simulate received task")
 
-        elif message.type == 'info':
-            url = 'http://localhost:5000/info'
-            log.info('send info for %s to %s: %s' %(message.type, url, message))
-            content = self._tmp_post(url, message)
+        # Simulate a received tastaskk
+        #task = ECMessage('989b3c79caf30c9b0df05083d47809f381fe9e83::VMOsVbQxj1Tml0kJotr76Q', 'set', 'sysmtem.info', {'timeout': '30'} )
+        #self._new_task(task)
 
-        elif message.type == 'result':
-            url = 'http://localhost:5000/result'
-            log.info('send result for %s to %s: %s' %(message.type, url, message))
-            content = self._tmp_post(url, message)
-
-    def _check_memory(self, num_running_commands):
-        rss = mem_clean('periodic memory clean')
-        if not num_running_commands and rss > _CHECK_RAM_MAX_RSS_MB:
-            log.critical("Max allowed RSS memory exceeded: %s MB, exiting."
-                          % _CHECK_RAM_MAX_RSS_MB)
-            reactor.stop()
-        del rss
-
-    def _tmp_post(self, url, message):
-        import urllib
-        import urllib2
-        import json
-
-        req = urllib2.Request(url, urllib.urlencode(message.__dict__))
-        urlopen = urllib2.urlopen(req)
-        content = ''.join(urlopen.readlines())
-
-        return json.loads(content)
+    # def _check_memory(self, num_running_commands):
+    #     rss = mem_clean('periodic memory clean')
+    #     if not num_running_commands and rss > _CHECK_RAM_MAX_RSS_MB:
+    #         log.critical("Max allowed RSS memory exceeded: %s MB, exiting."
+    #                      % _CHECK_RAM_MAX_RSS_MB)
+    #         reactor.stop()
+    #     del rss
