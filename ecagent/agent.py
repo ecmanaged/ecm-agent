@@ -15,8 +15,14 @@
 #    under the License.
 
 # Twisted imports
-from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
+
+from twisted.internet import reactor
+from twisted.internet.defer import Deferred
+from twisted.internet.protocol import Protocol
+from twisted.web.client import Agent
+from twisted.web.http_headers import Headers
+
 
 # Local
 from ecagent.runner import CommandRunner
@@ -109,27 +115,14 @@ class SMAgent():
 
         #log.info('posting data %s' %data)
 
-        try:
-            req = urllib2.Request(url, urllib.urlencode(data))
-            urlopen = urllib2.urlopen(req)
-            content = ''.join(urlopen.readlines())
-            content = json.loads(content)
-        except Exception, e:
-            log.info('error in main loop getting tasks %s' % str(e))
+        agent = Agent(reactor)
+        d = agent.request('GET', url, Headers({'User-Agent': ['Twisted Web Client Example']}), None)
+        d.addCallback(self.cbRequest)
 
-        for task in content:
-            task = content[task]
-            #log.info('task %s %s %s %s' %(task['id'], task['type'], task['command'], task['command_args']))
-            #log.info('task %s %s %s %s' %(type(task['id']), type(task['type']), type(task['command']), type(task['command_args'])))
-            try:
-                message = ECMessage(task['id'], task['type'], task['command'], task['command_args'])
-            except Exception, e:
-                log.info('error in main loop while generating message for task %s: %s' %(task['id'], str(e)))
-            #log.info('after converting to message:   %s %s %s %s ' %(message.id, message.type, message.command, message.command_args))
-            try:
-                self._new_task(message)
-            except Exception, e:
-                log.info('error in main loop while running task %s: %s' %(task['id'], str(e)))
+    def cbRequest(self, response):
+        finished = Deferred()
+        response.deliverBody(BeginningPrinter(finished))
+        return finished
 
     def _new_task(self, message):
         flush_callback = self._flush
@@ -220,3 +213,30 @@ class SMAgent():
     #                      % _CHECK_RAM_MAX_RSS_MB)
     #         reactor.stop()
     #     del rss
+
+class BeginningPrinter(Protocol):
+    def __init__(self, finished):
+        self.finished = finished
+
+    def dataReceived(self, bytes):
+        import json
+        tasks = json.loads(bytes)
+
+        for task in tasks:
+            task = tasks[task]
+            #log.info('task %s %s %s %s' %(task['id'], task['type'], task['command'], task['command_args']))
+            #log.info('task %s %s %s %s' %(type(task['id']), type(task['type']), type(task['command']), type(task['command_args'])))
+            try:
+                message = ECMessage(task['id'], task['type'], task['command'], task['command_args'])
+            except Exception, e:
+                log.info('error in main loop while generating message for task %s: %s' %(task['id'], str(e)))
+            #log.info('after converting to message:   %s %s %s %s ' %(message.id, message.type, message.command, message.command_args))
+            try:
+                self._new_task(message)
+            except Exception, e:
+                log.info('error in main loop while running task %s: %s' %(task['id'], str(e)))
+
+
+
+    def connectionLost(self, reason):
+        self.finished.callback(None)
