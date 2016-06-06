@@ -158,38 +158,6 @@ class SMAgent():
         del message
         return
 
-    def _processCommand(self, message):
-        flush_callback = self._flush
-        #message.command_name = message.command.replace('.', '_')
-
-        #log.info("command: %s" %message.command_name)
-
-        d = self.command_runner.run_command(message, flush_callback)
-
-        # Clean message
-        message.command_args = {}
-
-        if d:
-            d.addCallbacks(self._onCallFinished, self._onCallFailed,
-                           callbackKeywords={'message': message},
-                           errbackKeywords={'message': message},
-            )
-            del message
-            return d
-
-        else:
-            log.info("Command Ignored: Unknown command: %s" % message.command)
-            result = (_E_RUNNING_COMMAND, '', "Unknown command: %s" % message.command, 0)
-            self._onCallFinished(result, message)
-
-        del message
-        return
-
-    def _onCallFinished(self, result, message):
-        log.debug('Call Finished')
-        self._send(result, message)
-        log.debug('command finished %s' %message.command_name)
-
     def _onCallFailed(self, failure, *argv, **kwargs):
         log.error("onCallFailed")
         log.info(failure)

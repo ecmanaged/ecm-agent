@@ -188,9 +188,6 @@ class CommandRunnerProcess(ProcessProtocol):
                     self.stdout += line
         else:
             self.stdout += data
-
-        #log.info('puto output: %s' % self.stdout)
-
         del data
         self._flush()
 

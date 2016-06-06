@@ -162,11 +162,12 @@ class ECMMonitor(ECMPlugin):
         
         if not url:
             raise ecm.InvalidParameters(self.cmd_monitor_plugin_install.__doc__)
-        
+
+
         try:
             content = ecm.get_url(url)
         except:
-            pass
+            raise Exception("Unable to get URL: %s" % url)
         
         if not content:
             raise Exception("Unable to get URL: %s" % url)
