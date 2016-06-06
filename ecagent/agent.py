@@ -158,6 +158,11 @@ class SMAgent():
         del message
         return
 
+    def _onCallFinished(self, result, message):
+        log.debug('Call Finished')
+        self._send(result, message)
+        log.debug('command finished %s' %message.command_name)
+
     def _onCallFailed(self, failure, *argv, **kwargs):
         log.error("onCallFailed")
         log.info(failure)
