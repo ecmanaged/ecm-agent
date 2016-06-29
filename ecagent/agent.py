@@ -73,49 +73,84 @@ class SMAgent():
         """
         log.info("Starting Agent...")
 
+        auth_url = 'http://127.0.0.1:5000/agent/register'
+        data = {}
+        data['result']= ' '
+        headers = {}
+        headers["Content-Type"] = "application/json"
+        content = None
+
+        try:
+            req = urllib2.Request(auth_url, urllib.urlencode(data), headers)
+            urlopen = urllib2.urlopen(req)
+            content = ''.join(urlopen.readlines())
+            content_dict = json.loads(content)
+        except Exception, e:
+            log.info('error in main loop getting tasks %s' % str(e))
+
+        if not content:
+            raise Exception('registration failed')
+
+        self.username = content_dict['user-id']
+        self.password = content_dict['password']
+        self.token = content_dict['token']
+
         log.info("Loading Commands...")
         self.command_runner = CommandRunner(config['Plugins'])
 
         try:
-            #self._info()
-            reactor.callLater(5, self._info)
+            reactor.callLater(5, self._register)
         except Exception, e:
             log.info('error: %s' %str(e))
 
-        #self.memory_checker = LoopingCall(self._check_memory, self.running_commands)
-        #self.memory_checker.start(_CHECK_RAM_INTERVAL)
+        # try:
+        #     #self._info()
+        #     reactor.callLater(5, self._info)
+        # except Exception, e:
+        #     log.info('error: %s' %str(e))
+
+        self.memory_checker = LoopingCall(self._check_memory)
+        self.memory_checker.start(_CHECK_RAM_INTERVAL)
 
 
         self.periodic_info = LoopingCall(self._main)
         self.periodic_info.start(MAIN_LOOP_TIME, now=True)
 
-    def _info(self):
-        # Simulate a received task
-        message = ECMessage('989b3c79caf30c9b0df05083d47809f381fe9e83::VMOsVbQxj1Tml0kJotr76Q', 'info', 'system.info', {'timeout': '30'})
 
-        #log.info("system.info")
-        log.info('loaded commands: %s' %self.command_runner._commands)
 
-        self._new_task(message)
+    # def _info(self):
+    #     # Simulate a received task
+    #     message = ECMessage('989b3c79caf30c9b0df05083d47809f381fe9e83::VMOsVbQxj1Tml0kJotr76Q', 'info', 'system.info', {'timeout': '30'})
+    #
+    #     #log.info("system.info")
+    #     log.info('loaded commands: %s' %self.command_runner._commands)
+    #
+    #     self._new_task(message)
 
     def _main(self):
         '''
         send periodic health info to the backend
         :return:
         '''
-        url = 'http://localhost:5000/todos'
+        url = 'http://localhost:5000/agent/'+self.username+'/tasks'
         data = {}
-        data['result']= 'dummy result'
+        data['result']= ' '
+        authString = base64.encodestring('%s:%s' % (self.username, self.password))
+        headers = {"Content-Type": "application/json", "Authorization":"Basic %s" % authString}
+        content = None
 
         #log.info('posting data %s' %data)
 
         try:
-            req = urllib2.Request(url, urllib.urlencode(data))
+            req = urllib2.Request(url, urllib.urlencode(data), headers)
             urlopen = urllib2.urlopen(req)
             content = ''.join(urlopen.readlines())
             content = json.loads(content)
         except Exception, e:
             log.info('error in main loop getting tasks %s' % str(e))
+
+        if not content:
+            return
 
         for task in content:
             task = content[task]
@@ -186,10 +221,10 @@ class SMAgent():
         #task = ECMessage('989b3c79caf30c9b0df05083d47809f381fe9e83::VMOsVbQxj1Tml0kJotr76Q', 'set', 'sysmtem.info', {'timeout': '30'} )
         #self._new_task(task)
 
-    # def _check_memory(self, num_running_commands):
-    #     rss = mem_clean('periodic memory clean')
-    #     if not num_running_commands and rss > _CHECK_RAM_MAX_RSS_MB:
-    #         log.critical("Max allowed RSS memory exceeded: %s MB, exiting."
-    #                      % _CHECK_RAM_MAX_RSS_MB)
-    #         reactor.stop()
-    #     del rss
+    def _check_memory(self):
+        rss = mem_clean('periodic memory clean')
+        if rss > _CHECK_RAM_MAX_RSS_MB:
+            log.critical("Max allowed RSS memory exceeded: %s MB, exiting."
+                         % _CHECK_RAM_MAX_RSS_MB)
+            reactor.stop()
+        del rss
