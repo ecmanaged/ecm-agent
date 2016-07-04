@@ -222,5 +222,3 @@ class SMConfigObj(ConfigObj):
             unique_id = 'mac::' + ':'.join(findall('..', '%012x' % getnode()))
 
         return unique_id
-
-

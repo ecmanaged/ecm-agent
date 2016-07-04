@@ -15,6 +15,7 @@
 #    under the License.
 
 # Twisted imports
+import base64
 from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
 
@@ -159,12 +160,12 @@ class SMAgent():
             try:
                 message = ECMessage(task['id'], task['type'], task['command'], task['command_args'])
             except Exception, e:
-                log.info('error in main loop while generating message for task %s: %s' %(task['id'], str(e)))
+                log.info('error in main loop while generating message for task : %s' %str(e))
             #log.info('after converting to message:   %s %s %s %s ' %(message.id, message.type, message.command, message.command_args))
             try:
                 self._new_task(message)
             except Exception, e:
-                log.info('error in main loop while running task %s: %s' %(task['id'], str(e)))
+                log.info('error in main loop while running task : %s' % str(e))
 
     def _new_task(self, message):
         flush_callback = self._flush
@@ -213,13 +214,26 @@ class SMAgent():
 
     def _send(self, result, message):
         log.debug('Send Response')
-        #log.info('send result for %s %s: %s' %(message.type, message.command, result))
         log.info('send result for %s %s' %(message.type, message.command))
-        #log.info("Simulate received task")
 
-        # Simulate a received tastaskk
-        #task = ECMessage('989b3c79caf30c9b0df05083d47809f381fe9e83::VMOsVbQxj1Tml0kJotr76Q', 'set', 'sysmtem.info', {'timeout': '30'} )
-        #self._new_task(task)
+        url = 'http://localhost:5000/agent/'+self.username+'/result'
+        data = {}
+        data['result']= result
+        authString = base64.encodestring('%s:%s' % (self.username, self.password))
+        headers = {"Content-Type": "application/json", "Authorization":"Basic %s" % authString}
+
+        #log.info('posting data %s' %data)
+
+        try:
+            req = urllib2.Request(url, urllib.urlencode(data), headers)
+            urlopen = urllib2.urlopen(req)
+            content = ''.join(urlopen.readlines())
+            log.info(' %s' %str(content))
+        except Exception, e:
+            log.info('error in while sending result %s' % str(e))
+
+
+
 
     def _check_memory(self):
         rss = mem_clean('periodic memory clean')
