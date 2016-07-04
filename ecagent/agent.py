@@ -160,12 +160,12 @@ class SMAgent():
             try:
                 message = ECMessage(task['id'], task['type'], task['command'], task['command_args'])
             except Exception, e:
-                log.info('error in main loop while generating message for task : %s' %str(e))
+                log.info('error in main loop while generating message for task: %s' %str(e))
             #log.info('after converting to message:   %s %s %s %s ' %(message.id, message.type, message.command, message.command_args))
             try:
                 self._new_task(message)
             except Exception, e:
-                log.info('error in main loop while running task : %s' % str(e))
+                log.info('error in main loop while running task: %s' %str(e))
 
     def _new_task(self, message):
         flush_callback = self._flush
@@ -228,11 +228,9 @@ class SMAgent():
             req = urllib2.Request(url, urllib.urlencode(data), headers)
             urlopen = urllib2.urlopen(req)
             content = ''.join(urlopen.readlines())
-            log.info(' %s' %str(content))
+            log.info('error in main loop while running task: %s' %str(content))
         except Exception, e:
-            log.info('error in while sending result %s' % str(e))
-
-
+            log.info('error in main loop getting tasks %s' % str(e))
 
 
     def _check_memory(self):
