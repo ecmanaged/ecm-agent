@@ -23,7 +23,6 @@ import stat
 # Twisted
 from twisted.application.service import Application
 
-
 try:
     root_dir = os.path.dirname(os.path.abspath(__file__))
 except NameError:  # We are the main py2exe script, not a module
@@ -41,7 +40,7 @@ if "." not in sys.path:
 
 # Local
 from ecagent.config import SMConfigObj
-from ecagent.agent import SMAgent
+from ecagent.agent import ECAgent
 import ecagent.twlogging as log
 
 # Enable automatic garbage collection.
@@ -89,4 +88,4 @@ config = SMConfigObj(config_file)
 application = Application("ecagent")
 log.setup(application, config['Log'])
 
-agent = SMAgent(config)
+agent = ECAgent(config)

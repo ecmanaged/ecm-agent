@@ -44,89 +44,35 @@ KEEPALIVED_TIMEOUT = 180
 MAIN_LOOP_TIME = 15
 SYSTEM_LOOP_TIME = 15
 
-class SMAgent:
-    def __init__(self, config):
-        reactor.callWhenRunning(self._check_config)
-        self.config = config
-
-    def _check_config(self):
-        d = self.config.check_config()
-        d.addCallback(self._on_config_checked)
-        d.addErrback(self._on_config_failed)
-
-    def _on_config_checked(self, success):
-        # Ok, now everything should be correctly configured,
-        # let's start the party.
-        if success:
-            SMAgent(self.config)
-
-    @staticmethod
-    def _on_config_failed(failure):
-        log.critical("Configuration check failed with: %s, exiting." % failure)
-        log.critical("Please try configuring the XMPP subsystem manually.")
-        reactor.stop()
-
-
-class SMAgent():
+class ECAgent():
     def __init__(self, config):
         """
         XMPP agent class.
         """
-        log.info("Starting Agent...")
-
-        auth_url = 'http://127.0.0.1:5000/agent/register'
-        data = {}
-        data['result']= ' '
-        headers = {}
-        headers["Content-Type"] = "application/json"
-        content = None
+        self.config = config
+        self.username = None
+        self.password = None
 
         try:
-            req = urllib2.Request(auth_url, urllib.urlencode(data), headers)
-            urlopen = urllib2.urlopen(req)
-            content = ''.join(urlopen.readlines())
-            content_dict = json.loads(content)
-        except Exception, e:
-            log.info('error in main loop getting tasks %s' % str(e))
+            self.username, self.password = self.config.check_config()
+            log.info('output of check_config: %s' % self.config.check_config() )
+        except Exception,e:
+            log.info(' exception in config: %s' % str(e))
 
-        if not content:
-            raise Exception('registration failed')
+        log.info("Starting Agent...")
 
-        self.username = content_dict['user-id']
-        self.password = content_dict['password']
-        self.token = content_dict['token']
 
         log.info("Loading Commands...")
         self.command_runner = CommandRunner(config['Plugins'])
 
-        try:
-            reactor.callLater(5, self._register)
-        except Exception, e:
-            log.info('error: %s' %str(e))
+        if self.username and self.password:
+            self.memory_checker = LoopingCall(self._check_memory)
+            self.memory_checker.start(_CHECK_RAM_INTERVAL)
 
-        # try:
-        #     #self._info()
-        #     reactor.callLater(5, self._info)
-        # except Exception, e:
-        #     log.info('error: %s' %str(e))
-
-        self.memory_checker = LoopingCall(self._check_memory)
-        self.memory_checker.start(_CHECK_RAM_INTERVAL)
-
-
-        self.periodic_info = LoopingCall(self._main)
-        self.periodic_info.start(MAIN_LOOP_TIME, now=True)
-
-
-
-    # def _info(self):
-    #     # Simulate a received task
-    #     message = ECMessage('989b3c79caf30c9b0df05083d47809f381fe9e83::VMOsVbQxj1Tml0kJotr76Q', 'info', 'system.info', {'timeout': '30'})
-    #
-    #     #log.info("system.info")
-    #     log.info('loaded commands: %s' %self.command_runner._commands)
-    #
-    #     self._new_task(message)
+            self.periodic_info = LoopingCall(self._main)
+            self.periodic_info.start(MAIN_LOOP_TIME, now=True)
+        else:
+            log.info("no authentication...")
 
     def _main(self):
         '''
