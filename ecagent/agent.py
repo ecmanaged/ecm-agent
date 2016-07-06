@@ -16,6 +16,7 @@
 
 # Twisted imports
 import base64
+import sys
 from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
 
@@ -55,12 +56,10 @@ class ECAgent():
 
         try:
             self.username, self.password = self.config.check_config()
-            log.info('output of check_config: %s' % self.config.check_config() )
         except Exception,e:
             log.info(' exception in config: %s' % str(e))
-
-        log.info('username: %s' %self.username)
-        log.info('password: %s' %self.password)
+            #TODO: dies unexpectedly
+            sys.exit()
 
         log.info("Starting Agent...")
 
@@ -76,6 +75,7 @@ class ECAgent():
 
             self.periodic_info = LoopingCall(self._main)
             self.periodic_info.start(MAIN_LOOP_TIME, now=True)
+
         else:
             log.info("no authentication...")
             if reactor.running:

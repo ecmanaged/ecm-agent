@@ -17,6 +17,7 @@
 import urllib
 import urllib2
 import json
+import base64
 
 from configobj import ConfigObj
 
@@ -35,6 +36,7 @@ class SMConfigObj(ConfigObj):
     def check_config(self):
         username = self._get_stored_username()
         password = self.get_stored_password()
+        auth_check = False
 
         if not username and not password:
             auth_url = 'http://127.0.0.1:5000/agent/register'
@@ -56,7 +58,21 @@ class SMConfigObj(ConfigObj):
             password = self['USER']['password'] = content_dict['password']
             token = self['USER']['token'] = content_dict['token']
             self.write()
-	return username, password
+            auth_check = True
+
+        if not auth_check:
+            url = 'http://127.0.0.1:5000/agent/auth'
+            data = {}
+            authString = base64.encodestring('%s:%s' % (username, password))
+            headers = {"Content-Type": "application/json", "Authorization":"Basic %s" % authString}
+
+            try:
+                req = urllib2.Request(url, urllib.urlencode(data), headers)
+                urlopen = urllib2.urlopen(req)
+            except Exception, e:
+                raise Exception('authentication check failed')
+
+        return username, password
 
     def _get_stored_username(self):
         return self['USER'].get('username', '')
