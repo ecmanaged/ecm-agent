@@ -59,13 +59,18 @@ class ECAgent():
         except Exception,e:
             log.info(' exception in config: %s' % str(e))
 
+        log.info('username: %s' %self.username)
+        log.info('password: %s' %self.password)
+
         log.info("Starting Agent...")
 
-
-        log.info("Loading Commands...")
-        self.command_runner = CommandRunner(config['Plugins'])
-
         if self.username and self.password:
+            log.info("Loading Commands...")
+            self.command_runner = CommandRunner(config['Plugins'])
+
+            if reactor.running:
+                log.info('reactor is running)')
+
             self.memory_checker = LoopingCall(self._check_memory)
             self.memory_checker.start(_CHECK_RAM_INTERVAL)
 
@@ -73,6 +78,9 @@ class ECAgent():
             self.periodic_info.start(MAIN_LOOP_TIME, now=True)
         else:
             log.info("no authentication...")
+            if reactor.running:
+                reactor.stop()
+
 
     def _main(self):
         '''

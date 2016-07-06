@@ -52,11 +52,11 @@ class SMConfigObj(ConfigObj):
             except Exception, e:
                 raise Exception('registration failed')
 
-            self['USER']['username'] = content_dict['user-id']
-            self['USER']['password'] = content_dict['password']
-            self['USER']['token'] = content_dict['token']
+            username = self['USER']['username'] = content_dict['user-id']
+            password = self['USER']['password'] = content_dict['password']
+            token = self['USER']['token'] = content_dict['token']
             self.write()
-	    return username, password
+	return username, password
 
     def _get_stored_username(self):
         return self['USER'].get('username', '')
