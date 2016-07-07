@@ -68,7 +68,7 @@ class ECAgent():
             self.command_runner = CommandRunner(config['Plugins'])
 
             if reactor.running:
-                log.info('reactor is running)')
+                log.info('reactor is running')
 
             self.memory_checker = LoopingCall(self._check_memory)
             self.memory_checker.start(_CHECK_RAM_INTERVAL)
@@ -185,9 +185,6 @@ class ECAgent():
             log.info(' %s' %str(content))
         except Exception, e:
             log.info('error in while sending result %s' % str(e))
-
-
-
 
     def _check_memory(self):
         rss = mem_clean('periodic memory clean')
