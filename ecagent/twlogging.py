@@ -49,6 +49,7 @@ def setup(app, config):
     logfile = makeLogFile(config)
     app.setComponent(log.ILogObserver, log.FileLogObserver(logfile).emit)
 
+
 def makeLogFile(config):
     log_dir, log_file = split(config['log_path'])
 
@@ -73,26 +74,33 @@ def makeLogFile(config):
                       maxRotatedFiles=max_log_files)
     return logfile
 
+
 def _blackhole(message):
     """
     Auxiliar method that does nothing, used to speed up discarded log entries
     """
     pass
 
+
 def debug(message):
     log.msg('DEBUG: ' + message)
+
 
 def info(message):
     log.msg('INFO: ' + message)
 
+
 def warn(message):
     warning(message)
+
 
 def warning(message):
     log.msg('WARNING: ' + message)
 
+
 def error(message):
     log.msg('ERROR: ' + message)
+
 
 def critical(message):
     log.msg('CRITICAL: ' + message)

@@ -52,11 +52,14 @@ class SMConfigObj(ConfigObj):
                 content = ''.join(urlopen.readlines())
                 content_dict = json.loads(content)
             except Exception, e:
-                raise Exception('registration failed')
+                self['USER']['auth'] = 'False'
+                self.write()
+                raise Exception('Registration Error')
 
             username = self['USER']['username'] = content_dict['user-id']
             password = self['USER']['password'] = content_dict['password']
             token = self['USER']['token'] = content_dict['token']
+            self['USER']['auth'] = 'True'
             self.write()
             auth_check = True
 
@@ -70,9 +73,14 @@ class SMConfigObj(ConfigObj):
                 req = urllib2.Request(url, urllib.urlencode(data), headers)
                 urlopen = urllib2.urlopen(req)
             except Exception, e:
-                raise Exception('authentication check failed')
+                self['USER']['auth'] = 'False'
+                self.write()
+                raise Exception('Authentication Error')
 
-        return username, password
+            self['USER']['auth'] = 'True'
+            self.write()
+
+        returnValue(True)
 
     def _get_stored_username(self):
         return self['USER'].get('username', '')

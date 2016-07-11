@@ -16,9 +16,14 @@
 
 # Twisted imports
 import base64
-import sys
 from twisted.internet import reactor
+from twisted.internet import task
 from twisted.internet.task import LoopingCall
+from twisted.web.client import Agent
+from twisted.web.http_headers import Headers
+from StringIO import StringIO
+from twisted.web.client import FileBodyProducer
+from twisted.web.client import readBody
 
 # Local
 from ecagent.runner import CommandRunner
@@ -45,41 +50,85 @@ KEEPALIVED_TIMEOUT = 180
 MAIN_LOOP_TIME = 15
 SYSTEM_LOOP_TIME = 15
 
+# class SMAgent:
+#     def __init__(self, config):
+#         reactor.callWhenRunning(self._check_config)
+#         self.config = config
+#
+#     def _check_config(self):
+#         d = self.config.check_config()
+#         d.addCallback(self._on_config_checked)
+#         d.addErrback(self._on_config_failed)
+#
+#     def _on_config_checked(self, success):
+#         # Ok, now everything should be correctly configured,
+#         # let's start the party.
+#         if success:
+#             SMAgent(self.config)
+#
+#     @staticmethod
+#     def _on_config_failed(failure):
+#         log.critical("Configuration check failed with: %s, exiting." % failure)
+#         log.critical("Please try configuring the XMPP subsystem manually.")
+#         reactor.stop()
+
 class ECAgent():
     def __init__(self, config):
         """
         XMPP agent class.
         """
-        self.config = config
-        self.username = None
-        self.password = None
-
-        try:
-            self.username, self.password = self.config.check_config()
-        except Exception,e:
-            log.info(' exception in config: %s' % str(e))
-            #TODO: dies unexpectedly
-            sys.exit()
+        self.ecAgent = Agent(reactor)
+        self.authenticated = False
 
         log.info("Starting Agent...")
 
-        if self.username and self.password:
-            log.info("Loading Commands...")
-            self.command_runner = CommandRunner(config['Plugins'])
+        self.command_runner = CommandRunner(config['Plugins'])
 
-            if reactor.running:
-                log.info('reactor is running')
+        try:
+            # self._info()
+            reactor.callInThread(self._register)
+        except Exception, e:
+            log.info('error: %s' % str(e))
 
-            self.memory_checker = LoopingCall(self._check_memory)
-            self.memory_checker.start(_CHECK_RAM_INTERVAL)
+    def _register(self):
+        body = FileBodyProducer(StringIO("hello, world"))
 
-            self.periodic_info = LoopingCall(self._main)
-            self.periodic_info.start(MAIN_LOOP_TIME, now=True)
+        d = self.ecAgent.request(
+            'POST',
+            'http://127.0.0.1:5000/agent/register',
+            Headers({'Content-Type': ['application/json']}),
+            body)
+        if d:
+            d.addCallback(self.registerRequest)
+            return d
 
         else:
-            log.info("no authentication...")
-            if reactor.running:
-                reactor.stop()
+            log.info("error while registering")
+
+        return
+
+    def registerRequest(self, response):
+        log.info('Response version: %s' % str(response.version))
+        log.info('response.code: %s' % str(response.code))
+        log.info('response.phrase: %s' % str(response.phrase))
+        log.info('Response headers: %s' % str(list(response.headers.getAllRawHeaders())))
+
+        d = readBody(response)
+        d.addCallback(self.registerBody)
+        return d
+
+    def registerBody(self, body):
+        log.info('Response body: %s' %str(body))
+        body_dict = json.loads(body)
+        self.username = body_dict['user-id']
+        self.password = body_dict['password']
+        log.info("Loading Commands...")
+
+        self.memory_checker = LoopingCall(self._check_memory)
+        self.memory_checker.start(_CHECK_RAM_INTERVAL)
+
+        self.periodic_info = LoopingCall(self._main)
+        self.periodic_info.start(MAIN_LOOP_TIME, now=True)
 
 
     def _main(self):
@@ -87,6 +136,7 @@ class ECAgent():
         send periodic health info to the backend
         :return:
         '''
+
         url = 'http://localhost:5000/agent/'+self.username+'/tasks'
         data = {}
         data['result']= ' '
