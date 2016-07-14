@@ -144,6 +144,7 @@ class BaseMPlugin(MPlugin):
         return retval
 
     def _get_disk_io(self):
+        retval = {}
         from os.path import basename
 
         try:
@@ -161,7 +162,6 @@ class BaseMPlugin(MPlugin):
                     continue
                 res[device] = disk_io[device]
 
-            retval = {}
             retval = self.counters(self._to_data(res), 'disk_io')
         except:
             pass
