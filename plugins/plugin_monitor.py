@@ -19,6 +19,9 @@ RUN_AS_ROOT = False
 import os
 import sys
 
+from multiprocessing import Process
+from multiprocessing import Pool
+
 import simplejson as json
 from base64 import b64decode
 from time import time
@@ -60,6 +63,8 @@ class ECMMonitor(ECMPlugin):
 
         config = None
         b64_config = kwargs.get('config', None)
+
+        thread_pool = Pool(20)
 
         try:
             if isinstance(b64_config, str):
@@ -148,8 +153,9 @@ class ECMMonitor(ECMPlugin):
                         to_execute.append({'script': script, 'runas': runas})
 
         for data in to_execute:
-            _run_background_file(data['script'], data['runas'])
-
+            p = Process(target=_run_background_file, args=(data['script'], data['runas'],))
+            p.start()
+            p.join()
         return retval
 
     def cmd_monitor_plugin_install(self, *argv, **kwargs):
@@ -318,10 +324,6 @@ def _run_background_file(script, run_as=None):
     fullpath = os.path.abspath(script)
     script_name = os.path.basename(fullpath)
     workdir = os.path.dirname(script)
-
-    # Create child process and return if parent
-    if ecm.fork(workdir):
-        return
 
     # Write timeout to cache file
     _write_cache(script_name, CRITICAL, 'Timeout')
