@@ -286,7 +286,6 @@ class BaseMPlugin(MPlugin):
             i += 6
 
         return inode_list
-
                 
     def _get_netstat(self):
         try:
