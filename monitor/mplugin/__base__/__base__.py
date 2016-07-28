@@ -269,13 +269,20 @@ class BaseMPlugin(MPlugin):
         for part in psutil.disk_partitions(all=False):
             partitions_list.append(part.mountpoint)
 
-        inode_list  = []
+        inode_list = []
         i = 0
 
-        while i<len(inode):
-            if inode[i + 5] in partitions_list:
-                inode_list.append({'Filesystem': inode[i], 'Inodes': inode[i + 1], 'IUsed': inode[i + 2],
-                                   'IFree': inode[i + 3], 'IUse%': inode[i + 4], 'Mounted on': inode[i + 5]})
+        while i < len(inode):
+            try:
+                if str(inode[i + 2]) == 'bindfs':
+                    i += 6
+                    continue
+
+                if inode[i + 5] in partitions_list:
+                    inode_list.append({'Filesystem': inode[i], 'Inodes': inode[i + 1], 'IUsed': inode[i + 2],
+                                       'IFree': inode[i + 3], 'IUse%': inode[i + 4], 'Mounted on': inode[i + 5]})
+            except Exception as e:
+                pass
             i += 6
 
         return inode_list
