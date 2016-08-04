@@ -34,10 +34,10 @@ setup(name='ecmanaged-ecagent',
 
       packages=['ecagent', 'plugins','monitor.mplugin.__base__'],
 
-      data_files=[('config', ['config/ecagent.cfg.init', 'config/xmpp_cert.pub']),
+      data_files=[('config', ['config/ecagent.cfg.init']),
                   ('monitor/mplugin/__base__', ['monitor/mplugin/__base__/data.json']),
                   ('/etc/sudoers.d', ['build/sudoers.d/ecmanaged']),
                   ('/etc/cron.d', ['build/cron.d/ecmanaged-ecagent']),
-                  ('',['configure.py','ecagent.bat', 'ecagent.sh', 'ecagentd.tac','init']),
+                  ('',['configure.py', 'ecagentd.tac','init']),
                 ]
      )

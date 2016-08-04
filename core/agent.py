@@ -26,16 +26,16 @@ from twisted.web.client import FileBodyProducer
 #from twisted.web.client import readBody
 
 # Local
-from ecagent.runner import CommandRunner
-from ecagent.message import ECMessage
+from core.runner import CommandRunner
+from core.message import ECMessage
 
-import ecagent.logging as log
+import core.logging as log
 
 import urllib
 import urllib2
 import json
 
-from ecagent.functions import mem_clean
+from core.functions import mem_clean
 
 from message import AGENT_VERSION_PROTOCOL
 

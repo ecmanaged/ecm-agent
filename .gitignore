@@ -8,3 +8,4 @@ monitor/mplugin/__base__/.counter.dat
 monitor/mplugin/__base__/.touch
 monitor/mplugin/__base__/mplugin.log
 monitor/mplugin/plg-*
+twistd.pid

@@ -25,7 +25,7 @@ except ImportError:
     collect = None
     pass
 
-import ecagent.logging as log
+import core.logging as log
 
 
 def mem_usage():

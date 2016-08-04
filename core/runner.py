@@ -36,8 +36,7 @@ from twisted.internet import reactor
 from twisted.internet.protocol import ProcessProtocol
 from twisted.internet.error import ProcessTerminated, ProcessDone
 
-import ecagent.logging as log
-
+import core.logging as log
 
 class CommandRunner():
     def __init__(self):

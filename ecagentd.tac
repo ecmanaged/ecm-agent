@@ -39,9 +39,9 @@ if "." not in sys.path:
     sys.path.append(".")
 
 # Local
-from ecagent.config import SMConfigObj
-from ecagent.agent import ECAgent
-import ecagent.logging as log
+from core.config import SMConfigObj
+from core.agent import ECAgent
+import core.logging as log
 
 # Enable automatic garbage collection.
 gc.enable()
