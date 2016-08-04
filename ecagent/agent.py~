@@ -81,7 +81,8 @@ class ECAgent():
         self.authenticated = False
 
         log.info("Starting Agent...")
-        self.command_runner = CommandRunner()
+
+        self.command_runner = CommandRunner(config['Plugins'])
 
         try:
             # self._info()

@@ -21,7 +21,6 @@ FLUSH_TIME = 5
 
 PYTHON_LINUX = '/usr/bin/python'
 PYTHON_WINDOWS = '../python27/pythonw.exe'
-TIMEOUT = 300
 
 # System imports
 import os
@@ -51,6 +50,7 @@ class CommandRunner():
             self.command_paths = [
                 os.path.join(os.path.dirname(__file__), '..', 'plugins')]  # Built-in commands (absolute path)
 
+        self.timeout = int(config['timeout'])
         self.timeout_dc = None
 
         self.env = os.environ
@@ -123,7 +123,7 @@ class CommandRunner():
 
         # :TODO Set timeout from command
         #log.info('in the runner.py _run_process %s %s' %(command_args,type(command_args)))
-        cmd_timeout = int(command_args.get('timeout',TIMEOUT))
+        cmd_timeout = int(command_args.get('timeout',self.timeout))
 
         if command_name:
             log.info("Running %s from %s (timeout: %i)" % (command_name, filename, cmd_timeout))

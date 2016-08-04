@@ -35,20 +35,20 @@ configure_account = None
 configure_tags = None
 
 try:
-    optlist, args = getopt.getopt(sys.argv[1:], 'a:t:', ["account=", "tags="])
+    optlist, args = getopt.getopt(sys.argv[1:], 'a:t:', ["account=", "groups="])
 except getopt.GetoptError:
-    print 'Please configure agent with ./configure.py --account=XXXXX --tags=XXX,XXX'
+    print 'Please configure agent with ./configure.py --account=XXXXX --groups=XXX,XXX'
     sys.exit(-1)
 
 for option, value in optlist:
     if option in ("-a", "--account"):
         configure_account = value
 
-    elif option in ("-t", "--tags"):
-        configure_tags = value
+    elif option in ("-t", "--groups"):
+        configure_groups = value
 
-if not configure_account and not configure_tags:
-    print 'Please configure agent with ./configure.py --account=XXXXX --tags=XXX'
+if not configure_account and not configure_groups:
+    print 'Please configure agent with ./configure.py --account=XXXXX --groups=XXX'
     sys.exit(-1)
 
 root_dir = os.path.dirname(os.path.realpath(__file__))
@@ -70,10 +70,11 @@ if not os.path.isfile(config_file):
 config = SMConfigObj(config_file)
 
 if configure_account:
-    config['XMPP']['account'] = configure_account
+    config['Agent']['account'] = configure_account
 
-if configure_tags:
-    config['XMPP']['tags'] = configure_tags
+if configure_groups:
+    for group in configure_groups.split(','):
+        config['Groups'][group] = ''
 
 config.write()
 print 'Manual configuration override succeeded.'

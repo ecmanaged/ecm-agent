@@ -52,14 +52,14 @@ class SMConfigObj(ConfigObj):
                 content = ''.join(urlopen.readlines())
                 content_dict = json.loads(content)
             except Exception, e:
-                self['USER']['auth'] = 'False'
+                self['Agent']['auth'] = 'False'
                 self.write()
                 raise Exception('Registration Error')
 
-            username = self['USER']['username'] = content_dict['user-id']
-            password = self['USER']['password'] = content_dict['password']
-            token = self['USER']['token'] = content_dict['token']
-            self['USER']['auth'] = 'True'
+            username = self['Agent']['username'] = content_dict['user-id']
+            password = self['Agent']['password'] = content_dict['password']
+            token = self['Agent']['token'] = content_dict['token']
+            self['Agent']['auth'] = 'True'
             self.write()
             auth_check = True
 
@@ -73,17 +73,17 @@ class SMConfigObj(ConfigObj):
                 req = urllib2.Request(url, urllib.urlencode(data), headers)
                 urlopen = urllib2.urlopen(req)
             except Exception, e:
-                self['USER']['auth'] = 'False'
+                self['Agent']['auth'] = 'False'
                 self.write()
                 raise Exception('Authentication Error')
 
-            self['USER']['auth'] = 'True'
+            self['Agent']['auth'] = 'True'
             self.write()
 
         returnValue(True)
 
     def _get_stored_username(self):
-        return self['USER'].get('username', '')
+        return self['Agent'].get('username', '')
 
     def get_stored_password(self):
-        return self['USER'].get('password', '')
+        return self['Agent'].get('password', '')

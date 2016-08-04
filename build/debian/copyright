@@ -1,7 +1,5 @@
-Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Format-Specification: http://svn.debian.org/wsvn/dep/web/deps/dep5.mdwn?op=file&rev=166
 Upstream-Name: ecmanaged-ecagent
-Upstream-Contact: Juan Carlos Moreno <juancarlos.moreno@ecmanaged.com>
-Source: http://www.ecmanaged.com
 
 Files: *
 Copyright: 2012, ACKSTORM, S.L. All rights reserved.
@@ -42,4 +40,4 @@ Copyright: 2010-2012, ACK STORM, S.L. <ackstorm@ackstorm.es>
 License: GPL-3+
  On Debian GNU/Linux systems, the complete text of the GNU General
  Public License (GPL) version 3 can be found at
- /usr/share/common-licenses/GPL-3
+ /usr/share/common-licenses/GPL-3.
