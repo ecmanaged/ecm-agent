@@ -1,8 +1,0 @@
-SHELL=/bin/bash
-HOME=/opt/ecmanaged/ecagent/
-
-# Start agent on reboot
-@reboot		root	/opt/ecmanaged/ecagent/init check > /dev/null 2>&1
-
-# Check agent every two minutes
-*/2 *	* * *	root	/opt/ecmanaged/ecagent/init check > /dev/null 2>&1
