@@ -27,8 +27,8 @@ class ECMessage(object):
         self.type = type
         self.command = command
         self.command_name = command.replace('.', '_')
-        self.command_args = command_args
-        if self.command_args.strip():
+
+        if command_args.strip():
             if isinstance(command_args, unicode):
                 if self.command_name == 'monitor_plugin_install':
                     self.command_args = ast.literal_eval(command_args)

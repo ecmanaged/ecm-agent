@@ -141,10 +141,13 @@ class ECMAgent():
         }
 
         try:
+            log.info('post_data: %s' %post_data)
             req = urllib2.Request(url, json.dumps(post_data), headers)
             urlopen = urllib2.urlopen(req)
             content = ''.join(urlopen.readlines())
-            content = json.loads(content)
+            if content:
+                log.info('content: %s' %content)
+                content = json.loads(content)
 
         except Exception, e:
             log.info('_url_post failed %s' % str(e))
