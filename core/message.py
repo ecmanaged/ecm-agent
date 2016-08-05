@@ -39,9 +39,11 @@ class ECMessage(object):
                 self.command_args = json.loads(command_args)
             else:
                 self.command_args = command_args
+        else:
+            self.command_args = {}
 
-            if not isinstance(self.command_args, dict):
-                raise Exception('command arg should be a dictionary')
+        if not isinstance(self.command_args, dict):
+            raise Exception('command arg should be a dictionary')
         self.data = data
         self.timeout = timeout
         self.version = AGENT_VERSION_CORE

@@ -23,7 +23,7 @@ from twisted.web.http_headers import Headers
 from StringIO import StringIO
 
 from twisted.web.client import FileBodyProducer
-#from twisted.web.client import readBody
+# from twisted.web.client import readBody
 
 # Local
 from core.runner import CommandRunner
@@ -52,7 +52,9 @@ SYSTEM_LOOP_TIME = 15
 
 ECMANAGED_URL_TASK = 'http://my-devel1.ecmanaged.com/agent/meta-data/task'
 ECMANAGED_URL_RESULT = 'http://my-devel1.ecmanaged.com/agent/meta-data/result'
-#url = 'http://localhost:5000/agent/' + self.uuid + '/tasks'
+
+
+# url = 'http://localhost:5000/agent/' + self.uuid + '/tasks'
 
 class ECMAuth:
     def __init__(self, config):
@@ -75,6 +77,7 @@ class ECMAuth:
         log.critical("Configuration check failed with: %s, exiting." % failure)
         log.critical("Please try configuring the XMPP subsystem manually.")
         reactor.stop()
+
 
 class ECMAgent():
     def __init__(self, config):
@@ -110,38 +113,39 @@ class ECMAgent():
         log.debug("received: %s" % content)
 
         for task in content:
-            #log.info('task %s %s %s %s' %(task['id'], task['type'], task['command'], task['command_args']))
-            #log.info('task %s %s %s %s' %(type(task['id']), type(task['type']), type(task['command']), type(task['command_args'])))
+            # log.info('task %s %s %s %s' %(task['id'], task['type'], task['command'], task['command_args']))
+            # log.info('task %s %s %s %s' %(type(task['id']), type(task['type']), type(task['command']), type(task['command_args'])))
             message = None
             try:
-                log.info('task[id]: %s, task[type]: %s, task[command]: %s, task[params]: %s' % (task['id'], task['type'], task['command'], task['params']))
-                log.info('type of params: %s' %type(task['params']))
+                log.info('task[id]: %s, task[type]: %s, task[command]: %s, task[params]: %s' % (
+                task['id'], task['type'], task['command'], task['params']))
+                log.info('type of params: %s' % type(task['params']))
 
                 message = ECMessage(task['id'], task['type'], task['command'], task['params'])
 
             except Exception, e:
-                log.info('error in main loop while generating message for task : %s' %str(e))
-            #log.info('after converting to message:   %s %s %s %s ' %(message.id, message.type, message.command, message.command_args))
+                log.info('error in main loop while generating message for task : %s' % str(e))
+            # log.info('after converting to message:   %s %s %s %s ' %(message.id, message.type, message.command, message.command_args))
             if message:
                 try:
                     self._run_task(message)
 
                 except Exception, e:
                     log.info('error in main loop while running task : %s' % str(e))
-                
+
     def _url_post(self, url, post_data={}):
         content = []
         headers = {
-            'Content-Type': 'application/json', 
+            'Content-Type': 'application/json',
             'x-ecmanaged-token': 'Basic %s' % self.token,
-            }
+        }
 
         try:
             req = urllib2.Request(url, json.dumps(post_data), headers)
             urlopen = urllib2.urlopen(req)
             content = ''.join(urlopen.readlines())
             content = json.loads(content)
-            
+
         except Exception, e:
             log.info('_url_post failed %s' % str(e))
 
@@ -149,20 +153,20 @@ class ECMAgent():
 
     def _run_task(self, message):
         flush_callback = self._flush
-        #message.command_name = message.command.replace('.', '_')
+        # message.command_name = message.command.replace('.', '_')
 
-        #log.info("command: %s" %message.command_name)
+        # log.info("command: %s" %message.command_name)
 
         d = self.command_runner.run_command(message, flush_callback)
 
         # Clean message
-        #message.command_args = {}
+        # message.command_args = {}
 
         if d:
             d.addCallbacks(self._onCallFinished, self._onCallFailed,
                            callbackKeywords={'message': message},
                            errbackKeywords={'message': message},
-            )
+                           )
             del message
             return d
 
@@ -177,7 +181,7 @@ class ECMAgent():
     def _onCallFinished(self, result, message):
         log.debug('Call Finished')
         self._send(result, message)
-        log.debug('command finished %s' %message.command_name)
+        log.debug('command finished %s' % message.command_name)
 
     def _onCallFailed(self, failure, *argv, **kwargs):
         log.error("onCallFailed")
@@ -194,24 +198,26 @@ class ECMAgent():
 
     def _send(self, result, message):
         log.debug('Send Response')
-        log.info('send result for %s %s' %(message.type, message.command))
+        log.info('send result for %s %s' % (message.type, message.command))
 
-        url = ECMANAGED_URL_RESULT #'http://localhost:5000/agent/'+self.username+'/result'
+        url = ECMANAGED_URL_RESULT  # 'http://localhost:5000/agent/'+self.username+'/result'
         data = {}
-        data['result']= result
-        #authString = base64.encodestring('%s:%s' % (self.username, self.password))
-        #headers = {"Content-Type": "application/json", "Authorization":"Basic %s" % authString}
-        headers = {}
+        data["result"] = result
 
-        #log.info('posting data %s' %data)
+        self._url_post(url, data)
+        # authString = base64.encodestring('%s:%s' % (self.username, self.password))
+        # headers = {"Content-Type": "application/json", "Authorization":"Basic %s" % authString}
+        # headers = {}
 
-        try:
-            req = urllib2.Request(url, urllib.urlencode(data), headers)
-            urlopen = urllib2.urlopen(req)
-            content = ''.join(urlopen.readlines())
-            #log.info(' %s' %str(content))
-        except Exception, e:
-            log.info('error in while sending result %s' % str(e))
+        # log.info('posting data %s' %data)
+
+        # try:
+        #     req = urllib2.Request(url, urllib.urlencode(data), headers)
+        #     urlopen = urllib2.urlopen(req)
+        #     content = ''.join(urlopen.readlines())
+        #     #log.info(' %s' %str(content))
+        # except Exception, e:
+        #     log.info('error in while sending result %s' % str(e))
 
     def _check_memory(self):
         rss = mem_clean('periodic memory clean')
