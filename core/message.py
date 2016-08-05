@@ -27,19 +27,21 @@ class ECMessage(object):
         self.type = type
         self.command = command
         self.command_name = command.replace('.', '_')
-        if isinstance(command_args, unicode):
-            if self.command_name == 'monitor_plugin_install':
-            	self.command_args = ast.literal_eval(command_args)
+        self.command_args = command_args
+        if self.command_args:
+            if isinstance(command_args, unicode):
+                if self.command_name == 'monitor_plugin_install':
+                    self.command_args = ast.literal_eval(command_args)
+                else:
+                    args = base64.b64decode(command_args)
+                    self.command_args = ast.literal_eval(args)
+            elif isinstance(command_args, str):
+                self.command_args = json.loads(command_args)
             else:
-                args = base64.b64decode(command_args)
-                self.command_args = ast.literal_eval(args)
-        elif isinstance(command_args, unicode):
-            self.command_args = json.loads(command_args)
-        else:
-            self.command_args = command_args
+                self.command_args = command_args
 
-        if not isinstance(self.command_args, dict):
-            raise Exception('command arg should be a dictionary')
+            if not isinstance(self.command_args, dict):
+                raise Exception('command arg should be a dictionary')
         self.data = data
         self.timeout = timeout
         self.version = AGENT_VERSION_CORE
