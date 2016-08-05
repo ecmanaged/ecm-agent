@@ -108,18 +108,19 @@ class ECMAgent():
         for task in content:
             #log.info('task %s %s %s %s' %(task['id'], task['type'], task['command'], task['command_args']))
             #log.info('task %s %s %s %s' %(type(task['id']), type(task['type']), type(task['command']), type(task['command_args'])))
+            message = None
             try:
                 message = ECMessage(task['id'], task['type'], task['command'], task['params'])
 
             except Exception, e:
                 log.info('error in main loop while generating message for task : %s' %str(e))
             #log.info('after converting to message:   %s %s %s %s ' %(message.id, message.type, message.command, message.command_args))
+            if message:
+                try:
+                    self._run_task(message)
 
-            try:
-                self._run_task(message)
-                
-            except Exception, e:
-                log.info('error in main loop while running task : %s' % str(e))
+                except Exception, e:
+                    log.info('error in main loop while running task : %s' % str(e))
                 
     def _url_post(self, url, post_data={}):
         content = []
