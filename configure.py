@@ -19,7 +19,7 @@ import random
 import sys
 import getopt
 import os
-from ecagent.config import SMConfigObj
+from core.config import SMConfigObj
 
 root_dir = os.path.dirname(os.path.realpath(__file__))
 os.chdir(root_dir)
@@ -32,7 +32,7 @@ if "." not in sys.path:
     sys.path.append(".")
 
 configure_account = None
-configure_tags = None
+configure_groups = None
 
 try:
     optlist, args = getopt.getopt(sys.argv[1:], 'a:t:', ["account=", "groups="])
@@ -70,7 +70,7 @@ if not os.path.isfile(config_file):
 config = SMConfigObj(config_file)
 
 if configure_account:
-    config['Agent']['account'] = configure_account
+    config['Auth']['account'] = configure_account
 
 if configure_groups:
     for group in configure_groups.split(','):
