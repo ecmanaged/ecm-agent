@@ -109,7 +109,7 @@ class ECMAgent():
             #log.info('task %s %s %s %s' %(task['id'], task['type'], task['command'], task['command_args']))
             #log.info('task %s %s %s %s' %(type(task['id']), type(task['type']), type(task['command']), type(task['command_args'])))
             try:
-                message = ECMessage(task['id'], task['type'], task['command'], task['command_args'])
+                message = ECMessage(task['id'], task['type'], task['command'], task['params'])
 
             except Exception, e:
                 log.info('error in main loop while generating message for task : %s' %str(e))
