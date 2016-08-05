@@ -35,20 +35,20 @@ configure_account = None
 configure_groups = None
 
 try:
-    optlist, args = getopt.getopt(sys.argv[1:], 'a:t:', ["account=", "groups="])
+    optlist, args = getopt.getopt(sys.argv[1:], 'a:g:', ["account=", "groups="])
 except getopt.GetoptError:
-    print 'Please configure agent with ./configure.py --account=XXXXX --groups=XXX,XXX'
+    print 'Please configure agent with ./configure.py --account=XXXXX --groups=XXXXXX'
     sys.exit(-1)
 
 for option, value in optlist:
     if option in ("-a", "--account"):
         configure_account = value
 
-    elif option in ("-t", "--groups"):
+    elif option in ("-g", "--groups"):
         configure_groups = value
 
 if not configure_account and not configure_groups:
-    print 'Please configure agent with ./configure.py --account=XXXXX --groups=XXX'
+    print 'Please configure agent with ./configure.py --account=XXXXX --groups=XXXXXX'
     sys.exit(-1)
 
 root_dir = os.path.dirname(os.path.realpath(__file__))
