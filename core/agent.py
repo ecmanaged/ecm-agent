@@ -88,6 +88,10 @@ class ECMAgent():
         log.info("Loading Commands...")
         self.command_runner = CommandRunner()
 
+        # Give time to load commands
+        reactor.callLater(3, self._run)
+
+    def _run(self):
         log.info("Setting up Memory checker")
         self.memory_checker = LoopingCall(self._check_memory)
         self.memory_checker.start(_CHECK_RAM_INTERVAL)
@@ -110,6 +114,9 @@ class ECMAgent():
             #log.info('task %s %s %s %s' %(type(task['id']), type(task['type']), type(task['command']), type(task['command_args'])))
             message = None
             try:
+                log.info('task[id]: %s, task[type]: %s, task[command]: %s, task[params]: %s' % (task['id'], task['type'], task['command'], task['params']))
+                log.info('type of params: %s' %type(task['params']))
+
                 message = ECMessage(task['id'], task['type'], task['command'], task['params'])
 
             except Exception, e:
@@ -189,11 +196,12 @@ class ECMAgent():
         log.debug('Send Response')
         log.info('send result for %s %s' %(message.type, message.command))
 
-        url = 'http://localhost:5000/agent/'+self.username+'/result'
+        url = ECMANAGED_URL_RESULT #'http://localhost:5000/agent/'+self.username+'/result'
         data = {}
         data['result']= result
-        authString = base64.encodestring('%s:%s' % (self.username, self.password))
-        headers = {"Content-Type": "application/json", "Authorization":"Basic %s" % authString}
+        #authString = base64.encodestring('%s:%s' % (self.username, self.password))
+        #headers = {"Content-Type": "application/json", "Authorization":"Basic %s" % authString}
+        headers = {}
 
         #log.info('posting data %s' %data)
 
@@ -201,7 +209,7 @@ class ECMAgent():
             req = urllib2.Request(url, urllib.urlencode(data), headers)
             urlopen = urllib2.urlopen(req)
             content = ''.join(urlopen.readlines())
-            log.info(' %s' %str(content))
+            #log.info(' %s' %str(content))
         except Exception, e:
             log.info('error in while sending result %s' % str(e))
 
