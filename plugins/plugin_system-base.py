@@ -18,6 +18,8 @@ RUN_AS_ROOT = False
 
 _DEFAULT_CPU_INTERVAL = 0.5
 
+from time import time
+
 # Local
 from __plugin import ECMPlugin
 from __helper import AGENT_VERSION
@@ -64,7 +66,8 @@ class ECMSystem(ECMPlugin):
             'hostname': platform.node(),
             'public_ip': self._get_ip(),
             'agent_version': AGENT_VERSION,
-            'sudo': int(ecm.check_sudo())
+            'sudo': int(ecm.check_sudo()),
+            'localtime': time()
         }
         (retval['os_distrib'], retval['os_version']) = ecm.get_distribution()
 
@@ -118,5 +121,6 @@ class ECMSystem(ECMPlugin):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(('app.ecmanaged.com', 0))
         return s.getsockname()[0]
+
 
 ECMSystem().run()

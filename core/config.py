@@ -43,7 +43,7 @@ ECMANAGED_AUTH_URL = 'http://my-devel1.ecmanaged.com/agent/meta-data/v3/id'
 
 class SMConfigObj(ConfigObj):
     """
-    A simple wrapper for ConfigObj that will check the UNIQUE_ID and try to
+    A simple wrapper for ConfigObj that will check the unique_id and try to
     reconfigure if it has changed before launching the agent.
     """
 
@@ -63,12 +63,12 @@ class SMConfigObj(ConfigObj):
         unique_id = self._get_unique_id()
 
         if not unique_id:
-            log.error('Could not obtain UNIQUE_ID. Please set up Auth manually')
-            raise Exception('Could not obtain UNIQUE_ID. Please set up Auth manually')
+            log.error('Could not obtain unique_id. Please set up Auth manually')
+            raise Exception('Could not obtain unique_id. Please set up Auth manually')
 
         # Check all data valid for v3
         if uuid and not '@' in uuid and account_id and self.is_unique_id_same(unique_id):
-            log.debug('UNIQUE ID has not changed. Skip UUID check')
+            log.debug('unique_id has not changed. Skip uuid check')
 
         else:
             # Try to get uuid (one hour and a half loop: 360x15)
@@ -187,10 +187,10 @@ class SMConfigObj(ConfigObj):
     @staticmethod
     def _get_unique_id():
         """
-        Try to get a unique identified, Some providers may change UNIQUE_ID on stop/start
+        Try to get a unique identified, Some providers may change unique_id on stop/start
         Use a low timeout to speed up agent start when no meta-data url
         """
-        log.info("Trying to get UNIQUE ID")
+        log.info("Trying to get unique_id...")
         unique_id = None
 
         try:

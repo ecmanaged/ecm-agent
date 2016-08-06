@@ -14,7 +14,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import urllib2
+import json
+import socket
+
 from os import getpid
+
 
 try:
     import psutil
@@ -51,3 +56,34 @@ def mem_clean(where=''):
     del _collect, where, vms, string
 
     return rss
+
+
+def read_url(url, data=None, headers=None):
+        """
+        :param url: URL to get
+        :param data: will use POST method on data
+        :param headers:
+        :return:
+
+        """
+        log.debug('functions.read_url(%s)' % url)
+        retval = {}
+
+        if data:
+            data = json.dumps(data)
+
+        try:
+            socket.setdefaulttimeout(80)
+            req = urllib2.Request(url, data=data, headers=headers)
+            urlopen = urllib2.urlopen(req)
+            result = ''.join(urlopen.readlines())
+
+            if result:
+                log.debug('read_url::content: %s' % result)
+                retval = json.loads(result)
+
+        except Exception, e:
+            log.error('read_url::failed %s' % str(e))
+
+        return retval
+

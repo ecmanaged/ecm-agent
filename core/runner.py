@@ -40,19 +40,17 @@ import core.logging as log
 
 class CommandRunner():
     def __init__(self):
+        self._python_runner = PYTHON_LINUX
+        self.command_paths = [
+                os.path.join(os.path.dirname(__file__), '..', 'plugins')]  # Built-in commands (absolute path)
+
         if sys.platform.startswith("win32"):
             self._python_runner = PYTHON_WINDOWS
-            self.command_paths = [
-                os.path.join(os.path.dirname(__file__), '../../..')]  # Built-in commands (on root dir)
-
-        else:
-            self._python_runner = PYTHON_LINUX
-            self.command_paths = [
-                os.path.join(os.path.dirname(__file__), '..', 'plugins')]  # Built-in commands (absolute path)
 
         self.timeout_dc = None
 
         self.env = os.environ
+        self.env['PYTHONPATH'] = os.path.join(os.path.dirname(__file__), '..', 'plugins')
         self.env['DEBIAN_FRONTEND'] = 'noninteractive'
         self.env['LANG'] = 'en_US.utf8'
         self.env['PWD'] = '/root/'
@@ -71,7 +69,7 @@ class CommandRunner():
                         if not filename.startswith('plugin_'):
                             continue
 
-                        if os.path.splitext(filename)[1] not in ['.py','.exe']:
+                        if os.path.splitext(filename)[1] not in ['.py', '.exe']:
                             continue
 
                         log.debug("  Queuing plugin %s for process." % filename)
@@ -96,13 +94,13 @@ class CommandRunner():
 
     def run_command(self, message, flush_callback=None):
         if self._commands.get(message.command_name):
-            log.debug("executing %s with args: %s" % (message.command_name, message.command_args))
-            return self._run_process(self._commands[message.command_name], message.command_name, message.command_args, flush_callback, message)
+            log.debug("executing %s with args: %s" % (message.command_name, message.params))
+            return self._run_process(self._commands[message.command_name], message.command_name, message.params, flush_callback, message)
 
         return
 
-    def _run_process(self, filename, command_name, command_args, flush_callback=None, message=None):
-        #log.info("filename: %s command_name: %s command_args: %s flush_callback: %s message: %s" % (filename, command_name, command_args, flush_callback, message))
+    def _run_process(self, filename, command_name, params, flush_callback=None, message=None):
+        #log.info("filename: %s command_name: %s params: %s flush_callback: %s message: %s" % (filename, command_name, params, flush_callback, message))
         need_sudo = ['plugin_pip.py', 'plugin_service.py', 'plugin_update.py', 'plugin_haproxy.py', 'plugin_monitor.py', 'plugin_pip_extra.py', 'plugin_puppet.py', 'plugin_saltstack.py', 'plugin_proc.py']
         ext = os.path.splitext(filename)[1]
         if ext == '.py':
@@ -121,8 +119,8 @@ class CommandRunner():
             args = [command, command_name]
 
         # :TODO Set timeout from command
-        #log.info('in the runner.py _run_process %s %s' %(command_args,type(command_args)))
-        cmd_timeout = int(command_args.get('timeout',TIMEOUT))
+        #log.info('in the runner.py _run_process %s %s' %(params,type(params)))
+        cmd_timeout = int(params.get('timeout',TIMEOUT))
 
         if command_name:
             log.info("Running %s from %s (timeout: %i)" % (command_name, filename, cmd_timeout))
@@ -130,23 +128,23 @@ class CommandRunner():
         else:
             log.info("[INIT] Loading commands from %s" % filename)
 
-        crp = CommandRunnerProcess(cmd_timeout, command_args, flush_callback, message)
+        crp = CommandRunnerProcess(cmd_timeout, params, flush_callback, message)
         d = crp.getDeferredResult()
         reactor.spawnProcess(crp, command, args, env=self.env)
 
-        del cmd_timeout, filename, command_name, command_args
+        del cmd_timeout, filename, command_name, params
         del flush_callback, message, args
 
         return d
 
 
 class CommandRunnerProcess(ProcessProtocol):
-    def __init__(self, timeout, command_args, flush_callback=None, message=None):
+    def __init__(self, timeout, params, flush_callback=None, message=None):
         self.stdout = ""
         self.stderr = ""
         self.deferreds = []
         self.timeout = timeout
-        self.command_args = command_args
+        self.params = params
 
         self.last_send_data_size = 0
         self.last_send_data_time = time()
@@ -156,7 +154,7 @@ class CommandRunnerProcess(ProcessProtocol):
         self.message = message
 
         del timeout
-        del command_args
+        del params
         del flush_callback
         del message
 
@@ -166,7 +164,7 @@ class CommandRunnerProcess(ProcessProtocol):
         self.timeout_dc = reactor.callLater(self.timeout, self.transport.signalProcess, 'KILL')
 
         # Pass the call arguments via stdin in json format
-        self.transport.write(base64.b64encode(json.dumps(self.command_args)))
+        self.transport.write(base64.b64encode(json.dumps(self.params)))
 
         # And close stdin to signal we are done writing args.
         self.transport.closeStdin()

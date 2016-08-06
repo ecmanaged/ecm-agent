@@ -15,48 +15,28 @@
 #    under the License.
 
 # Twisted imports
-import base64
 from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
-from twisted.web.client import Agent
-from twisted.web.http_headers import Headers
-from StringIO import StringIO
-
-from twisted.web.client import FileBodyProducer
-# from twisted.web.client import readBody
 
 # Local
-from core.runner import CommandRunner
-from core.message import ECMessage
-
 import core.logging as log
-
-import urllib
-import urllib2
-import json
-
-from core.functions import mem_clean
-
-from message import AGENT_VERSION_PROTOCOL
+from core.runner import CommandRunner
+from core.message import ECMMessage
+from core.functions import mem_clean, read_url
 
 _E_RUNNING_COMMAND = 253
 _E_UNVERIFIED_COMMAND = 251
 
 _CHECK_RAM_MAX_RSS_MB = 125
-_CHECK_RAM_INTERVAL = 60
-
-KEEPALIVED_TIMEOUT = 180
-
-MAIN_LOOP_TIME = 15
-SYSTEM_LOOP_TIME = 15
+_CHECK_RAM_INTERVAL = 300
+_MAIN_LOOP_INTERVAL = 60
 
 ECMANAGED_URL_TASK = 'http://my-devel1.ecmanaged.com/agent/meta-data/task'
 ECMANAGED_URL_RESULT = 'http://my-devel1.ecmanaged.com/agent/meta-data/result'
 
-
 # url = 'http://localhost:5000/agent/' + self.uuid + '/tasks'
 
-class ECMAuth:
+class ECMConfig:
     def __init__(self, config):
         reactor.callWhenRunning(self._check_config)
         self.config = config
@@ -82,9 +62,8 @@ class ECMAuth:
 class ECMAgent():
     def __init__(self, config):
         """
-        XMPP agent class.
+        Main agent class.
         """
-        self.ecAgent = Agent(reactor)
         self.uuid = config['Auth']['uuid']
         self.token = config['Auth']['token']
 
@@ -101,31 +80,27 @@ class ECMAgent():
 
         log.info("Starting main loop")
         self.periodic_info = LoopingCall(self._main)
-        self.periodic_info.start(MAIN_LOOP_TIME, now=True)
+        self.periodic_info.start(_MAIN_LOOP_INTERVAL, now=True)
 
     def _main(self):
-        '''
-        send periodic health info to the backend
+        """
+        send periodic request to the backend
         :return:
-        '''
+        """
 
-        content = self._url_post(ECMANAGED_URL_TASK + '/' + self.uuid)
-        log.debug("received: %s" % content)
+        log.info("Reading tasks...")
 
-        for task in content:
-            # log.info('task %s %s %s %s' %(task['id'], task['type'], task['command'], task['command_args']))
-            # log.info('task %s %s %s %s' %(type(task['id']), type(task['type']), type(task['command']), type(task['command_args'])))
+        for task in self._read_tasks():
             message = None
             try:
-                log.info('task[id]: %s, task[type]: %s, task[command]: %s, task[params]: %s' % (
-                task['id'], task['type'], task['command'], task['params']))
-                log.info('type of params: %s' % type(task['params']))
+                log.info('id: %s, type: %s, command: %s, params: %s' % (
+                         task['id'], task['type'], task['command'], task['params']))
 
-                message = ECMessage(task['id'], task['type'], task['command'], task['params'])
+                message = ECMMessage(task['id'], task['type'], task['command'], task['params'])
 
             except Exception, e:
                 log.info('error in main loop while generating message for task : %s' % str(e))
-            # log.info('after converting to message:   %s %s %s %s ' %(message.id, message.type, message.command, message.command_args))
+
             if message:
                 try:
                     self._run_task(message)
@@ -133,37 +108,32 @@ class ECMAgent():
                 except Exception, e:
                     log.info('error in main loop while running task : %s' % str(e))
 
-    def _url_post(self, url, post_data={}):
-        content = []
+    def _write_result(self, result):
         headers = {
             'Content-Type': 'application/json',
             'x-ecmanaged-token': 'Basic %s' % self.token,
         }
 
-        try:
-            log.info('post_data: %s' %post_data)
-            req = urllib2.Request(url, json.dumps(post_data), headers)
-            urlopen = urllib2.urlopen(req)
-            content = ''.join(urlopen.readlines())
-            if content:
-                log.info('content: %s' %content)
-                content = json.loads(content)
+        url = ECMANAGED_URL_RESULT + '/' + self.uuid + '/result'
 
-        except Exception, e:
-            log.info('_url_post failed %s' % str(e))
+        log.debug('_write_result::start: %s' % url)
+        log.debug('_write_result::data: %s' % result)
 
-        return content
+        return read_url(url, result, headers)
+
+    def _read_tasks(self):
+        headers = {'x-ecmanaged-token': 'Basic %s' % self.token}
+
+        url = ECMANAGED_URL_TASK + '/' + self.uuid
+        log.debug('_url_get::start: %s' %url)
+
+        return read_url(url, headers=headers)
 
     def _run_task(self, message):
+        log.info("_run_task::command: %s" % message.command)
         flush_callback = self._flush
-        # message.command_name = message.command.replace('.', '_')
-
-        # log.info("command: %s" %message.command_name)
 
         d = self.command_runner.run_command(message, flush_callback)
-
-        # Clean message
-        # message.command_args = {}
 
         if d:
             d.addCallbacks(self._onCallFinished, self._onCallFailed,
@@ -200,32 +170,13 @@ class ECMAgent():
         self._send(result, message)
 
     def _send(self, result, message):
-        log.debug('Send Response')
         log.info('send result for %s %s' % (message.type, message.command))
-
-        url = ECMANAGED_URL_RESULT  # 'http://localhost:5000/agent/'+self.username+'/result'
-        data = {}
-        data["result"] = result
-
-        self._url_post(url, data)
-        # authString = base64.encodestring('%s:%s' % (self.username, self.password))
-        # headers = {"Content-Type": "application/json", "Authorization":"Basic %s" % authString}
-        # headers = {}
-
-        # log.info('posting data %s' %data)
-
-        # try:
-        #     req = urllib2.Request(url, urllib.urlencode(data), headers)
-        #     urlopen = urllib2.urlopen(req)
-        #     content = ''.join(urlopen.readlines())
-        #     #log.info(' %s' %str(content))
-        # except Exception, e:
-        #     log.info('error in while sending result %s' % str(e))
+        self._write_result(message.to_result(result))
 
     def _check_memory(self):
         rss = mem_clean('periodic memory clean')
+
         if rss > _CHECK_RAM_MAX_RSS_MB:
             log.critical("Max allowed RSS memory exceeded: %s MB, exiting."
                          % _CHECK_RAM_MAX_RSS_MB)
             reactor.stop()
-        del rss
