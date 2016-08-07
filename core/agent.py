@@ -20,16 +20,17 @@ from twisted.internet.task import LoopingCall
 
 # Local
 import core.logging as log
+
 from core.runner import CommandRunner
 from core.message import ECMMessage
 from core.functions import mem_clean, read_url
 
-_E_RUNNING_COMMAND = 253
-_E_UNVERIFIED_COMMAND = 251
-
 _CHECK_RAM_MAX_RSS_MB = 125
 _CHECK_RAM_INTERVAL = 300
 _MAIN_LOOP_INTERVAL = 60
+
+_E_UNKNOWN_COMMAND = 253
+_E_INVALID_MESSAGE = 252
 
 ECMANAGED_URL_TASK = 'http://my-devel1.ecmanaged.com/agent/meta-data/task'
 ECMANAGED_URL_RESULT = 'http://my-devel1.ecmanaged.com/agent/meta-data/result'
@@ -75,7 +76,7 @@ class ECMAgent():
 
     def _run(self):
         log.info("Setting up Memory checker")
-        self.memory_checker = LoopingCall(self._check_memory)
+        self.memory_checker = LoopingCall(self._memory_checker)
         self.memory_checker.start(_CHECK_RAM_INTERVAL)
 
         log.info("Starting main loop")
@@ -91,22 +92,12 @@ class ECMAgent():
         log.info("Reading tasks...")
 
         for task in self._read_tasks():
-            message = None
             try:
-                log.info('id: %s, type: %s, command: %s, params: %s' % (
-                         task['id'], task['type'], task['command'], task['params']))
-
                 message = ECMMessage(task['id'], task['type'], task['command'], task['params'])
+                self._run_task(message)
 
             except Exception, e:
-                log.info('error in main loop while generating message for task : %s' % str(e))
-
-            if message:
-                try:
-                    self._run_task(message)
-
-                except Exception, e:
-                    log.info('error in main loop while running task : %s' % str(e))
+                log.error('Error in main loop while generating message for task (%s): %s' % (task['command'], str(e)))
 
     def _write_result(self, result):
         headers = {
@@ -130,13 +121,13 @@ class ECMAgent():
         return read_url(url, headers=headers)
 
     def _run_task(self, message):
-        log.info("_run_task::command: %s" % message.command)
+        log.debug("_run_task::command: %s" % message.command)
         flush_callback = self._flush
 
         d = self.command_runner.run_command(message, flush_callback)
 
         if d:
-            d.addCallbacks(self._onCallFinished, self._onCallFailed,
+            d.addCallbacks(self._on_call_finished, self._on_call_failed,
                            callbackKeywords={'message': message},
                            errbackKeywords={'message': message},
                            )
@@ -145,35 +136,36 @@ class ECMAgent():
 
         else:
             log.info("Command Ignored: Unknown command: %s" % message.command)
-            result = (_E_RUNNING_COMMAND, '', "Unknown command: %s" % message.command, 0)
-            self._onCallFinished(result, message)
+            result = (_E_UNKNOWN_COMMAND, '', "Unknown command: %s" % message.command, 0)
+            self._on_call_finished(result, message)
 
         del message
+
         return
 
-    def _onCallFinished(self, result, message):
+    def _on_call_finished(self, result, message):
         log.debug('Call Finished')
         self._send(result, message)
         log.debug('command finished %s' % message.command_name)
 
-    def _onCallFailed(self, failure, *argv, **kwargs):
+    def _on_call_failed(self, failure, *argv, **kwargs):
         log.error("onCallFailed")
         log.info(failure)
 
         if 'message' in kwargs:
             message = kwargs['message']
             result = (2, '', failure, 0)
-            self._onCallFinished(result, message)
+            self._on_call_finished(result, message)
 
     def _flush(self, result, message):
         log.debug('Flush Message')
         self._send(result, message)
 
     def _send(self, result, message):
-        log.info('send result for %s %s' % (message.type, message.command))
+        log.debug('send result for %s %s' % (message.type, message.command))
         self._write_result(message.to_result(result))
 
-    def _check_memory(self):
+    def _memory_checker(self):
         rss = mem_clean('periodic memory clean')
 
         if rss > _CHECK_RAM_MAX_RSS_MB:

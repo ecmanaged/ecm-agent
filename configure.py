@@ -19,7 +19,7 @@ import random
 import sys
 import getopt
 import os
-from core.config import SMConfigObj
+from core.config import ECMConfigObj
 
 root_dir = os.path.dirname(os.path.realpath(__file__))
 os.chdir(root_dir)
@@ -67,7 +67,7 @@ if not os.path.isfile(config_file):
     print 'Agent will now quit'
     sys.exit(-1)
 
-config = SMConfigObj(config_file)
+config = ECMConfigObj(config_file)
 
 if configure_account:
     config['Auth']['account'] = configure_account

@@ -14,58 +14,45 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-AGENT_VERSION_CORE = 3
+AGENT_VERSION_CORE = 4
 AGENT_VERSION_PROTOCOL = 1
 
-TIMEOUT_DEFAULT = 300
+DEFAULT_TIMEOUT = 300
+MESSAGE_TYPE_RESPONSE = 'response'
 
-import ast
 import base64
-import json
+import simplejson as json
 import time
 
 import core.logging as log
 
 class ECMMessage(object):
-    def __init__(self, message_id, message_type, command, params=None, response=None, timeout=TIMEOUT_DEFAULT):
+    def __init__(self, message_id, message_type, command, params=None, response=None, timeout=DEFAULT_TIMEOUT):
         self.id = message_id
         self.type = message_type
         self.command = command
         self.command_name = command.replace('.', '_')
-        self.time = time.time()
-
-        if params and params.strip():
-            if isinstance(params, unicode):
-                if self.command_name == 'monitor_plugin_install':
-                    self.params = ast.literal_eval(params)
-
-                else:
-                    args = base64.b64decode(params)
-                    self.params = ast.literal_eval(args)
-
-            elif isinstance(params, str):
-                self.params = json.loads(params)
-
-            else:
-                self.params = params
-        else:
-            self.params = {}
-
-        if not isinstance(self.params, dict):
-            raise Exception('command arg should be a dictionary')
-        
+        self.localtime = time.time()
         self.response = response
         self.timeout = timeout
         self.version = AGENT_VERSION_CORE
         self.protocol = AGENT_VERSION_PROTOCOL
+        self.params = {}
+
+        # Params always is json encoded and b64
+        if params and params.strip():
+            args = base64.b64decode(params)
+            self.params = json.loads(args)
+
+        log.debug('MESSAGE - id: %s, type: %s, command: %s, params: %s' % (self.id, self.type, self.command, self.params))
 
     def to_result(self, result):
         return {
             'id':   self.id,
-            'type': self.type,
+            'type': MESSAGE_TYPE_RESPONSE,
             'command': self.command,
             'result': result,
-            'duration': time.time() - self.time
+            'duration': time.time() - self.localtime
         }
 
     def __getitem__(self, key):

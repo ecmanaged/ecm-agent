@@ -41,7 +41,7 @@ ECMANAGED_AUTH_URL = 'http://my-devel1.ecmanaged.com/agent/meta-data/v3/id'
 # http://127.0.0.1:5000/api/v1/agent/register
 
 
-class SMConfigObj(ConfigObj):
+class ECMConfigObj(ConfigObj):
     """
     A simple wrapper for ConfigObj that will check the unique_id and try to
     reconfigure if it has changed before launching the agent.
@@ -130,9 +130,7 @@ class SMConfigObj(ConfigObj):
         # Try urllib if doesn't work
         if not result:
             try:
-                req = urllib2.Request(ECMANAGED_AUTH_URL,
-                                      json.dumps(data),
-                                      headers)
+                req = urllib2.Request(ECMANAGED_AUTH_URL, json.dumps(data), headers)
                 result = urllib2.urlopen(req).read()
 
             except Exception as e:
@@ -160,7 +158,6 @@ class SMConfigObj(ConfigObj):
         return self['Auth'].get('account', '')
 
     def parse_meta_data(self, json_data):
-        meta_data = None
         try:
             meta_data = json.loads(json_data)
             if meta_data.get('error'):
@@ -219,6 +216,7 @@ class SMConfigObj(ConfigObj):
 
         except:
             pass
+
         finally:
             # Set default timeout again
             socket.setdefaulttimeout(10)

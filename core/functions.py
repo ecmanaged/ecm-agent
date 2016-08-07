@@ -15,10 +15,12 @@
 #    under the License.
 
 import urllib2
-import json
+import simplejson as json
 import socket
 
 from os import getpid
+
+SOCKET_TIMEOUT = 30
 
 
 try:
@@ -39,8 +41,10 @@ def mem_usage():
         rss, vms = psutil.Process(getpid()).get_memory_info()
         rss /= 1000000.0
         vms /= 1000000.0
+
     except:
         pass
+
     log.info("Current Memory usage: rss=%sMB | vms=%sMB" % (rss, vms))
 
     return rss, vms
@@ -49,11 +53,8 @@ def mem_usage():
 def mem_clean(where=''):
     _collect = collect()
     rss, vms = mem_usage()
-    string = "_mem_clean: %s collected %d objects. (current mem: rss=%sMB | vms=%sMB)" % (where, _collect, rss, vms)
 
-    log.debug(string)
-
-    del _collect, where, vms, string
+    log.debug("_mem_clean: %s collected %d objects. (current mem: rss=%sMB | vms=%sMB)" % (where, _collect, rss, vms))
 
     return rss
 
@@ -69,11 +70,11 @@ def read_url(url, data=None, headers=None):
         log.debug('functions.read_url(%s)' % url)
         retval = {}
 
-        if data:
-            data = json.dumps(data)
-
         try:
-            socket.setdefaulttimeout(80)
+            if data:
+                data = json.dumps(data)
+
+            socket.setdefaulttimeout(SOCKET_TIMEOUT)
             req = urllib2.Request(url, data=data, headers=headers)
             urlopen = urllib2.urlopen(req)
             result = ''.join(urlopen.readlines())

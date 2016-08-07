@@ -21,13 +21,18 @@ FLUSH_TIME = 5
 
 PYTHON_LINUX = '/usr/bin/python'
 PYTHON_WINDOWS = '../python27/pythonw.exe'
+PLUGIN_PATH = 'plugins'
+
 TIMEOUT = 300
+
+REQUIRES_SUDO = ['plugin_pip.py', 'plugin_service.py', 'plugin_update.py', 'plugin_monitor.py', 'plugin_pip_extra.py', 'plugin_proc.py']
 
 # System imports
 import os
 import sys
 import base64
 import simplejson as json
+
 from time import time
 
 # Twisted imports
@@ -41,16 +46,12 @@ import core.logging as log
 class CommandRunner():
     def __init__(self):
         self._python_runner = PYTHON_LINUX
-        self.command_paths = [
-                os.path.join(os.path.dirname(__file__), '..', 'plugins')]  # Built-in commands (absolute path)
-
         if sys.platform.startswith("win32"):
             self._python_runner = PYTHON_WINDOWS
 
         self.timeout_dc = None
 
         self.env = os.environ
-        self.env['PYTHONPATH'] = os.path.join(os.path.dirname(__file__), '..', 'plugins')
         self.env['DEBIAN_FRONTEND'] = 'noninteractive'
         self.env['LANG'] = 'en_US.utf8'
         self.env['PWD'] = '/root/'
@@ -61,23 +62,23 @@ class CommandRunner():
         reactor.callWhenRunning(self._load_commands)
 
     def _load_commands(self):
-        for path in self.command_paths:
-            log.debug("Processing dir: %s" % path)
-            try:
-                if os.path.isdir(path):
-                    for filename in os.listdir(path):
-                        if not filename.startswith('plugin_'):
-                            continue
+        path = os.path.join(os.path.dirname(__file__), '..', PLUGIN_PATH)
+        try:
+            if os.path.isdir(path):
+                for filename in os.listdir(path):
+                    if not filename.startswith('plugin_'):
+                        continue
 
-                        if os.path.splitext(filename)[1] not in ['.py', '.exe']:
-                            continue
+                    # Load only python plugins
+                    if os.path.splitext(filename)[1] != '.py':
+                        continue
 
-                        log.debug("  Queuing plugin %s for process." % filename)
-                        full_filename = os.path.join(path, filename)
-                        d = self._run_process(full_filename, '', {})
-                        d.addCallback(self._add_command, filename=full_filename)
-            except:
-                print sys.exc_info()
+                    log.debug("  Queuing plugin %s for process." % filename)
+                    full_filename = os.path.join(path, filename)
+                    d = self._run_process(full_filename, '', {})
+                    d.addCallback(self._add_command, filename=full_filename)
+        except:
+            print sys.exc_info()
 
     def _add_command(self, data, **kwargs):
         (exit_code, stdout, stderr, timeout_called) = data
@@ -100,39 +101,30 @@ class CommandRunner():
         return
 
     def _run_process(self, filename, command_name, params, flush_callback=None, message=None):
-        #log.info("filename: %s command_name: %s params: %s flush_callback: %s message: %s" % (filename, command_name, params, flush_callback, message))
-        need_sudo = ['plugin_pip.py', 'plugin_service.py', 'plugin_update.py', 'plugin_haproxy.py', 'plugin_monitor.py', 'plugin_pip_extra.py', 'plugin_puppet.py', 'plugin_saltstack.py', 'plugin_proc.py']
-        ext = os.path.splitext(filename)[1]
-        if ext == '.py':
-            from sys import platform
-            if platform.startswith("win32") or os.path.split(filename)[1] not in need_sudo:
-                command = self._python_runner
-                args = [command, '-u', '-W ignore::DeprecationWarning', filename, command_name]
-
-            else:
-                command = 'sudo'
-                # -u: sets unbuffered output
-                args = [command, self._python_runner, '-u', '-W ignore::DeprecationWarning', filename, command_name]
+        # -u: sets unbuffered output
+        if sys.platform.startswith("win32") or os.path.split(filename)[1] not in REQUIRES_SUDO:
+            command = self._python_runner
+            args = [command, '-u', '-W ignore::DeprecationWarning', filename, command_name]
 
         else:
-            command = filename
-            args = [command, command_name]
+            command = 'sudo'
+            args = [command, self._python_runner, '-u', '-W ignore::DeprecationWarning', filename, command_name]
 
         # :TODO Set timeout from command
         #log.info('in the runner.py _run_process %s %s' %(params,type(params)))
-        cmd_timeout = int(params.get('timeout',TIMEOUT))
+        timeout = int(params.get('timeout', TIMEOUT))
 
         if command_name:
-            log.info("Running %s from %s (timeout: %i)" % (command_name, filename, cmd_timeout))
+            log.info("Running %s from %s (timeout: %i)" % (command_name, filename, timeout))
 
         else:
             log.info("[INIT] Loading commands from %s" % filename)
 
-        crp = CommandRunnerProcess(cmd_timeout, params, flush_callback, message)
+        crp = CommandRunnerProcess(timeout, params, flush_callback, message)
         d = crp.getDeferredResult()
         reactor.spawnProcess(crp, command, args, env=self.env)
 
-        del cmd_timeout, filename, command_name, params
+        del timeout, filename, command_name, params
         del flush_callback, message, args
 
         return d
