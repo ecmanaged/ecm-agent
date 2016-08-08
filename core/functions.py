@@ -70,21 +70,18 @@ def read_url(url, data=None, headers=None):
         log.debug('functions.read_url(%s)' % url)
         retval = {}
 
-        try:
-            if data:
-                data = json.dumps(data)
 
-            socket.setdefaulttimeout(SOCKET_TIMEOUT)
-            req = urllib2.Request(url, data=data, headers=headers)
-            urlopen = urllib2.urlopen(req)
-            result = ''.join(urlopen.readlines())
+        if data:
+            data = json.dumps(data)
 
-            if result:
-                log.debug('read_url::content: %s' % result)
-                retval = json.loads(result)
+        socket.setdefaulttimeout(SOCKET_TIMEOUT)
+        req = urllib2.Request(url, data=data, headers=headers)
+        urlopen = urllib2.urlopen(req)
+        result = ''.join(urlopen.readlines())
 
-        except Exception, e:
-            log.error('read_url::failed %s' % str(e))
+        if result:
+            log.debug('read_url::content: %s' % result)
+            retval = json.loads(result)
 
         return retval
 

@@ -110,7 +110,10 @@ class ECMAgent():
         log.debug('_write_result::start: %s' % url)
         log.debug('_write_result::data: %s' % result)
 
-        return read_url(url, result, headers)
+        try:
+            return read_url(url, result, headers)
+        except Exception:
+            reactor.disconnectAll()
 
     def _read_tasks(self):
         headers = {
@@ -121,7 +124,10 @@ class ECMAgent():
         url = ECMANAGED_URL_TASK + '/' + self.uuid
         log.debug('_url_get::start: %s' %url)
 
-        return read_url(url, headers=headers)
+        try:
+            return read_url(url, headers=headers)
+        except Exception:
+            reactor.disconnectAll()
 
     def _run_task(self, message):
         log.debug("_run_task::command: %s" % message.command)
