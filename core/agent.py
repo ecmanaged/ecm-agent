@@ -113,7 +113,10 @@ class ECMAgent():
         return read_url(url, result, headers)
 
     def _read_tasks(self):
-        headers = {'x-ecmanaged-token': 'Basic %s' % self.token}
+        headers = {
+            'Content-Type': 'application/json',
+            'x-ecmanaged-token': 'Basic %s' % self.token
+        }
 
         url = ECMANAGED_URL_TASK + '/' + self.uuid
         log.debug('_url_get::start: %s' %url)
