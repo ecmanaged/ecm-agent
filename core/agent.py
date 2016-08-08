@@ -32,8 +32,11 @@ _MAIN_LOOP_INTERVAL = 60
 _E_UNKNOWN_COMMAND = 253
 _E_INVALID_MESSAGE = 252
 
-ECMANAGED_URL_TASK = 'http://my-devel1.ecmanaged.com/agent/meta-data/task'
-ECMANAGED_URL_RESULT = 'http://my-devel1.ecmanaged.com/agent/meta-data/result'
+KEEPALIVED_TIMEOUT = 180
+
+ECMANAGED_URL_TASK = 'http://my-devel7.ecmanaged.com/agent/meta-data/task'
+ECMANAGED_URL_RESULT = 'http://my-devel7.ecmanaged.com/agent/meta-data/result'
+
 
 # url = 'http://localhost:5000/agent/' + self.uuid + '/tasks'
 
@@ -79,6 +82,10 @@ class ECMAgent():
         self.memory_checker = LoopingCall(self._memory_checker)
         self.memory_checker.start(_CHECK_RAM_INTERVAL)
 
+        log.info("Starting periodic reconnect loop")
+        self.keepalive = LoopingCall(self._reconnect)
+        self.keepalive.start(KEEPALIVED_TIMEOUT, now=False)
+
         log.info("Starting main loop")
         self.periodic_info = LoopingCall(self._main)
         self.periodic_info.start(_MAIN_LOOP_INTERVAL, now=True)
@@ -91,6 +98,21 @@ class ECMAgent():
 
         log.info("Reading tasks...")
 
+        tasks = self._read_tasks()
+
+        log.info('got tasks: %s' % tasks)
+
+        if isinstance(tasks, dict):
+            log.info('Recieved an error from back end')
+            return
+
+        if self.keepalive.running:
+            log.info("Stop keepalived")
+            self.keepalive.stop()
+
+        log.info("Starting keepalived")
+        self.keepalive.start(KEEPALIVED_TIMEOUT, now=False)
+
         for task in self._read_tasks():
             try:
                 message = ECMMessage(task['id'], task['type'], task['command'], task['params'])
@@ -98,6 +120,13 @@ class ECMAgent():
 
             except Exception, e:
                 log.error('Error in main loop while generating message for task (%s): %s' % (task['command'], str(e)))
+
+    def _reconnect(self):
+        """
+        Disconnect the current reactor to try to connect again
+        """
+        log.info("No data received in %ss: Trying to reconnect" % KEEPALIVED_TIMEOUT)
+        reactor.disconnectAll()
 
     def _write_result(self, result):
         headers = {
@@ -122,7 +151,7 @@ class ECMAgent():
         }
 
         url = ECMANAGED_URL_TASK + '/' + self.uuid
-        log.debug('_url_get::start: %s' %url)
+        log.debug('_url_get::start: %s' % url)
 
         try:
             return read_url(url, headers=headers)
