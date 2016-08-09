@@ -96,6 +96,9 @@ class ECMAgent():
 
         tasks = self._read_tasks()
 
+        if not tasks:
+            return
+
         log.info('got tasks: %s' % tasks)
 
         for task in tasks():
