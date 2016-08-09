@@ -34,8 +34,8 @@ _E_INVALID_MESSAGE = 252
 
 KEEPALIVED_TIMEOUT = 180
 
-ECMANAGED_URL_TASK = 'http://my-devel7.ecmanaged.com/agent/meta-data/task'
-ECMANAGED_URL_RESULT = 'http://my-devel7.ecmanaged.com/agent/meta-data/result'
+ECMANAGED_URL_TASK = 'http://my-devel1.ecmanaged.com/agent/meta-data/task'
+ECMANAGED_URL_RESULT = 'http://my-devel1.ecmanaged.com/agent/meta-data/result'
 
 
 # url = 'http://localhost:5000/agent/' + self.uuid + '/tasks'
