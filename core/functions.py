@@ -82,6 +82,7 @@ def read_url(url, data=None, headers=None):
         if result:
             log.debug('read_url::content: %s' % result)
             retval = json.loads(result)
-
+            if isinstance(retval, dict):
+                raise Exception("Error from backend")
         return retval
 

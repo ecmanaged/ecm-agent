@@ -82,10 +82,6 @@ class ECMAgent():
         self.memory_checker = LoopingCall(self._memory_checker)
         self.memory_checker.start(_CHECK_RAM_INTERVAL)
 
-        log.info("Starting periodic reconnect loop")
-        self.keepalive = LoopingCall(self._reconnect)
-        self.keepalive.start(KEEPALIVED_TIMEOUT, now=False)
-
         log.info("Starting main loop")
         self.periodic_info = LoopingCall(self._main)
         self.periodic_info.start(_MAIN_LOOP_INTERVAL, now=True)
@@ -102,31 +98,13 @@ class ECMAgent():
 
         log.info('got tasks: %s' % tasks)
 
-        if isinstance(tasks, dict):
-            log.info('Recieved an error from back end')
-            return
-
-        if self.keepalive.running:
-            log.info("Stop keepalived")
-            self.keepalive.stop()
-
-        log.info("Starting keepalived")
-        self.keepalive.start(KEEPALIVED_TIMEOUT, now=False)
-
-        for task in self._read_tasks():
+        for task in self.tasks():
             try:
                 message = ECMMessage(task['id'], task['type'], task['command'], task['params'])
                 self._run_task(message)
 
-            except Exception, e:
+            except Exception as e:
                 log.error('Error in main loop while generating message for task (%s): %s' % (task['command'], str(e)))
-
-    def _reconnect(self):
-        """
-        Disconnect the current reactor to try to connect again
-        """
-        log.info("No data received in %ss: Trying to reconnect" % KEEPALIVED_TIMEOUT)
-        reactor.disconnectAll()
 
     def _write_result(self, result):
         headers = {
