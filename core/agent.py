@@ -101,7 +101,7 @@ class ECMAgent():
 
         log.info('got tasks: %s' % tasks)
 
-        for task in tasks():
+        for task in tasks:
             try:
                 message = ECMMessage(task['id'], task['type'], task['command'], task['params'])
                 self._run_task(message)
