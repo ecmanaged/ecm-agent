@@ -66,7 +66,7 @@ config_file_init = os.path.join(os.path.sep, root_dir, 'config', 'ecagent.cfg.in
 
 # manipulate configuration file
 if not os.path.isfile(config_file):
-    config_file = config_file_init
+    os.rename(config_file_init, config_file)
 
 if not os.path.isfile(config_file):
     print 'Unable to read the config file at %s' % config_file
