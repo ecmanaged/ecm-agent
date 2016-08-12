@@ -114,7 +114,8 @@ class ECMConfigObj(ConfigObj):
             'ipaddress': self._get_ip(),
             'hostname': self._get_hostname(),
             'account': self.get_stored_account(),
-            'unique_id': unique_id
+            'unique_id': unique_id,
+            'groups': self._get_groups()
         }
 
         result = None
@@ -153,6 +154,9 @@ class ECMConfigObj(ConfigObj):
 
     def _get_stored_unique_id(self):
         return self['Auth'].get('unique_id', '')
+
+    def _get_groups(self):
+        return self['Groups'].get('groups', '')
 
     def get_stored_account(self):
         return self['Auth'].get('account', '')
