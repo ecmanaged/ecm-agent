@@ -116,7 +116,7 @@ class ECMAgent():
             'x-ecmanaged-token': 'Basic %s' % self.token,
         }
 
-        result['groups'] = self.config['Auth']['uuid']
+        result['groups'] = self.config['Groups']['groups']
 
         url = ECMANAGED_URL_RESULT + '/' + self.uuid + '/result'
 
