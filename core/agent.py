@@ -68,6 +68,7 @@ class ECMAgent():
         """
         Main agent class.
         """
+        self.config = config
         self.uuid = config['Auth']['uuid']
         self.token = config['Auth']['token']
 
@@ -114,6 +115,8 @@ class ECMAgent():
             'Content-Type': 'application/json',
             'x-ecmanaged-token': 'Basic %s' % self.token,
         }
+
+        result['groups'] = self.config['Auth']['uuid']
 
         url = ECMANAGED_URL_RESULT + '/' + self.uuid + '/result'
 
