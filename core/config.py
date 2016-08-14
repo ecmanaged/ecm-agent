@@ -36,12 +36,12 @@ URL_METADATA_INSTANCE_ID = {
     'do': 'http://169.254.169.254/metadata/v1/id'
 }
 
-ECMANAGED_AUTH_URL = 'http://my-devel1.ecmanaged.com/agent/meta-data/v3/id'
-#ECMANAGED_AUTH_URL = 'http://my-devel1.ecmanaged.com/api/v1/agent/auth'
+ECMANAGED_REGISTRY_URL = 'http://my-devel1.ecmanaged.com/agent/meta-data/v3/id'
+#ECMANAGED_REGISTRY_URL = 'http://my-devel1.ecmanaged.com/api/v1/agent/auth'
 # http://127.0.0.1:5000/api/v1/agent/register
 
 
-class ECMConfigObj(ConfigObj):
+class ECMRegister(ConfigObj):
     """
     A simple wrapper for ConfigObj that will check the unique_id and try to
     reconfigure if it has changed before launching the agent.
@@ -51,7 +51,7 @@ class ECMConfigObj(ConfigObj):
         ConfigObj.__init__(self, filename)
 
     @inlineCallbacks
-    def check_config(self):
+    def register(self):
         uuid = self._get_stored_uuid()
         account_id = self.get_stored_account()
 
@@ -76,7 +76,7 @@ class ECMConfigObj(ConfigObj):
 
             for i in range(360):
                 log.info("Trying to get UUID via URL (meta-data v2)")
-                json_data = yield self._get_config(unique_id)
+                json_data = yield self._register(unique_id)
                 if json_data:
                     break
 
@@ -100,11 +100,11 @@ class ECMConfigObj(ConfigObj):
 
         returnValue(True)
 
-    def _get_config(self, unique_id):
-        return self._get_config2(unique_id)
+    def _register(self, unique_id):
+        return self._register2(unique_id)
 
     @inlineCallbacks
-    def _get_config2(self, unique_id):
+    def _register2(self, unique_id):
 
         headers = {
             'Content-Type': 'application/json; charset=utf-8'
@@ -121,7 +121,7 @@ class ECMConfigObj(ConfigObj):
         result = None
 
         try:
-            result = yield getPage(ECMANAGED_AUTH_URL, method='POST',
+            result = yield getPage(ECMANAGED_REGISTRY_URL, method='POST',
                                    postdata=json.dumps(data),
                                    headers=headers)
         except Exception as e:
@@ -131,7 +131,7 @@ class ECMConfigObj(ConfigObj):
         # Try urllib if doesn't work
         if not result:
             try:
-                req = urllib2.Request(ECMANAGED_AUTH_URL, json.dumps(data), headers)
+                req = urllib2.Request(ECMANAGED_REGISTRY_URL, json.dumps(data), headers)
                 result = urllib2.urlopen(req).read()
 
             except Exception as e:
