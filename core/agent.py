@@ -42,22 +42,22 @@ ECMANAGED_URL_RESULT = 'http://my-devel1.ecmanaged.com/agent/meta-data/result'
 
 class ECMConfig:
     def __init__(self, config):
-        reactor.callWhenRunning(self._check_config)
+        reactor.callWhenRunning(self._register)
         self.config = config
 
-    def _check_config(self):
-        d = self.config.check_config()
-        d.addCallback(self._on_config_checked)
-        d.addErrback(self._on_config_failed)
+    def _register(self):
+        d = self.config.register()
+        d.addCallback(self._on_register_succeed)
+        d.addErrback(self._on_register_failed)
 
-    def _on_config_checked(self, success):
+    def _on_config_succeed(self, success):
         # Ok, now everything should be correctly configured,
         # let's start the party.
         if success:
             ECMAgent(self.config)
 
     @staticmethod
-    def _on_config_failed(failure):
+    def _on_register_failed(failure):
         log.critical("Configuration check failed with: %s, exiting." % failure)
         log.critical("Please try configuring the XMPP subsystem manually.")
         reactor.stop()
