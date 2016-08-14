@@ -40,7 +40,7 @@ ECMANAGED_URL_RESULT = 'http://my-devel1.ecmanaged.com/agent/meta-data/result'
 
 # url = 'http://localhost:5000/agent/' + self.uuid + '/tasks'
 
-class ECMConfig:
+class ECMInit:
     def __init__(self, config):
         reactor.callWhenRunning(self._register)
         self.config = config
@@ -75,8 +75,14 @@ class ECMAgent():
         log.info("Loading Commands...")
         self.command_runner = CommandRunner()
 
+        log.info("Authenticating...")
+        self._auth()
+
         # Give time to load commands
         reactor.callLater(3, self._run)
+
+    def _auth(self):
+        pass
 
     def _run(self):
         log.info("Setting up Memory checker")
