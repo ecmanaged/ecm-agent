@@ -39,8 +39,8 @@ if "." not in sys.path:
     sys.path.append(".")
 
 # Local
-from core.config import ECMConfigObj
-from core.agent import ECMConfig
+from core.config import ECMRegister
+from core.agent import ECMInit
 import core.logging as log
 
 # Enable automatic garbage collection.
@@ -81,10 +81,10 @@ os.chmod(config_file, stat.S_IRWXU)
 if not os.path.isfile(config_file):
     raise Exception("Config file not found: " + config_file)
 
-config = ECMConfigObj(config_file)
+config = ECMRegister(config_file)
 
 # Start agent and setup logging
 application = Application("ecagent")
 log.setup(application, config['Log'])
 
-agent = ECMConfig(config)
+agent = ECMInit(config)
