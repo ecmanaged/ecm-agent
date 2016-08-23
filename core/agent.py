@@ -19,6 +19,7 @@ from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
 
 # Local
+import core.exceptions as exceptions
 import core.logging as log
 
 from core.runner import CommandRunner
@@ -50,7 +51,7 @@ class ECMInit:
         d.addCallback(self._on_register_succeed)
         d.addErrback(self._on_register_failed)
 
-    def _on_config_succeed(self, success):
+    def _on_register_succeed(self, success):
         # Ok, now everything should be correctly configured,
         # let's start the party.
         if success:
@@ -119,7 +120,7 @@ class ECMAgent():
     def _write_result(self, result):
         headers = {
             'Content-Type': 'application/json',
-            'x-ecmanaged-token': 'Basic %s' % self.token,
+            'Authentication': 'ECM %s' % self.token,
         }
 
         result['groups'] = self.config['Groups']['groups']
@@ -131,13 +132,17 @@ class ECMAgent():
 
         try:
             return read_url(url, result, headers)
-        except Exception:
+
+        except exceptions.ECMInvalidAuth:
+            self._auth()
+
+        except:
             reactor.disconnectAll()
 
     def _read_tasks(self):
         headers = {
             'Content-Type': 'application/json',
-            'x-ecmanaged-token': 'Basic %s' % self.token
+            'Authentication': 'ECM %s' % self.token
         }
 
         url = ECMANAGED_URL_TASK + '/' + self.uuid
@@ -145,7 +150,11 @@ class ECMAgent():
 
         try:
             return read_url(url, headers=headers)
-        except Exception:
+
+        except exceptions.ECMInvalidAuth:
+            self._auth()
+
+        except:
             reactor.disconnectAll()
 
     def _run_task(self, message):

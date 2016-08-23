@@ -41,7 +41,7 @@ ECMANAGED_REGISTRY_URL = 'http://my-devel1.ecmanaged.com/agent/meta-data/v3/id'
 # http://127.0.0.1:5000/api/v1/agent/register
 
 
-class ECMRegister(ConfigObj):
+class ECMConfig(ConfigObj):
     """
     A simple wrapper for ConfigObj that will check the unique_id and try to
     reconfigure if it has changed before launching the agent.

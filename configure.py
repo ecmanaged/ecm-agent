@@ -19,7 +19,7 @@ import random
 import sys
 import getopt
 import os
-from core.config import ECMConfigObj
+from core.config import ECMConfig
 
 root_dir = os.path.dirname(os.path.realpath(__file__))
 os.chdir(root_dir)
@@ -38,6 +38,7 @@ configure_delete_groups = None
 
 try:
     optlist, args = getopt.getopt(sys.argv[1:], 'a:g:ag:dg', ["account=", "groups=", "add-groups=", "delete-groups="])
+
 except getopt.GetoptError:
     print 'Please configure agent with ./configure.py --account=XXXXX --groups=abc,def'
     print 'You can add groups using --add-groups=xyz'
@@ -73,7 +74,7 @@ if not os.path.isfile(config_file):
     print 'Agent will now quit'
     sys.exit(-1)
 
-config = ECMConfigObj(config_file)
+config = ECMConfig(config_file)
 
 if not configure_account and not config['Auth']['account']:
     print 'Please configure agent with ./configure.py --account=XXXXX'

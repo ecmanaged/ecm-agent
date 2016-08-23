@@ -39,7 +39,7 @@ if "." not in sys.path:
     sys.path.append(".")
 
 # Local
-from core.config import ECMRegister
+from core.config import ECMConfig
 from core.agent import ECMInit
 import core.logging as log
 
@@ -81,7 +81,7 @@ os.chmod(config_file, stat.S_IRWXU)
 if not os.path.isfile(config_file):
     raise Exception("Config file not found: " + config_file)
 
-config = ECMRegister(config_file)
+config = ECMConfig(config_file)
 
 # Start agent and setup logging
 application = Application("ecagent")

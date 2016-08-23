@@ -20,6 +20,8 @@ import socket
 
 from os import getpid
 
+import core.exceptions as exceptions
+
 SOCKET_TIMEOUT = 30
 
 
@@ -70,19 +72,23 @@ def read_url(url, data=None, headers=None):
         log.debug('functions.read_url(%s)' % url)
         retval = {}
 
-
         if data:
             data = json.dumps(data)
 
-        socket.setdefaulttimeout(SOCKET_TIMEOUT)
-        req = urllib2.Request(url, data=data, headers=headers)
-        urlopen = urllib2.urlopen(req)
-        result = ''.join(urlopen.readlines())
+        try:
+            socket.setdefaulttimeout(SOCKET_TIMEOUT)
+            req = urllib2.Request(url, data=data, headers=headers)
+            urlopen = urllib2.urlopen(req)
 
-        if result:
-            log.debug('read_url::content: %s' % result)
-            retval = json.loads(result)
-            if isinstance(retval, dict):
-                raise Exception("Error from backend")
-        return retval
+            result = ''.join(urlopen.readlines())
 
+            if result:
+                log.debug('read_url::content: %s' % result)
+                retval = json.loads(result)
+                if isinstance(retval, dict):
+                    raise exceptions.ECMBackendError
+
+                return retval
+
+        except urllib2.HTTPError:
+            raise exceptions.ECMInvalidAuth
