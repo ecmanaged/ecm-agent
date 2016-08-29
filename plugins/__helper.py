@@ -56,6 +56,15 @@ def is_win():
 
         return False
 
+
+def is_linux():
+    """ Returns True if is a windows system
+    """
+    if platform.startswith("linux"):
+        return True
+
+    return False
+
 def file_write(file_path, content=None):
     """ Writes a file
     """

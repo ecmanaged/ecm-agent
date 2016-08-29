@@ -153,9 +153,12 @@ class ECMMonitor(ECMPlugin):
                         to_execute.append({'script': script, 'runas': runas})
 
         for data in to_execute:
-            p = Process(target=_run_background_file, args=(data['script'], data['runas'],))
-            p.start()
-            p.join()
+            if ecm.is_win():
+                p = Process(target=_run_background_file, args=(data['script'], data['runas'],))
+                p.start()
+                p.join()
+            else:
+                _run_background_file(data['script'], data['runas'])
         return retval
 
     def cmd_monitor_plugin_install(self, *argv, **kwargs):
@@ -324,6 +327,12 @@ def _run_background_file(script, run_as=None):
     fullpath = os.path.abspath(script)
     script_name = os.path.basename(fullpath)
     workdir = os.path.dirname(script)
+
+
+    if ecm.is_linux():
+        # Create child process and return if parent
+        if ecm.fork(workdir):
+            return
 
     # Write timeout to cache file
     _write_cache(script_name, CRITICAL, 'Timeout')

@@ -111,7 +111,7 @@ class CommandRunner():
             args = [command, self._python_runner, '-u', '-W ignore::DeprecationWarning', filename, command_name]
 
         # :TODO Set timeout from command
-        #log.info('in the runner.py _run_process %s %s' %(params,type(params)))
+        # log.info('in the runner.py _run_process %s %s' %(params,type(params)))
         timeout = int(params.get('timeout', TIMEOUT))
 
         if command_name:
