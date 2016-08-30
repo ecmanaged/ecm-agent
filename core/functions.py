@@ -60,7 +60,6 @@ def mem_clean(where=''):
 
     return rss
 
-
 def read_url(url, data=None, headers=None):
         """
         :param url: URL to get
@@ -88,7 +87,7 @@ def read_url(url, data=None, headers=None):
                 if isinstance(retval, dict):
                     raise exceptions.ECMBackendError
 
-                return retval
+            return retval
 
         except urllib2.HTTPError:
             raise exceptions.ECMInvalidAuth

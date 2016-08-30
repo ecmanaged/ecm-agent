@@ -27,21 +27,22 @@ import time
 import core.logging as log
 
 class ECMMessage(object):
-    def __init__(self, message_id, message_type, command, params=None, response=None, timeout=DEFAULT_TIMEOUT):
-        self.id = message_id
-        self.type = message_type
-        self.command = command
-        self.command_name = command.replace('.', '_')
+    def __init__(self, task):
+        self.id = task['id']
+        self.type = task['type']
+        self.command = task['command']
+        self.command_name = self.command.replace('.', '_')
         self.localtime = time.time()
-        self.response = response
-        self.timeout = timeout
+        self.timeout = task.get("timeout", None)
         self.version = AGENT_VERSION_CORE
         self.protocol = AGENT_VERSION_PROTOCOL
-        self.params = {}
+        self.repeated_task = task.get("repeat", True)
+        self.delete_task = task.get("delete", False)
+        self.params = task.get("params", {})
 
         # Params always is json encoded and b64
-        if params and params.strip():
-            args = base64.b64decode(params)
+        if self.params and self.params.strip():
+            args = base64.b64decode(self.params)
             self.params = json.loads(args)
 
         log.debug('MESSAGE - id: %s, type: %s, command: %s, params: %s' % (self.id, self.type, self.command, self.params))

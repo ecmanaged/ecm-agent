@@ -72,6 +72,8 @@ class ECMAgent():
         self.config = config
         self.uuid = config['Auth']['uuid']
         self.token = config['Auth']['token']
+        self.tasks = [{'data': u'', 'command': 'monitor.get', 'timeout': '30', 'params': 'eyJfX2Jhc2VfXyI6eyJuYW1lIjoiU1lTVEVNIEhFQUxUSCIsImNvbmZpZyI6e30sImlkIjoiX19iYXNlX18iLCJpbnRlcnZhbCI6NjB9fQ==', 'type': 'task', 'id': 'task1'}
+                      ]
 
         log.info("Loading Commands...")
         self.command_runner = CommandRunner()
@@ -100,18 +102,16 @@ class ECMAgent():
         :return:
         """
 
-        log.info("Reading tasks...")
-
-        tasks = self._read_tasks()
-
-        if not tasks:
+        if not self.tasks:
             return
 
-        log.info('got tasks: %s' % tasks)
+        log.info('tasks: %s' % self.tasks)
 
-        for task in tasks:
+        for task in self.tasks:
             try:
-                message = ECMMessage(task['id'], task['type'], task['command'], task['params'])
+                message = ECMMessage(task)
+                if message.delete_task or not message.repeated_task:
+                    self.tasks.remove(task)
                 self._run_task(message)
 
             except Exception as e:
@@ -131,25 +131,7 @@ class ECMAgent():
         log.debug('_write_result::data: %s' % result)
 
         try:
-            return read_url(url, result, headers)
-
-        except exceptions.ECMInvalidAuth:
-            self._auth()
-
-        except:
-            reactor.disconnectAll()
-
-    def _read_tasks(self):
-        headers = {
-            'Content-Type': 'application/json',
-            'Authentication': 'ECM %s' % self.token
-        }
-
-        url = ECMANAGED_URL_TASK + '/' + self.uuid
-        log.debug('_url_get::start: %s' % url)
-
-        try:
-            return read_url(url, headers=headers)
+            self.tasks = read_url(url, result, headers)
 
         except exceptions.ECMInvalidAuth:
             self._auth()
