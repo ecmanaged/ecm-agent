@@ -72,10 +72,12 @@ class ECMAgent():
         self.config = config
         self.uuid = config['Auth']['uuid']
         self.token = config['Auth']['token']
-        self.tasks = [{'data': u'', 'command': 'monitor.get', 'timeout': '30', 'params': 'eyJfX2Jhc2VfXyI6eyJuYW1lIjoiU1lTVEVNIEhFQUxUSCIsImNvbmZpZyI6e30sImlkIjoiX19iYXNlX18iLCJpbnRlcnZhbCI6NjB9fQ==', 'type': 'task', 'id': 'task1'}
-                      ]
+
+        self.tasks = {}
+        self.tasks['base_task'] = {'data': u'', 'command': 'monitor.get', 'timeout': '30', 'params': 'eyJfX2Jhc2VfXyI6eyJuYW1lIjoiU1lTVEVNIEhFQUxUSCIsImNvbmZpZyI6e30sImlkIjoiX19iYXNlX18iLCJpbnRlcnZhbCI6NjB9fQ==', 'type': 'task', 'id': 'task1'}
 
         log.info("Loading Commands...")
+
         self.command_runner = CommandRunner()
 
         log.info("Authenticating...")
@@ -107,11 +109,12 @@ class ECMAgent():
 
         log.info('tasks: %s' % self.tasks)
 
-        for task in self.tasks:
+        for item in self.tasks.keys():
             try:
+                task = self.tasks[item]
                 message = ECMMessage(task)
                 if message.delete_task or not message.repeated_task:
-                    self.tasks.remove(task)
+                    del self.tasks[item]
                 self._run_task(message)
 
             except Exception as e:
@@ -131,7 +134,9 @@ class ECMAgent():
         log.debug('_write_result::data: %s' % result)
 
         try:
-            self.tasks = read_url(url, result, headers)
+            new_tasks = read_url(url, result, headers)
+            for new_task in new_tasks:
+                self.tasks[new_task['id']] = new_task
 
         except exceptions.ECMInvalidAuth:
             self._auth()
