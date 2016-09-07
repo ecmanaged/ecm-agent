@@ -45,7 +45,7 @@ _DEFAULT_GROUP_WINDOWS = 'Administrators'
 
 _FLUSH_WORKER_SLEEP_TIME = 0.2
 
-AGENT_VERSION = 3.0
+AGENT_VERSION = 4.0
 
 
 def is_win():
@@ -55,6 +55,15 @@ def is_win():
             return True
 
         return False
+
+
+def is_linux():
+    """ Returns True if is a windows system
+    """
+    if platform.startswith("linux"):
+        return True
+
+    return False
 
 def file_write(file_path, content=None):
     """ Writes a file
@@ -100,6 +109,7 @@ def clean_stdout(std_output):
     try:
         r = re.compile("\033\[[0-9;]*m", re.MULTILINE)
         return r.sub('', std_output)
+
     except:
         return std_output
 
@@ -678,7 +688,7 @@ class ECMExec:
 
         if run_as and not is_win():
             if not check_sudo():
-                return 255, '', 'Sudo is not available:'
+                return 255, '', 'sudo is not available:'
             
             # don't use su - xxx or env variables will not be available
             command = [which('sudo'), 'su', run_as, '-c', ' '.join(map(str, command))]
