@@ -19,6 +19,9 @@ RUN_AS_ROOT = False
 import os
 import sys
 
+from multiprocessing import Process
+from multiprocessing import Pool
+
 import simplejson as json
 from base64 import b64decode
 from time import time
@@ -53,20 +56,22 @@ CACHE_SOFT_TIME = 30
 
 
 class ECMMonitor(ECMPlugin):
-
     def cmd_monitor_get(self, *argv, **kwargs):
         """
         Runs monitor commands from monitor path
         """
-        
+
         config = None
         b64_config = kwargs.get('config', None)
-        
+
+        thread_pool = Pool(20)
+
         try:
-            config = json.loads(b64decode(b64_config))
+            if isinstance(b64_config, str):
+                config = json.loads(b64decode(b64_config))
         except:
             pass
-        
+
         retval = []
         to_execute = []
 
@@ -74,18 +79,18 @@ class ECMMonitor(ECMPlugin):
         self._check_path(MPLUGIN_PATH)
         self._check_path(CPLUGIN_PATH)
         self._check_path(CACHE_PATH)
-        
+
         # Clean old cache files
         self._cache_clean()
 
         if not os.path.isdir(MPLUGIN_PATH):
             return retval
-            
+
         # Foreach plugin inside mplugins and custom
         for plugin_path in [MPLUGIN_PATH, CPLUGIN_PATH]:
             if not os.path.isdir(plugin_path):
                 continue
-                
+
             for p_path in os.listdir(plugin_path):
                 p_path = os.path.join(plugin_path, p_path)
 
@@ -96,7 +101,7 @@ class ECMMonitor(ECMPlugin):
                 # Skip disabled plugins
                 if os.path.basename(p_path).startswith('.'):
                     continue
-                        
+
                 runas = None
                 scripts = []
                 interval = COMMAND_INTERVAL
@@ -104,30 +109,30 @@ class ECMMonitor(ECMPlugin):
                 # Search for plugin files
                 if plugin_path == MPLUGIN_PATH:
                     mplugin = MPlugin(p_path)
-                    
+
                     # Update config and re-read
                     if config:
                         mplugin.write_config(config.get(mplugin.id))
                         mplugin = MPlugin(p_path)
-                        
+
                     runas = mplugin.data.get('runas', None)
                     interval = mplugin.data.get('interval', COMMAND_INTERVAL)
 
                     script = os.path.join(plugin_path, p_path, mplugin.id)
-                        
+
                     if not os.path.exists(script):
                         script += '.py'
-                        
+
                     if not os.path.exists(script):
                         continue
 
                     # Add as valid mplugin script
                     scripts = [script]
-                                    
+
                     # Executable plugin base
                     if not os.access(script, os.X_OK):
                         os.chmod(script, 0755)
-                                    
+
                 # Custom plugins path
                 else:
                     # Set default interval or read from path name
@@ -137,47 +142,51 @@ class ECMMonitor(ECMPlugin):
                         _tmp = os.path.join(plugin_path, p_path, filename)
                         if os.access(_tmp, os.X_OK):
                             scripts.append(_tmp)
-                            
+
                 for script in scripts:
                     # Read last result from cache (even if void)
                     from_cache = self._cache_read(script, interval + CACHE_SOFT_TIME)
                     retval.append(self._parse_script_name(script) + GLUE + str(interval) + GLUE + from_cache)
-                    
+
                     # Execute script if cache wont be valid on next command_get execution
                     if not self._cache_read(script, interval - COMMAND_INTERVAL - CACHE_SOFT_TIME):
                         to_execute.append({'script': script, 'runas': runas})
-                        
-        for data in to_execute:
-            _run_background_file(data['script'], data['runas'])
 
+        for data in to_execute:
+            if ecm.is_win():
+                p = Process(target=_run_background_file, args=(data['script'], data['runas'],))
+                p.start()
+                p.join()
+            else:
+                _run_background_file(data['script'], data['runas'])
         return retval
-        
+
     def cmd_monitor_plugin_install(self, *argv, **kwargs):
         """
         Installs a plugin [url=plugin_url]
         """
         url = kwargs.get('url', None)
         content = None
-        
+
         if not url:
             raise ecm.InvalidParameters(self.cmd_monitor_plugin_install.__doc__)
-        
+
         try:
             content = ecm.get_url(url)
         except:
-            pass
-        
+            raise Exception("Unable to get URL: %s" % url)
+
         if not content:
             raise Exception("Unable to get URL: %s" % url)
-            
-        try: 
+
+        try:
             plugin = json.loads(content)
         except:
             raise Exception("Invalid data received")
 
         id = plugin.get('id')
         runas = plugin.get('runas')
-        
+
         arg_config = plugin.get('config')
         arg_script_b64 = plugin.get('script')
 
@@ -214,7 +223,7 @@ class ECMMonitor(ECMPlugin):
             script = b64decode(arg_script_b64)
         except:
             pass
-        
+
         config = {
             'id': id,
             'runas': runas,
@@ -223,16 +232,16 @@ class ECMMonitor(ECMPlugin):
             'version': plugin.get('version'),
             'config': arg_config
         }
-        
+
         if id and config and script:
             mplugin = MPlugin(MPLUGIN_PATH)
             if mplugin.install(id, config, script):
                 # Installation ok, run it
                 script_file = os.path.abspath(os.path.join(MPLUGIN_PATH, id, id))
                 _run_background_file(script_file, runas)
-            
+
                 return True
-            
+
         return False
 
     def cmd_monitor_plugin_uninstall(self, *argv, **kwargs):
@@ -241,20 +250,20 @@ class ECMMonitor(ECMPlugin):
         """
 
         plugin_id = kwargs.get('id', None)
-        
+
         if not plugin_id:
             raise ecm.InvalidParameters(self.cmd_monitor_plugin_uninstall.__doc__)
-        
+
         mplugin = MPlugin(MPLUGIN_PATH)
         return mplugin.uninstall(plugin_id)
-        
+
     @staticmethod
     def _interval_from_path(my_path):
         interval = os.path.split(my_path)[-1]
-        
+
         if not ecm.is_integer(interval):
             interval = COMMAND_INTERVAL
-            
+
         return int(interval)
 
     @staticmethod
@@ -279,13 +288,13 @@ class ECMMonitor(ECMPlugin):
         # check updated cache
         if os.path.isfile(cache_file):
             modified = os.path.getmtime(cache_file)
-            
+
             how_old = int(time() - modified)
-            
-            if(how_old > max_old):
+
+            if (how_old > max_old):
                 # Invalid cache file
                 os.remove(cache_file)
-            
+
             else:
                 # Return cache content
                 f = open(cache_file, 'r')
@@ -294,7 +303,7 @@ class ECMMonitor(ECMPlugin):
                 f.close()
 
         return content
-        
+
     @staticmethod
     def _cache_clean():
         for f in os.listdir(CACHE_PATH):
@@ -319,20 +328,22 @@ def _run_background_file(script, run_as=None):
     script_name = os.path.basename(fullpath)
     workdir = os.path.dirname(script)
 
-    # Create child process and return if parent
-    if ecm.fork(workdir):
-        return
+
+    if ecm.is_linux():
+        # Create child process and return if parent
+        if ecm.fork(workdir):
+            return
 
     # Write timeout to cache file
     _write_cache(script_name, CRITICAL, 'Timeout')
-    
+
     try:
         command = [fullpath]
         sys.path.append(MY_PATH)
-        
+
         env = os.environ.copy()
         env['PYTHONPATH'] = MY_PATH + ':' + env.get('PYTHONPATH', '')
-        
+
         retval, stdout, stderr = ecm.run_command(command, runas=run_as, envars=env)
         _write_cache(script_name, retval, stdout)
 
