@@ -19,9 +19,13 @@
 # Base monitor for agent please do not modify it
 
 import psutil
+import os
+import sys
 
-from os import getloadavg, getpid
+from os import getpid
 from time import time, sleep
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'plugins'))
 
 from __mplugin import MPlugin
 from __mplugin import OK, CRITICAL
@@ -144,6 +148,7 @@ class BaseMPlugin(MPlugin):
         return retval
 
     def _get_disk_io(self):
+        retval = {}
         from os.path import basename
 
         try:
@@ -161,7 +166,6 @@ class BaseMPlugin(MPlugin):
                     continue
                 res[device] = disk_io[device]
 
-            retval = {}
             retval = self.counters(self._to_data(res), 'disk_io')
         except:
             pass
@@ -286,7 +290,6 @@ class BaseMPlugin(MPlugin):
             i += 6
 
         return inode_list
-
                 
     def _get_netstat(self):
         try:
