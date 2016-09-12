@@ -39,8 +39,9 @@ class BaseMPlugin(MPlugin):
     def run(self):
         mytime = int(time())
         boottime = self._get_uptime()
-        uptime = int(mytime - boottime)
-
+        uptime = 0
+        if boottime:
+            uptime = int(mytime - boottime)
 
         data = {
             'version': VERSION,
@@ -475,10 +476,10 @@ class BaseMPlugin(MPlugin):
         try:
             from time import time
             import uptime
-
-            return int(time() - uptime.uptime())
         except:
             return
+
+        return int(time() - uptime.uptime())
 
     def _get_load(self):
         if not self.is_win():
