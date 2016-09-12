@@ -60,6 +60,7 @@ class BaseMPlugin(MPlugin):
             'process': self._get_processes(),
             'swap': self._get_swap(),
             'user': self._get_users()
+            'docker_info': self.get_docker_info()
         }
         
         if data['cpu'] and data['mem']:
@@ -504,6 +505,68 @@ class BaseMPlugin(MPlugin):
             if not name.startswith('_'):
                 retval[name] = getattr(obj, name)
 
+        return retval
+
+    def get_docker_info(self):
+        if self.is_win():
+            return []
+
+        try:
+            import requests_unixsocket
+            import json
+        except:
+            return []
+
+        base = "http+unix://%2Fvar%2Frun%2Fdocker.sock"
+        url = "/containers/json"
+
+        session = requests_unixsocket.Session()
+        try:
+            resp = session.get(base + url)
+        except:
+            return []
+
+        respj = resp.json()
+        retval = []
+
+        for container in respj:
+            container_info = {}
+            id = container['Id']
+            container_url = "/containers/%s/json" % id
+            try:
+                stat = session.get(base + container_url)
+                statj = stat.json()
+                container_info['info'] = statj
+            except:
+                pass
+            if container['Status'].startswith('Up'):
+                stat_url = "/containers/%s/stats?stream=0" % id
+                try:
+                    stat = session.get(base + stat_url)
+                    statj = stat.json()
+                    container_info['stat'] = statj
+                except:
+                    pass
+            stdout_url = "/containers/%s/logs?stdout=1" % id
+            try:
+                stat = session.get(base + stdout_url)
+                container_info['stdout'] = stat.text
+            except:
+                pass
+            stderr_url = "/containers/%s/logs?stderr=1" % id
+            try:
+                stat = session.get(base + stderr_url)
+                container_info['stderr'] = stat.test
+            except:
+                pass
+            process_url = "/containers/%s/top" % id
+            try:
+                stat = session.get(base + process_url)
+                statj = stat.json()
+                container_info['process'] = statj
+            except:
+                pass
+            retval.append(container_info)
         return retval
 
 
