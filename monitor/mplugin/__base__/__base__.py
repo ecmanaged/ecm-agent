@@ -59,7 +59,7 @@ class BaseMPlugin(MPlugin):
             'cputimes': self._get_cpu_times(),
             'process': self._get_processes(),
             'swap': self._get_swap(),
-            'user': self._get_users()
+            'user': self._get_users(),
             'docker_info': self.get_docker_info()
         }
         
