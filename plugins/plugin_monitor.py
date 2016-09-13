@@ -64,7 +64,9 @@ class ECMMonitor(ECMPlugin):
         config = None
         b64_config = kwargs.get('config', None)
 
-        thread_pool = Pool(20)
+        # Use Pool on windows systems
+        if ecm.is_win():
+            thread_pool = Pool(20)
 
         try:
             if isinstance(b64_config, str):
