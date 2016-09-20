@@ -523,44 +523,44 @@ class BaseMPlugin(MPlugin):
         session = requests_unixsocket.Session()
         try:
             resp = session.get(base + url)
+            respj = resp.json()
         except:
             return []
 
-        respj = resp.json()
         retval = []
 
         for container in respj:
             container_info = {}
             id = container['Id']
-            container_url = "/containers/%s/json" % id
             try:
+                container_url = "/containers/%s/json" % id
                 stat = session.get(base + container_url)
                 statj = stat.json()
                 container_info['info'] = statj
             except:
                 pass
             if container['Status'].startswith('Up'):
-                stat_url = "/containers/%s/stats?stream=0" % id
                 try:
+                    stat_url = "/containers/%s/stats?stream=0" % id
                     stat = session.get(base + stat_url)
                     statj = stat.json()
                     container_info['stat'] = statj
                 except:
                     pass
-            stdout_url = "/containers/%s/logs?stdout=1" % id
             try:
+                stdout_url = "/containers/%s/logs?stdout=1" % id
                 stat = session.get(base + stdout_url)
                 container_info['stdout'] = stat.text
             except:
                 pass
-            stderr_url = "/containers/%s/logs?stderr=1" % id
             try:
+                stderr_url = "/containers/%s/logs?stderr=1" % id
                 stat = session.get(base + stderr_url)
                 container_info['stderr'] = stat.test
             except:
                 pass
-            process_url = "/containers/%s/top" % id
             try:
+                process_url = "/containers/%s/top" % id
                 stat = session.get(base + process_url)
                 statj = stat.json()
                 container_info['process'] = statj
