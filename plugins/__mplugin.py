@@ -68,7 +68,7 @@ class MPlugin:
             log.basicConfig(
                 filename=join(self.path, LOG_FILE_NAME),
                 format='%(levelname)s:%(message)s',
-                level=log.DEBUG
+                level=log.INFO
             )
         
         # Read configuration
