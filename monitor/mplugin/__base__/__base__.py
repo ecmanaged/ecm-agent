@@ -143,7 +143,6 @@ class BaseMPlugin(MPlugin):
 
                 except:
                     pass
-
         except:
             pass
 
@@ -245,11 +244,10 @@ class BaseMPlugin(MPlugin):
         inode_list = []
         for part in psutil.disk_partitions(all=False):
             try:
-                data = statvfs(part.mountpoint)
+                data = os.statvfs(part.mountpoint)
                 iused = data.f_files - data.f_ffree
                 iused_p = int(iused * 100 / data.f_files)
-                inode_list.append({'Filesystem': part.device, 'Inodes': data.f_files, 'IUsed': iused,
-                                                   'IFree': data.f_ffree, 'IUse%': iused_p, 'Mounted on': part.mountpoint})
+                inode_list.append({'Filesystem': part.device, 'Inodes': data.f_files, 'IUsed': iused, 'IFree': data.f_ffree, 'IUse%': iused_p, 'Mounted on': part.mountpoint})
             except:
                 pass
 
@@ -364,7 +362,6 @@ class BaseMPlugin(MPlugin):
             for session in tmp:
                 # Count logged in users
                 retval[session.name] = retval.get(session.name, 0) + 1
-
         except:
             pass
 
