@@ -79,7 +79,7 @@ class BaseMPlugin(MPlugin):
                 if hasattr(mem, 'inactive'):
                     retval['inactive'] = self.to_gb(mem.inactive)
                 if hasattr(mem, 'buffers'):
-                    retval['buffers'] = self.to_gb(mem.buffers)
+                    retval['buffers'] = self.to_gb(mem.buffers)
                 if hasattr(mem, 'cached'):
                     retval['cached'] = self.to_gb(mem.cached)
                 if hasattr(mem, 'shared'):
