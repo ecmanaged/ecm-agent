@@ -39,8 +39,9 @@ class BaseMPlugin(MPlugin):
     def run(self):
         mytime = int(time())
         boottime = self._get_uptime()
-        uptime = int(mytime - boottime)
-
+        uptime = 0
+        if boottime:
+            uptime = int(mytime - boottime)
 
         data = {
             'version': VERSION,
@@ -58,7 +59,7 @@ class BaseMPlugin(MPlugin):
             'cputimes': self._get_cpu_times(),
             'process': self._get_processes(),
             'swap': self._get_swap(),
-            'user': self._get_users()
+            'user': self._get_users(),
             'docker_info': self.get_docker_info()
         }
         
@@ -142,7 +143,6 @@ class BaseMPlugin(MPlugin):
 
                 except:
                     pass
-
         except:
             pass
 
@@ -238,57 +238,18 @@ class BaseMPlugin(MPlugin):
         return retval
 
     def _get_inodes(self):
-        """
-        runs df -i
-        Filesystem               Inodes  IUsed   IFree IUse% Mounted on
-        /dev/mapper/fedora-root 2436448 335632 2100816   14% /
-        /dev/mapper/fedora-home 1310720  49938 1260782    4% /home
-
-        and returns output as list of dictionaries
-
-        [   {   'Filesystem': '/dev/mapper/fedora-root',
-                'IFree': '2100817',
-                'IUse%': '14%',
-                'IUsed': '335631',
-                'Inodes': '2436448',
-                'Mounted on': '/'},
-            {   'Filesystem': '/dev/mapper/fedora-home',
-                'IFree': '1260404',
-                'IUse%': '4%',
-                'IUsed': '50316',
-                'Inodes': '1310720',
-                'Mounted on': '/home'}]
-        """
         if self.is_win():
             return []
 
-        from commands import getstatusoutput
-
-        retcode, inodes = getstatusoutput('df -i')
-
-        inodes = inodes.split()
-        inode = inodes[7:]
-
-        partitions_list = []
-
-        for part in psutil.disk_partitions(all=False):
-            partitions_list.append(part.mountpoint)
-
         inode_list = []
-        i = 0
-
-        while i < len(inode):
+        for part in psutil.disk_partitions(all=False):
             try:
-                if str(inode[i + 2]) == 'bindfs':
-                    i += 6
-                    continue
-
-                if inode[i + 5] in partitions_list:
-                    inode_list.append({'Filesystem': inode[i], 'Inodes': inode[i + 1], 'IUsed': inode[i + 2],
-                                       'IFree': inode[i + 3], 'IUse%': inode[i + 4], 'Mounted on': inode[i + 5]})
-            except Exception as e:
+                data = os.statvfs(part.mountpoint)
+                iused = data.f_files - data.f_ffree
+                iused_p = int(iused * 100 / data.f_files)
+                inode_list.append({'Filesystem': part.device, 'Inodes': data.f_files, 'IUsed': iused, 'IFree': data.f_ffree, 'IUse%': iused_p, 'Mounted on': part.mountpoint})
+            except:
                 pass
-            i += 6
 
         return inode_list
                 
@@ -401,7 +362,6 @@ class BaseMPlugin(MPlugin):
             for session in tmp:
                 # Count logged in users
                 retval[session.name] = retval.get(session.name, 0) + 1
-
         except:
             pass
 
@@ -476,10 +436,10 @@ class BaseMPlugin(MPlugin):
         try:
             from time import time
             import uptime
-
-            return int(time() - uptime.uptime())
         except:
             return
+
+        return int(time() - uptime.uptime())
 
     def _get_load(self):
         if not self.is_win():
@@ -522,44 +482,44 @@ class BaseMPlugin(MPlugin):
         session = requests_unixsocket.Session()
         try:
             resp = session.get(base + url)
+            respj = resp.json()
         except:
             return []
 
-        respj = resp.json()
         retval = []
 
         for container in respj:
             container_info = {}
             id = container['Id']
-            container_url = "/containers/%s/json" % id
             try:
+                container_url = "/containers/%s/json" % id
                 stat = session.get(base + container_url)
                 statj = stat.json()
                 container_info['info'] = statj
             except:
                 pass
             if container['Status'].startswith('Up'):
-                stat_url = "/containers/%s/stats?stream=0" % id
                 try:
+                    stat_url = "/containers/%s/stats?stream=0" % id
                     stat = session.get(base + stat_url)
                     statj = stat.json()
                     container_info['stat'] = statj
                 except:
                     pass
-            stdout_url = "/containers/%s/logs?stdout=1" % id
             try:
+                stdout_url = "/containers/%s/logs?stdout=1" % id
                 stat = session.get(base + stdout_url)
                 container_info['stdout'] = stat.text
             except:
                 pass
-            stderr_url = "/containers/%s/logs?stderr=1" % id
             try:
+                stderr_url = "/containers/%s/logs?stderr=1" % id
                 stat = session.get(base + stderr_url)
                 container_info['stderr'] = stat.test
             except:
                 pass
-            process_url = "/containers/%s/top" % id
             try:
+                process_url = "/containers/%s/top" % id
                 stat = session.get(base + process_url)
                 statj = stat.json()
                 container_info['process'] = statj

@@ -162,7 +162,7 @@ def download_file(url, filename=None, user=None, passwd=None):
 
     return filename
 
-def get_url(url, timeout=10):
+def get_url(url, timeout=30):
     socket.setdefaulttimeout(timeout)
     urlopen = urllib.urlopen(url)
 
