@@ -149,7 +149,7 @@ class ECMMonitor(ECMPlugin):
                     retval.append(self._parse_script_name(script) + GLUE + str(interval) + GLUE + from_cache)
 
                     # Execute script if cache wont be valid on next command_get execution
-                    if not self._cache_read(script, interval - COMMAND_INTERVAL - CACHE_SOFT_TIME):
+                    if not self._cache_valid(script, interval - COMMAND_INTERVAL - CACHE_SOFT_TIME):
                         to_execute.append({'script': script, 'runas': runas})
 
         for data in to_execute:
@@ -284,25 +284,26 @@ class ECMMonitor(ECMPlugin):
     def _cache_read(command, max_old):
         cache_file = os.path.join(CACHE_PATH, os.path.basename(command) + '.' + CACHE_FILE_EXTENSION)
         content = ''
+        # check updated cache
+        if os.path.isfile(cache_file):
+            # Return cache content
+            f = open(cache_file, 'r')
+            for line in f.readlines():
+                content += line
+            f.close()
+        return content
 
+    @staticmethod
+    def _cache_valid(command, max_old):
+        cache_file = os.path.join(CACHE_PATH, os.path.basename(command) + '.' + CACHE_FILE_EXTENSION)
         # check updated cache
         if os.path.isfile(cache_file):
             modified = os.path.getmtime(cache_file)
-
             how_old = int(time() - modified)
-
-            if (how_old > max_old):
-                # Invalid cache file
-                os.remove(cache_file)
-
-            else:
-                # Return cache content
-                f = open(cache_file, 'r')
-                for line in f.readlines():
-                    content += line
-                f.close()
-
-        return content
+            if not (how_old > max_old):
+                # Valid cache file
+                return True
+        return False
 
     @staticmethod
     def _cache_clean():
