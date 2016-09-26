@@ -13,26 +13,11 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
-_FINAL_OUTPUT_STRING = '[__response__]'
-
-FLUSH_MIN_LENGTH = 5
-FLUSH_TIME = 5
-
-PYTHON_LINUX = '/usr/bin/python'
-PYTHON_WINDOWS = '../python27/pythonw.exe'
-PLUGIN_PATH = 'plugins'
-
-TIMEOUT = 300
-
-REQUIRES_SUDO = ['plugin_pip.py', 'plugin_service.py', 'plugin_update.py', 'plugin_monitor.py', 'plugin_pip_extra.py', 'plugin_proc.py']
-
 # System imports
 import os
 import sys
 import base64
 import simplejson as json
-
 from time import time
 
 # Twisted imports
@@ -43,21 +28,30 @@ from twisted.internet.error import ProcessTerminated, ProcessDone
 
 import core.logging as log
 
+_FINAL_OUTPUT_STRING = '[__response__]'
+FLUSH_MIN_LENGTH = 5
+FLUSH_TIME = 5
+PLUGIN_PATH = 'plugins'
+TIMEOUT = 300
+REQUIRES_SUDO = ['plugin_pip.py', 'plugin_service.py', 'plugin_update.py', 'plugin_monitor.py', 'plugin_pip_extra.py', 'plugin_proc.py']
+
+
 class CommandRunner():
-    def __init__(self):
-        self._python_runner = PYTHON_LINUX
+    def __init__(self, config):
+        self._python_runner = sys.executable
+        self.command_paths = [
+                os.path.join(os.path.dirname(__file__), '..', 'plugins')]  # Built-in commands (absolute path)
+
         if sys.platform.startswith("win32"):
-            self._python_runner = PYTHON_WINDOWS
-
+            tools_path = config.get('tools_path_windows')
+        else:
+            tools_path = config.get('tools_path_linux')
+        self.timeout = int(config['timeout'])
         self.timeout_dc = None
-
         self.env = os.environ
-        self.env['DEBIAN_FRONTEND'] = 'noninteractive'
-        self.env['LANG'] = 'en_US.utf8'
-        self.env['PWD'] = '/root/'
-
+        if tools_path:
+            self.env["PATH"] += os.pathsep + tools_path
         log.debug("ENV: %s" % self.env)
-
         self._commands = {}
         reactor.callWhenRunning(self._load_commands)
 
@@ -68,12 +62,10 @@ class CommandRunner():
                 for filename in os.listdir(path):
                     if not filename.startswith('plugin_'):
                         continue
-
                     # Load only python plugins
                     if os.path.splitext(filename)[1] != '.py':
                         continue
-
-                    log.debug("  Queuing plugin %s for process." % filename)
+                    log.debug("Queuing plugin %s for process." % filename)
                     full_filename = os.path.join(path, filename)
                     d = self._run_process(full_filename, '', {})
                     d.addCallback(self._add_command, filename=full_filename)
@@ -82,22 +74,18 @@ class CommandRunner():
 
     def _add_command(self, data, **kwargs):
         (exit_code, stdout, stderr, timeout_called) = data
-
         if exit_code == 0:
             for line in stdout.splitlines():
                 self._commands[line.split()[0]] = kwargs['filename']
                 log.debug("Command %s added" % line.split()[0])
-
         else:
             log.error('Error adding commands from %s: %s' % (kwargs['filename'], data))
-
         del exit_code, stdout, stderr, timeout_called, data
 
     def run_command(self, message, flush_callback=None):
         if self._commands.get(message.command_name):
             log.debug("executing %s with args: %s" % (message.command_name, message.params))
             return self._run_process(self._commands[message.command_name], message.command_name, message.params, flush_callback, message)
-
         return
 
     def _run_process(self, filename, command_name, params, flush_callback=None, message=None):
@@ -105,28 +93,21 @@ class CommandRunner():
         if sys.platform.startswith("win32") or os.path.split(filename)[1] not in REQUIRES_SUDO:
             command = self._python_runner
             args = [command, '-u', '-W ignore::DeprecationWarning', filename, command_name]
-
         else:
             command = 'sudo'
             args = [command, self._python_runner, '-u', '-W ignore::DeprecationWarning', filename, command_name]
 
-        # :TODO Set timeout from command
-        # log.info('in the runner.py _run_process %s %s' %(params,type(params)))
         timeout = int(params.get('timeout', TIMEOUT))
-
         if command_name:
             log.info("Running %s from %s (timeout: %i)" % (command_name, filename, timeout))
-
         else:
             log.info("[INIT] Loading commands from %s" % filename)
 
         crp = CommandRunnerProcess(timeout, params, flush_callback, message)
         d = crp.getDeferredResult()
         reactor.spawnProcess(crp, command, args, env=self.env)
-
         del timeout, filename, command_name, params
         del flush_callback, message, args
-
         return d
 
 
@@ -137,14 +118,12 @@ class CommandRunnerProcess(ProcessProtocol):
         self.deferreds = []
         self.timeout = timeout
         self.params = params
-
         self.last_send_data_size = 0
         self.last_send_data_time = time()
         self.flush_callback = flush_callback
         self.flush_later = None
         self.flush_later_forced = None
         self.message = message
-
         del timeout
         del params
         del flush_callback
@@ -157,20 +136,17 @@ class CommandRunnerProcess(ProcessProtocol):
 
         # Pass the call arguments via stdin in json format
         self.transport.write(base64.b64encode(json.dumps(self.params)))
-
         # And close stdin to signal we are done writing args.
         self.transport.closeStdin()
 
     def outReceived(self, data):
         log.debug("Out made: %s" % data)
-
         if _FINAL_OUTPUT_STRING in data:
             for line in data.split("\n"):
                 if _FINAL_OUTPUT_STRING in line:
                     # Skip this line and stop flush callback
                     self.stdout = self.stderr = ''
                     self.flush_callback = None
-
                 else:
                     self.stdout += line
         else:
@@ -189,7 +165,6 @@ class CommandRunnerProcess(ProcessProtocol):
             return
 
         total_out = len(self.stdout) + len(self.stderr)
-
         if total_out - self.last_send_data_size > FLUSH_MIN_LENGTH:
             curr_time = time()
             if self.last_send_data_time + FLUSH_TIME < curr_time:
@@ -200,17 +175,14 @@ class CommandRunnerProcess(ProcessProtocol):
                 self._cancel_flush(self.flush_later_forced)
                 self.flush_later = reactor.callLater(1, self.flush_callback,
                                                      (None, self.stdout, self.stderr, 0, total_out), self.message)
-
         if not self.flush_later:
             self._cancel_flush(self.flush_later_forced)
             self.flush_later_forced = reactor.callLater(FLUSH_TIME, self.flush_callback,
                                                         (None, self.stdout, self.stderr, 0, total_out), self.message)
-
         del total_out
 
     def processEnded(self, status):
         log.debug("Process ended")
-        self.flush_callback = None
 
         # Cancel flush callbacks
         self.flush_callback = None
@@ -221,10 +193,8 @@ class CommandRunnerProcess(ProcessProtocol):
         t = type(status.value)
         if t is ProcessDone:
             exit_code = 0
-
         elif t is ProcessTerminated:
             exit_code = status.value.exitCode
-
         else:
             raise status
 
@@ -238,7 +208,6 @@ class CommandRunnerProcess(ProcessProtocol):
     def getDeferredResult(self):
         d = Deferred()
         self.deferreds.append(d)
-
         return d
 
     @staticmethod
@@ -246,6 +215,5 @@ class CommandRunnerProcess(ProcessProtocol):
         if flush_reactor:
             try:
                 flush_reactor.cancel()
-
             except:
                 pass
