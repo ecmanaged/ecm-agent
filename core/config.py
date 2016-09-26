@@ -100,7 +100,7 @@ class ECMConfig(ConfigObj):
         returnValue(True)
 
     @inlineCallbacks
-    def _register(self, server_uuid, account_id):
+    def _register(self, unique_uuid, account_id):
 
         headers = {
             'Content-Type': 'application/json; charset=utf-8'
@@ -111,8 +111,8 @@ class ECMConfig(ConfigObj):
 
         result = None
 
-        registration_url = 'http://localhost:8000/account/{0}/agentregister?server_uuid={1},ip_address={2},' \
-                                 'host_name={3},groups={4}'.format(account_id, server_uuid, ip_address, host_name,
+        registration_url = 'http://localhost:8000/account/{0}/agentregister?unique_uuid={1},ip_address={2},' \
+                                 'host_name={3},groups={4}'.format(account_id, unique_uuid, ip_address, host_name,
                                                                    groups)
 
         try:
@@ -124,7 +124,7 @@ class ECMConfig(ConfigObj):
         # Try urllib if doesn't work
         if not result:
             try:
-                req = urllib2.Request(registration_url, json.dumps(data), headers)
+                req = urllib2.Request(registration_url, headers)
                 result = urllib2.urlopen(req).read()
 
             except Exception as e:
