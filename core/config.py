@@ -19,7 +19,6 @@ import urllib2
 import simplejson as json
 
 from time import sleep
-from platform import node
 from configobj import ConfigObj
 
 # Twisted imports
@@ -36,17 +35,12 @@ URL_METADATA_INSTANCE_ID = {
     'do': 'http://169.254.169.254/metadata/v1/id'
 }
 
-# ECMANAGED_REGISTRY_URL = 'http://my-devel1.ecmanaged.com/agent/meta-data/v3/id'
-# ECMANAGED_REGISTRY_URL = 'http://my-devel1.ecmanaged.com/api/v1/agent/auth'
-# http://127.0.0.1:5000/api/v1/agent/register
-
 
 class ECMConfig(ConfigObj):
     """
     A simple wrapper for ConfigObj that will check the unique_id and try to
     reconfigure if it has changed before launching the agent.
     """
-
     def __init__(self, filename):
         ConfigObj.__init__(self, filename)
 
