@@ -42,15 +42,12 @@ class CommandRunner():
         self.command_paths = [
                 os.path.join(os.path.dirname(__file__), '..', 'plugins')]  # Built-in commands (absolute path)
 
-        if sys.platform.startswith("win32"):
-            tools_path = config.get('tools_path_windows')
-        else:
-            tools_path = config.get('tools_path_linux')
-        self.timeout = int(config['timeout'])
+        log.info('config: %s' %config)
+
+        self.timeout = int(config['Plugins']['timeout'])
         self.timeout_dc = None
         self.env = os.environ
-        if tools_path:
-            self.env["PATH"] += os.pathsep + tools_path
+
         log.debug("ENV: %s" % self.env)
         self._commands = {}
         reactor.callWhenRunning(self._load_commands)
