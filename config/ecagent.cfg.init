@@ -4,6 +4,9 @@ account =
 # Groups where this agent belongs to
 [Groups]
 groups =
+
+[Plugins]
+timeout = 300
 #Logging options (critical, error, warning, info, debug)
 [Log]
 log_to_file = True
