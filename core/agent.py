@@ -96,7 +96,7 @@ class ECMAgent():
 
         log.info("Loading Commands...")
 
-        self.command_runner = CommandRunner()
+        self.command_runner = CommandRunner(self.config)
 
         log.info("Authenticating...")
         self._auth()
