@@ -19,6 +19,8 @@ from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
 
 import base64
+import simplejson as json
+
 
 # Local
 import core.exceptions as exceptions
@@ -76,22 +78,22 @@ class ECMAgent():
         self.password = config['Auth']['password']
 
         self.tasks = {}
-        system_health = {'__base__':
+        system_health = {"__base__":
                              {
-                                 'interval': 60,
-                                 'config': {},
-                                 'name': 'SYSTEM HEALTH',
-                                 'id': '__base__'
+                                 "interval": 60,
+                                 "config": {},
+                                 "name": "SYSTEM HEALTH",
+                                 "id": "__base__"
                               }
                          }
 
-        self.tasks['system_health'] = {
-            'data': u'',
-            'command': 'monitor.get',
-            'timeout': '30',
-            'params': base64.b64encode(str(system_health)),
-            'type': 'task',
-            'id': 'system_health'
+        self.tasks["system_health"] = {
+            "data": u"",
+            "command": "monitor_get",
+            "timeout": "30",
+            "params": base64.b64encode(json.dumps(system_health)),
+            "type": "task",
+            "id": "system_health"
         }
 
         log.info("Loading Commands...")
