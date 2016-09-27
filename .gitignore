@@ -10,3 +10,4 @@ monitor/mplugin/__base__/mplugin.log
 monitor/mplugin/plg-*
 config/ecagent.cfg
 twistd.pid
+log/

@@ -2,7 +2,7 @@
 
 NAME=${NAME:-ecagentd}
 TWISTD="$(which twistd)"
-HOME=${DIR:-/opt/ecmanaged/ecagent}
+HOME=${DIR:-$(pwd)}
 PID_FILE=${PID_FILE:-"$HOME/twistd.pid"}
 TAC=${TAC:-"$HOME/$NAME.tac"}
 RETVAL=0

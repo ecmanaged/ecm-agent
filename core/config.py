@@ -60,31 +60,25 @@ class ECMConfig(ConfigObj):
             log.error('Please configure agent with ./configure --account=XXXXX')
             raise Exception('Please configure agent with ./configure --account=XXXXX')
 
-        server_uuid = self._get_server_uuid()
-
-        if not server_uuid:
-            log.error('Could not obtain server_id. Please set up Auth manually')
+        unique_uuid = self._get_unique_uuid()
+        if not unique_uuid:
+            log.error('Could not obtain unique_uuid. Please set up Auth manually')
             raise Exception('Could not obtain server_id. Please set up Auth manually')
 
         # Check all data valid for v3
-        if uuid and not '@' in uuid and account_id and self.is_unique_id_same(server_uuid):
+        if uuid and not '@' in uuid and account_id and self.is_unique_id_same(unique_uuid):
             log.debug('unique_id has not changed. Skip uuid check')
-
         else:
             # Try to get uuid (one hour and a half loop: 360x15)
             json_data = None
-
-            for i in range(360):
+            for i in range(5):
                 log.info("Trying to get UUID via URL (meta-data v2)")
-                json_data = yield self._register(server_uuid, account_id)
+                json_data = yield self._register(unique_uuid, account_id)
                 if json_data:
                     break
-
-                sleep(15)
-
+                sleep(3)
             # Decode metadata
             meta_data = self.parse_meta_data(json_data)
-
             if not meta_data:
                 log.error('Could not obtain UUID. Please set up Auth manually')
                 raise Exception('Could not obtain UUID. Please set up Auth manually')
@@ -93,7 +87,7 @@ class ECMConfig(ConfigObj):
             if not account_id and meta_data.get('account'):
                 self['Auth']['account'] = meta_data.get('account')
 
-            self['Auth']['server_id'] = server_uuid
+            self['Auth']['unique_uuid'] = unique_uuid
             self['Auth']['uuid'] = meta_data['uuid']
             self['Auth']['password'] = meta_data['password']
             self.write()
@@ -101,22 +95,13 @@ class ECMConfig(ConfigObj):
 
     @inlineCallbacks
     def _register(self, unique_uuid, account_id):
-
-        headers = {
-            'Content-Type': 'application/json; charset=utf-8'
-        }
-        ip_address= self._get_ip()
-        host_name= self._get_hostname()
         groups= self._get_groups()
-
         result = None
-
-        registration_url = 'http://localhost:8000/account/{0}/agentregister?unique_uuid={1},ip_address={2},' \
-                                 'host_name={3},groups={4}'.format(account_id, unique_uuid, ip_address, host_name,
-                                                                   groups)
+        registration_url = 'http://localhost:8000/account/{0}/agentregister?unique_uuid={1},groups={2}'\
+            .format(account_id, unique_uuid, groups)
 
         try:
-            result = yield getPage(registration_url, method='GET', headers=headers)
+            result = yield getPage(registration_url, method='GET')
         except Exception as e:
             log.debug("getPage failed: %s" %e)
             pass
@@ -124,9 +109,9 @@ class ECMConfig(ConfigObj):
         # Try urllib if doesn't work
         if not result:
             try:
-                req = urllib2.Request(registration_url, headers)
+                log.info('trying urllib2')
+                req = urllib2.Request(registration_url)
                 result = urllib2.urlopen(req).read()
-
             except Exception as e:
                 log.debug("urllib2 failed: %s" %e)
                 pass
@@ -168,24 +153,13 @@ class ECMConfig(ConfigObj):
         return meta_data
 
     @staticmethod
-    def _get_ip():
-        """Create dummy socket to get address"""
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(('app.ecmanaged.com', 0))
-        return s.getsockname()[0]
-
-    @staticmethod
-    def _get_hostname():
-        return node()
-
-    @staticmethod
-    def _get_server_uuid():
+    def _get_unique_uuid():
         """
         Try to get a unique identified, Some providers may change unique_id on stop/start
         Use a low timeout to speed up agent start when no meta-data url
         """
         log.info("Trying to get unique_id...")
-        server_uuid = None
+        unique_uuid = None
 
         try:
             # Get info from meta-data
@@ -206,20 +180,17 @@ class ECMConfig(ConfigObj):
                     continue
 
                 if instance_id:
-                    server_uuid = metadata_type + '::' + instance_id
+                    unique_uuid = metadata_type + '::' + instance_id
                     break
-
         except:
             pass
-
         finally:
             # Set default timeout again
             socket.setdefaulttimeout(10)
 
-        if not server_uuid:
+        if not unique_uuid:
             # Use network mac address
             from uuid import getnode
             from re import findall
-            server_uuid = 'mac::' + ':'.join(findall('..', '%012x' % getnode()))
-
-        return server_uuid
+            unique_uuid = 'mac::' + ':'.join(findall('..', '%012x' % getnode()))
+        return unique_uuid
