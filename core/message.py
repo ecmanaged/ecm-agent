@@ -13,18 +13,17 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
-AGENT_VERSION_CORE = 4
-AGENT_VERSION_PROTOCOL = 1
-
-DEFAULT_TIMEOUT = 300
-MESSAGE_TYPE_RESPONSE = 'response'
-
 import base64
 import simplejson as json
 import time
-
 import core.logging as log
+
+AGENT_VERSION_CORE = 4
+AGENT_VERSION_PROTOCOL = 1
+DEFAULT_TIMEOUT = 300
+MESSAGE_TYPE_RESPONSE = 'response'
+
+
 
 class ECMMessage(object):
     def __init__(self, task):
