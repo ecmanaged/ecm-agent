@@ -14,13 +14,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+
 # Twisted imports
 from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
-
 import base64
 import simplejson as json
-
 
 # Local
 import core.exceptions as exceptions
@@ -30,20 +29,14 @@ from core.runner import CommandRunner
 from core.message import ECMMessage
 from core.functions import mem_clean, read_url
 
+
 _CHECK_RAM_MAX_RSS_MB = 125
 _CHECK_RAM_INTERVAL = 300
 _MAIN_LOOP_INTERVAL = 60
-
 _E_UNKNOWN_COMMAND = 253
 _E_INVALID_MESSAGE = 252
-
 KEEPALIVED_TIMEOUT = 180
 
-ECMANAGED_URL_TASK = 'http://my-devel1.ecmanaged.com/agent/meta-data/task'
-ECMANAGED_URL_RESULT = 'http://my-devel1.ecmanaged.com/agent/meta-data/result'
-
-
-# url = 'http://localhost:5000/agent/' + self.uuid + '/tasks'
 
 class ECMInit:
     def __init__(self, config):
@@ -76,6 +69,9 @@ class ECMAgent():
         self.config = config
         self.uuid = config['Auth']['uuid']
         self.password = config['Auth']['password']
+
+        self.ECMANAGED_URL_RESULT = 'http://localhost:8000/agent/{0}/monitor'.format(self.uuid)
+        self.ECMANAGED_URL_AUTH = 'localhost:8000/agent/{0}/authentication'.format(self.uuid)
 
         self.tasks = {}
         system_health = {"__base__":
@@ -141,20 +137,14 @@ class ECMAgent():
                 log.error('Error in main loop while generating message for task (%s): %s' % (task['command'], str(e)))
 
     def _write_result(self, result):
-        headers = {
-            'Content-Type': 'application/json',
-            'Authentication': 'ECM %s' % self.token,
-        }
-
         result['groups'] = self.config['Groups']['groups']
 
-        url = ECMANAGED_URL_RESULT + '/' + self.uuid + '/result'
-
-        log.debug('_write_result::start: %s' % url)
-        log.debug('_write_result::data: %s' % result)
+        log.info('_write_result::start: %s' % self.ECMANAGED_URL_RESULT)
+        log.info('_write_result::data: %s' % result)
 
         try:
-            new_tasks = read_url(url, result, headers)
+            log.info
+            new_tasks = read_url(self.ECMANAGED_URL_RESULT, result)
             for new_task in new_tasks:
                 self.tasks[new_task['id']] = new_task
 
