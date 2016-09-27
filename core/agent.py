@@ -14,12 +14,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-
 # Twisted imports
 from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
 import base64
 import simplejson as json
+import socket
+import urllib2
 
 # Local
 import core.exceptions as exceptions
@@ -36,6 +37,7 @@ _MAIN_LOOP_INTERVAL = 60
 _E_UNKNOWN_COMMAND = 253
 _E_INVALID_MESSAGE = 252
 KEEPALIVED_TIMEOUT = 180
+SOCKET_TIMEOUT = 30
 
 
 class ECMInit:
@@ -70,8 +72,10 @@ class ECMAgent():
         self.uuid = config['Auth']['uuid']
         self.password = config['Auth']['password']
 
+        self.token = None
+
         self.ECMANAGED_URL_RESULT = 'http://localhost:8000/agent/{0}/monitor'.format(self.uuid)
-        self.ECMANAGED_URL_AUTH = 'localhost:8000/agent/{0}/authentication'.format(self.uuid)
+        self.ECMANAGED_URL_AUTH = 'http://localhost:8000/agent/{0}/authentication?password={1}'.format(self.uuid, self.password)
 
         self.tasks = {}
         system_health = {"__base__":
@@ -103,7 +107,20 @@ class ECMAgent():
         reactor.callLater(3, self._run)
 
     def _auth(self):
-        pass
+        try:
+            log.info('auth_url: %s' % self.ECMANAGED_URL_AUTH)
+            socket.setdefaulttimeout(SOCKET_TIMEOUT)
+            req = urllib2.Request(self.ECMANAGED_URL_AUTH)
+            urlopen = urllib2.urlopen(req)
+            result = urlopen.read()
+            result_dict = json.loads(result)
+            self.token = result_dict['token']
+            log.info('token: %s' %str(self.token))
+        except:
+            log.info('auth failed')
+        finally:
+            # Set default timeout again
+            socket.setdefaulttimeout(10)
 
     def _run(self):
         log.info("Setting up Memory checker")
@@ -119,7 +136,6 @@ class ECMAgent():
         send periodic request to the backend
         :return:
         """
-
         if not self.tasks:
             return
 
@@ -139,18 +155,15 @@ class ECMAgent():
     def _write_result(self, result):
         result['groups'] = self.config['Groups']['groups']
 
-        log.info('_write_result::start: %s' % self.ECMANAGED_URL_RESULT)
-        log.info('_write_result::data: %s' % result)
+        log.debug('_write_result::start: %s' % self.ECMANAGED_URL_RESULT)
+        log.debug('_write_result::data: %s' % result)
 
         try:
-            log.info
             new_tasks = read_url(self.ECMANAGED_URL_RESULT, result)
             for new_task in new_tasks:
                 self.tasks[new_task['id']] = new_task
-
         except exceptions.ECMInvalidAuth:
             self._auth()
-
         except:
             reactor.disconnectAll()
 
