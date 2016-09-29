@@ -153,7 +153,7 @@ class ECMAgent():
     def _write_result(self, result):
         result['groups'] = self.config['Groups']['groups']
         self.ECMANAGED_URL_RESULT = 'http://localhost:8000/agent/{0}/monitor/?token={1}'.format(self.uuid, self.token)
-        log.debug('_write_result::start: %s' % self.ECMANAGED_URL_RESULT)
+        log.info('_write_result::start: %s' % self.ECMANAGED_URL_RESULT)
         log.debug('_write_result::data: %s' % result)
 
         try:
@@ -163,8 +163,11 @@ class ECMAgent():
             result_dict = json.loads(result)
             log.debug('api response: %s' %str(result_dict))
             self.token = result_dict['token']
-        except:
-            log.debug('exception while sending result')
+        except urllib2.HTTPError:
+            log.info('exception HTTPERROR while sending result')
+            self._auth()
+        except urllib2.URLError:
+            log.info('exception URLERROR while sending result')
             reactor.disconnectAll()
 
     def _run_task(self, message):
