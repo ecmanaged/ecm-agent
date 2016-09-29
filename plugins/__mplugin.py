@@ -140,7 +140,7 @@ class MPlugin:
         
         sys.exit(state)
 
-    def install(self, id, config, script):
+    def install(self, id, config, script, extension):
         if not id or not config or not script:
             log.error("install: Invalid information received")
             return False
@@ -155,7 +155,8 @@ class MPlugin:
         self.write_config(config)
 
         # Write script
-        script_file = join(plugin_path, id)
+        script_file_name = id + extension
+        script_file = join(plugin_path, script_file_name)
         self._file_write(script_file, script)
 
         chmod(script_file, 0755)

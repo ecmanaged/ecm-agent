@@ -19,9 +19,6 @@ RUN_AS_ROOT = False
 import os
 import sys
 
-from multiprocessing import Process
-from multiprocessing import Pool
-
 import simplejson as json
 from base64 import b64decode
 from time import time
@@ -63,8 +60,6 @@ class ECMMonitor(ECMPlugin):
 
         config = None
         b64_config = kwargs.get('config', None)
-
-        thread_pool = Pool(20)
 
         try:
             if isinstance(b64_config, str):
@@ -153,12 +148,8 @@ class ECMMonitor(ECMPlugin):
                         to_execute.append({'script': script, 'runas': runas})
 
         for data in to_execute:
-            if ecm.is_win():
-                p = Process(target=_run_background_file, args=(data['script'], data['runas'],))
-                p.start()
-                p.join()
-            else:
-                _run_background_file(data['script'], data['runas'])
+            _run_background_file(data['script'], data['runas'])
+
         return retval
 
     def cmd_monitor_plugin_install(self, *argv, **kwargs):
@@ -185,11 +176,10 @@ class ECMMonitor(ECMPlugin):
             raise Exception("Invalid data received")
 
         id = plugin.get('id')
+        extension = plugin.get('extension', '.py')
         runas = plugin.get('runas')
-
         arg_config = plugin.get('config')
         arg_script_b64 = plugin.get('script')
-
         arg_requirements = plugin.get('requirements', None)
 
         if arg_requirements:
@@ -235,7 +225,7 @@ class ECMMonitor(ECMPlugin):
 
         if id and config and script:
             mplugin = MPlugin(MPLUGIN_PATH)
-            if mplugin.install(id, config, script):
+            if mplugin.install(id, config, script, extension):
                 # Installation ok, run it
                 script_file = os.path.abspath(os.path.join(MPLUGIN_PATH, id, id))
                 _run_background_file(script_file, runas)
@@ -313,7 +303,6 @@ class ECMMonitor(ECMPlugin):
             if modified < (time() - CACHE_FILE_EXPIRES):
                 os.remove(cachefile)
 
-
 def _write_cache(script, retval, std_out):
     # Write to cache file
     cache_file = os.path.abspath(
@@ -340,10 +329,11 @@ def _run_background_file(script, run_as=None):
 
     try:
         command = [fullpath]
+        if script_name.split('.') == '.py':
+            command = [sys.executable, fullpath]
+            env = os.environ.copy()
+            env['PYTHONPATH'] = MY_PATH + ':' + env.get('PYTHONPATH', '')
         sys.path.append(MY_PATH)
-
-        env = os.environ.copy()
-        env['PYTHONPATH'] = MY_PATH + ':' + env.get('PYTHONPATH', '')
 
         retval, stdout, stderr = ecm.run_command(command, runas=run_as, envars=env)
         _write_cache(script_name, retval, stdout)

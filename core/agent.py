@@ -153,7 +153,7 @@ class ECMAgent():
     def _write_result(self, result):
         result['groups'] = self.config['Groups']['groups']
         self.ECMANAGED_URL_RESULT = 'http://localhost:8000/agent/{0}/monitor/?token={1}'.format(self.uuid, self.token)
-        log.info('_write_result::start: %s' % self.ECMANAGED_URL_RESULT)
+        log.debug('_write_result::start: %s' % self.ECMANAGED_URL_RESULT)
         log.debug('_write_result::data: %s' % result)
 
         try:
