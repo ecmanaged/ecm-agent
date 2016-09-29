@@ -42,7 +42,7 @@ class CommandRunner():
         self.command_paths = [
                 os.path.join(os.path.dirname(__file__), '..', 'plugins')]  # Built-in commands (absolute path)
 
-        log.info('config: %s' %config)
+        log.debug('config: %s' %config)
 
         self.timeout = int(config['Plugins']['timeout'])
         self.timeout_dc = None

@@ -71,10 +71,8 @@ class ECMAgent():
         self.config = config
         self.uuid = config['Auth']['uuid']
         self.password = config['Auth']['password']
+        self.token = config['Auth']['token']
 
-        self.token = None
-
-        self.ECMANAGED_URL_RESULT = 'http://localhost:8000/agent/{0}/monitor'.format(self.uuid)
         self.ECMANAGED_URL_AUTH = 'http://localhost:8000/agent/{0}/authentication?password={1}'.format(self.uuid, self.password)
 
         self.tasks = {}
@@ -100,24 +98,24 @@ class ECMAgent():
 
         self.command_runner = CommandRunner(self.config)
 
-        log.info("Authenticating...")
-        self._auth()
-
+        # log.info("Authenticating...")
+        # reactor.callLater(5, self._auth)
         # Give time to load commands
-        reactor.callLater(3, self._run)
+        reactor.callLater(10, self._run)
 
     def _auth(self):
         try:
-            log.info('auth_url: %s' % self.ECMANAGED_URL_AUTH)
+            log.debug('auth_url: %s' % self.ECMANAGED_URL_AUTH)
             socket.setdefaulttimeout(SOCKET_TIMEOUT)
             req = urllib2.Request(self.ECMANAGED_URL_AUTH)
             urlopen = urllib2.urlopen(req)
             result = urlopen.read()
             result_dict = json.loads(result)
             self.token = result_dict['token']
-            log.info('token: %s' %str(self.token))
-        except:
-            log.info('auth failed')
+            log.debug('token: %s' %str(self.token))
+        except Exception as e:
+            log.debug('exception: %s'%str(e))
+            log.debug('auth failed')
         finally:
             # Set default timeout again
             socket.setdefaulttimeout(10)
@@ -139,7 +137,7 @@ class ECMAgent():
         if not self.tasks:
             return
 
-        log.info('tasks: %s' % self.tasks)
+        log.debug('tasks: %s' % self.tasks)
 
         for item in self.tasks.keys():
             try:
@@ -154,17 +152,19 @@ class ECMAgent():
 
     def _write_result(self, result):
         result['groups'] = self.config['Groups']['groups']
-
+        self.ECMANAGED_URL_RESULT = 'http://localhost:8000/agent/{0}/monitor/?token={1}'.format(self.uuid, self.token)
         log.debug('_write_result::start: %s' % self.ECMANAGED_URL_RESULT)
         log.debug('_write_result::data: %s' % result)
 
         try:
-            new_tasks = read_url(self.ECMANAGED_URL_RESULT, result)
-            for new_task in new_tasks:
-                self.tasks[new_task['id']] = new_task
-        except exceptions.ECMInvalidAuth:
-            self._auth()
+            req = urllib2.Request(self.ECMANAGED_URL_RESULT, json.dumps(result))
+            urlopen = urllib2.urlopen(req)
+            result = urlopen.read()
+            result_dict = json.loads(result)
+            log.debug('api response: %s' %str(result_dict))
+            self.token = result_dict['token']
         except:
+            log.debug('exception while sending result')
             reactor.disconnectAll()
 
     def _run_task(self, message):

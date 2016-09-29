@@ -66,7 +66,7 @@ class ECMConfig(ConfigObj):
             # Try to get uuid (one hour and a half loop: 360x15)
             json_data = None
             for i in range(5):
-                log.info("Trying to get UUID via URL (meta-data v2)")
+                log.info("Trying to get UUID via URL (meta-data v4)")
                 json_data = yield self._register(unique_uuid, account_id)
                 if json_data:
                     break
@@ -82,8 +82,10 @@ class ECMConfig(ConfigObj):
                 self['Auth']['account'] = meta_data.get('account')
 
             self['Auth']['unique_uuid'] = unique_uuid
+            log.debug('metadata from api in config: %s' %str(meta_data))
             self['Auth']['uuid'] = meta_data['uuid']
             self['Auth']['password'] = meta_data['password']
+            self['Auth']['token'] = meta_data['token']
             self.write()
         returnValue(True)
 
