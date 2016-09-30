@@ -84,7 +84,6 @@ class ECMConfig(ConfigObj):
             self['Auth']['unique_uuid'] = unique_uuid
             log.debug('metadata from api in config: %s' %str(meta_data))
             self['Auth']['uuid'] = meta_data['uuid']
-            self['Auth']['password'] = meta_data['password']
             self['Auth']['token'] = meta_data['token']
             self.write()
         returnValue(True)

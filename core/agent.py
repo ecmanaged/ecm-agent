@@ -70,10 +70,9 @@ class ECMAgent():
         """
         self.config = config
         self.uuid = config['Auth']['uuid']
-        self.password = config['Auth']['password']
         self.token = config['Auth']['token']
 
-        self.ECMANAGED_URL_AUTH = 'http://localhost:8000/agent/{0}/authentication?password={1}'.format(self.uuid, self.password)
+        self.ECMANAGED_URL_AUTH = 'http://localhost:8000/agent/{0}/authentication?token={1}'.format(self.uuid, self.token)
 
         self.tasks = {}
         system_health = {"__base__":
@@ -162,10 +161,8 @@ class ECMAgent():
             result = urlopen.read()
             result_dict = json.loads(result)
             log.debug('api response: %s' %str(result_dict))
-            self.token = result_dict['token']
         except urllib2.HTTPError:
             log.info('exception HTTPERROR while sending result')
-            self._auth()
         except urllib2.URLError:
             log.info('exception URLERROR while sending result')
             reactor.disconnectAll()

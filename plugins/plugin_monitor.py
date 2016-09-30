@@ -329,12 +329,12 @@ def _run_background_file(script, run_as=None):
 
     try:
         command = [fullpath]
+        print  'hi'
         if script_name.split('.') == '.py':
             command = [sys.executable, fullpath]
-            env = os.environ.copy()
-            env['PYTHONPATH'] = MY_PATH + ':' + env.get('PYTHONPATH', '')
         sys.path.append(MY_PATH)
-
+        env = os.environ.copy()
+        env['PYTHONPATH'] = MY_PATH + ':' + env.get('PYTHONPATH', '')
         retval, stdout, stderr = ecm.run_command(command, runas=run_as, envars=env)
         _write_cache(script_name, retval, stdout)
 
