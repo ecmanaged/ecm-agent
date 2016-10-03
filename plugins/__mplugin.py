@@ -36,7 +36,6 @@ TIMEOUT = 254
 
 import sys
 import signal
-
 from os.path import dirname, abspath, join, exists, basename, getmtime
 from time import time
 from os import makedirs, chmod, utime
@@ -120,23 +119,22 @@ class MPlugin:
             metrics = {}
             
         # Sanitize
-        data = self._sanitize(data)
-        metrics = self._sanitize(metrics)
+        #data = self._sanitize(data)
+        #metrics = self._sanitize(metrics)
             
         # Write counters and interval
         self._counters_write()
         self._interval_write()
         
-        print str(
-            self._to_json({
+        print self._to_json({
                 'id': self.id,
-                'name': self._to_utf8(self.name),
-                'message': self._to_utf8(message),
-                'data': self._to_utf8(data),
-                'metrics': self._to_utf8(metrics),
+                'retval': state,
+                'name': self.name,
+                'message': message,
+                'data': data,
+                'metrics': metrics,
                 'interval': self._get_time_interval()
-            }).encode('utf-8')
-        )
+            })
         
         sys.exit(state)
 
@@ -230,7 +228,6 @@ class MPlugin:
             return self._time_interval
 
         touch_file = join(self.path, TOUCH_FILE_NAME)
-
 
         retval = 1
         if exists(touch_file):
@@ -445,7 +442,8 @@ class MPlugin:
         retval = ''
 
         try:
-            retval = json.dumps(elm).encode('utf8')
+            retval = json.dumps(elm)
+            #retval = json.dumps(elm).encode('utf8')
         except:
             pass
 

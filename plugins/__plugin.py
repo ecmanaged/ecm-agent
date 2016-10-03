@@ -95,7 +95,7 @@ class ECMPlugin:
     def _list_commands(self):
         import inspect
         for member in inspect.getmembers(self):
-            #Retrieve method names starting with "cmd_" (commands)
+            # Retrieve method names starting with "cmd_" (commands)
             if member[0].startswith('cmd_') and inspect.ismethod(member[1]):
                 command_name = member[0][4:]
                 command_args = inspect.getargspec(member[1])[0][1:]

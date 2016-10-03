@@ -13,30 +13,27 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
-RUN_AS_ROOT = False
-
 import os
 import sys
-
 import simplejson as json
 from base64 import b64decode
 from time import time
 
 # Local
-import __helper as ecm
-from __plugin import ECMPlugin
-from __mplugin import MPlugin
+import plugins.__helper as ecm
+from plugins.__plugin import ECMPlugin
+from plugins.__mplugin import MPlugin
+
+RUN_AS_ROOT = False
 
 pip_import_error = False
 
 try:
-    from __packages import pip_install_single_package
+    from plugins.__packages import pip_install_single_package
 except ImportError:
     pip_import_error = True
 
 CRITICAL = 2
-
 COMMAND_TIMEOUT = 55
 COMMAND_INTERVAL = 60
 GLUE = ':::'
@@ -53,7 +50,7 @@ CACHE_SOFT_TIME = 30
 
 
 class ECMMonitor(ECMPlugin):
-    def cmd_monitor_get(self, *argv, **kwargs):
+    def run(self, *argv, **kwargs):
         """
         Runs monitor commands from monitor path
         """
@@ -67,7 +64,7 @@ class ECMMonitor(ECMPlugin):
         except:
             pass
 
-        retval = {}
+        retval = []
         to_execute = []
 
         # Create dirs if necessary
@@ -140,9 +137,8 @@ class ECMMonitor(ECMPlugin):
 
                 for script in scripts:
                     # Read last result from cache (even if void)
-                    from_cache = self._cache_read(script)
-                    #retval.append(self._parse_script_name(script) + GLUE + str(interval) + GLUE + from_cache)
-                    retval[self._parse_script_name(script)] = from_cache
+                    from_cache = self._cache_read(script, interval + CACHE_SOFT_TIME)
+                    retval.append(self._parse_script_name(script) + GLUE + str(interval) + GLUE + from_cache)
 
                     # Execute script if cache wont be valid on next command_get execution
                     if not self._cache_valid(script, interval - COMMAND_INTERVAL - CACHE_SOFT_TIME):
@@ -272,7 +268,7 @@ class ECMMonitor(ECMPlugin):
             os.makedirs(path)
 
     @staticmethod
-    def _cache_read(command):
+    def _cache_read(command, max_old):
         cache_file = os.path.join(CACHE_PATH, os.path.basename(command) + '.' + CACHE_FILE_EXTENSION)
         content = ''
         # check updated cache
@@ -282,7 +278,6 @@ class ECMMonitor(ECMPlugin):
             for line in f.readlines():
                 content += line
             f.close()
-
         return content
 
     @staticmethod
@@ -305,14 +300,15 @@ class ECMMonitor(ECMPlugin):
             if modified < (time() - CACHE_FILE_EXPIRES):
                 os.remove(cachefile)
 
-def _write_cache(script, message):
+def _write_cache(script, retval, std_out):
     # Write to cache file
     cache_file = os.path.abspath(
         os.path.join(CACHE_PATH, script + '.' + CACHE_FILE_EXTENSION)
     )
+    f = open(cache_file, 'w')
+    f.write("%s%s%s" % (retval, GLUE, std_out))
+    f.close()
 
-    with open(cache_file, 'w') as f:
-        f.write("%s" % message)
 
 def _run_background_file(script, run_as=None):
     fullpath = os.path.abspath(script)
@@ -326,26 +322,20 @@ def _run_background_file(script, run_as=None):
             return
 
     # Write timeout to cache file
-    message = {
-        'retval': CRITICAL,
-        'message': 'Timeout'
-    }
-    _write_cache(script_name, json.dumps(message))
+    _write_cache(script_name, CRITICAL, 'Timeout')
 
     try:
         command = [fullpath]
-        print  'hi'
         if script_name.split('.') == '.py':
             command = [sys.executable, fullpath]
         sys.path.append(MY_PATH)
         env = os.environ.copy()
         env['PYTHONPATH'] = MY_PATH + ':' + env.get('PYTHONPATH', '')
-        retval, stdout, _ = ecm.run_command(command, runas=run_as, envars=env)
-        _write_cache(script_name, stdout)
+        retval, stdout, stderr = ecm.run_command(command, runas=run_as, envars=env)
+        _write_cache(script_name, retval, stdout)
 
     except Exception, e:
-        message['message'] = e.message
-        _write_cache(script_name, json.dumps(message))
+        _write_cache(script_name, CRITICAL, e.message)
         pass
 
     sys.exit(0)

@@ -51,16 +51,16 @@ class BaseMPlugin(MPlugin):
             'boottime': boottime,
             'cpu': self._get_cpu(),
             'mem': self._get_mem(),
-            'disk': self._get_disk(),
-            'net': self._get_network(),
-            'netstat': self._get_netstat(),
-            'disk_io': self._get_disk_io(),
-            'inodes' : self._get_inodes(),
-            'cputimes': self._get_cpu_times(),
-            'process': self._get_processes(),
-            'swap': self._get_swap(),
-            'user': self._get_users(),
-            'docker_info': self.get_docker_info()
+            # 'disk': self._get_disk(),
+            # 'net': self._get_network(),
+            # 'netstat': self._get_netstat(),
+            # 'disk_io': self._get_disk_io(),
+            # 'inodes' : self._get_inodes(),
+            # 'cputimes': self._get_cpu_times(),
+            # 'process': self._get_processes(),
+            # 'swap': self._get_swap(),
+            # 'user': self._get_users(),
+            # 'docker_info': self.get_docker_info()
         }
         
         if data['cpu'] and data['mem']:

@@ -89,7 +89,7 @@ class ECMAgent():
             "command": "monitor_get",
             "timeout": "30",
             "params": base64.b64encode(json.dumps(system_health)),
-            "type": "task",
+            "type": "monitor",
             "id": "system_health"
         }
 
@@ -97,9 +97,7 @@ class ECMAgent():
 
         self.command_runner = CommandRunner(self.config)
 
-        # log.info("Authenticating...")
-        # reactor.callLater(5, self._auth)
-        # Give time to load commands
+        reactor.callLater(5, self._run_info)
         reactor.callLater(10, self._run)
 
     def _auth(self):
@@ -118,6 +116,17 @@ class ECMAgent():
         finally:
             # Set default timeout again
             socket.setdefaulttimeout(10)
+
+    def _run_info(self):
+        info_task = {
+            "data": u"",
+            "command": "system_info",
+            "timeout": "30",
+            "type": "info",
+            "id": "system_info"
+        }
+        message = ECMMessage(info_task)
+        self._run_task(message)
 
     def _run(self):
         log.info("Setting up Memory checker")
