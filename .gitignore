@@ -1,4 +1,5 @@
 *~
+.gitignore
 .idea
 log/*
 monitor/mplugin/__base__/data.json
@@ -11,3 +12,4 @@ monitor/mplugin/plg-*
 config/ecagent.cfg
 twistd.pid
 log/
+.vscode/
