@@ -23,7 +23,37 @@ AGENT_VERSION_PROTOCOL = 1
 DEFAULT_TIMEOUT = 300
 MESSAGE_TYPE_RESPONSE = 'response'
 
+class MonitorMessage(object):
+    def __init__(self, result, id, groups):
+        self.id = id
+        self.result = result
+        self.groups = groups
+        self.timestamp = time.time()
+    
+    def to_result(self):
+        return {
+            'id': self.id,
+            'type': 'monitor',
+            'result': self.result,
+            'groups': self.groups,
+            'timestamp': self.timestamp
+        }
 
+class MonitorMessage(object):
+    def __init__(self, result, id, groups):
+        self.id = id
+        self.result = result
+        self.groups = groups
+        self.timestamp = time.time()
+    
+    def to_result(self):
+        return {
+            'id': self.id,
+            'type': 'task',
+            'result': self.result,
+            'groups': self.groups,
+            'timestamp': self.timestamp
+        }
 
 class ECMMessage(object):
     def __init__(self, task):
@@ -46,9 +76,9 @@ class ECMMessage(object):
 
         log.debug('MESSAGE - id: %s, type: %s, command: %s, params: %s' % (self.id, self.type, self.command, self.params))
 
-    def to_result(self, result):
+    def to_result(self, result, id):
         return {
-            'id':   self.id,
+            'id':   id,
             'type': MESSAGE_TYPE_RESPONSE,
             'command': self.command,
             'result': result,
