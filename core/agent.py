@@ -40,40 +40,17 @@ KEEPALIVED_TIMEOUT = 180
 SOCKET_TIMEOUT = 30
 
 
-class ECMInit:
-    def __init__(self, config):
-        reactor.callWhenRunning(self._register)
-        self.config = config
-
-    def _register(self):
-        d = self.config.register()
-        d.addCallback(self._on_register_succeed)
-        d.addErrback(self._on_register_failed)
-
-    def _on_register_succeed(self, success):
-        # Ok, now everything should be correctly configured,
-        # let's start the party.
-        if success:
-            ECMAgent(self.config)
-
-    @staticmethod
-    def _on_register_failed(failure):
-        log.critical("Configuration check failed with: %s, exiting." % failure)
-        log.critical("Please try configuring the XMPP subsystem manually.")
-        reactor.stop()
-
-
 class ECMAgent():
     def __init__(self, config):
         """
         Main agent class.
         """
         self.config = config
-        self.uuid = config['Auth']['uuid']
-        self.token = config['Auth']['token']
+        self.account = self.config['Auth']['account']
+        self.unique_uuid = self.config.register()
 
-        self.ECMANAGED_URL_AUTH = 'http://localhost:8000/agent/{0}/authentication?token={1}'.format(self.uuid, self.token)
-
+        self.ECMANAGED_URL_INPUT = 'http://localhost:8000/v1/agent/ecagent/input?api_key={0}'.format(self.account)
+        self.ECMANAGED_URL_TASK = 'http://localhost:8000/v1/agent/ecagent/task?api_key={0}'.format(self.account)
         self.tasks = {}
         system_health = {"__base__":
                              {
@@ -99,23 +76,6 @@ class ECMAgent():
 
         reactor.callLater(5, self._run_info)
         reactor.callLater(10, self._run)
-
-    def _auth(self):
-        try:
-            log.debug('auth_url: %s' % self.ECMANAGED_URL_AUTH)
-            socket.setdefaulttimeout(SOCKET_TIMEOUT)
-            req = urllib2.Request(self.ECMANAGED_URL_AUTH)
-            urlopen = urllib2.urlopen(req)
-            result = urlopen.read()
-            result_dict = json.loads(result)
-            self.token = result_dict['token']
-            log.debug('token: %s' %str(self.token))
-        except Exception as e:
-            log.debug('exception: %s'%str(e))
-            log.debug('auth failed')
-        finally:
-            # Set default timeout again
-            socket.setdefaulttimeout(10)
 
     def _run_info(self):
         info_task = {
@@ -160,12 +120,11 @@ class ECMAgent():
 
     def _write_result(self, result):
         result['groups'] = self.config['Groups']['groups']
-        self.ECMANAGED_URL_RESULT = 'http://localhost:8000/agent/{0}/monitor/?token={1}'.format(self.uuid, self.token)
-        log.debug('_write_result::start: %s' % self.ECMANAGED_URL_RESULT)
+        log.debug('_write_result::start: %s' % self.ECMANAGED_URL_INPUT)
         log.debug('_write_result::data: %s' % result)
 
         try:
-            req = urllib2.Request(self.ECMANAGED_URL_RESULT, json.dumps(result))
+            req = urllib2.Request(self.ECMANAGED_URL_INPUT, json.dumps(result))
             urlopen = urllib2.urlopen(req)
             result = urlopen.read()
             result_dict = json.loads(result)

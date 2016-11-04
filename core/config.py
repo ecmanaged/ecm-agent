@@ -43,13 +43,11 @@ class ECMConfig(ConfigObj):
     """
     def __init__(self, filename):
         ConfigObj.__init__(self, filename)
-
-    @inlineCallbacks
+    
     def register(self):
-        uuid = self._get_stored_uuid()
         account_id = self.get_stored_account()
 
-        if not uuid and not account_id:
+        if not account_id:
             # Is not an update and no account is set
             log.error('Please configure agent with ./configure --account=XXXXX')
             raise Exception('Please configure agent with ./configure --account=XXXXX')
@@ -58,94 +56,11 @@ class ECMConfig(ConfigObj):
         if not unique_uuid:
             log.error('Could not obtain unique_uuid. Please set up Auth manually')
             raise Exception('Could not obtain server_id. Please set up Auth manually')
-
-        # Check all data valid for v3
-        if uuid and not '@' in uuid and account_id and self.is_unique_id_same(unique_uuid):
-            log.debug('unique_id has not changed. Skip uuid check')
-        else:
-            # Try to get uuid (one hour and a half loop: 360x15)
-            json_data = None
-            for i in range(5):
-                log.info("Trying to get UUID via URL (meta-data v4)")
-                json_data = yield self._register(unique_uuid, account_id)
-                if json_data:
-                    break
-                sleep(3)
-            # Decode metadata
-            meta_data = self.parse_meta_data(json_data)
-            if not meta_data:
-                log.error('Could not obtain UUID. Please set up Auth manually')
-                raise Exception('Could not obtain UUID. Please set up Auth manually')
-
-            # Updates from v2 to v3 write account info
-            if not account_id and meta_data.get('account'):
-                self['Auth']['account'] = meta_data.get('account')
-
-            self['Auth']['unique_uuid'] = unique_uuid
-            log.debug('metadata from api in config: %s' %str(meta_data))
-            self['Auth']['uuid'] = meta_data['uuid']
-            self['Auth']['token'] = meta_data['token']
-            self.write()
-        returnValue(True)
-
-    @inlineCallbacks
-    def _register(self, unique_uuid, account_id):
-        groups= self._get_groups()
-        result = None
-        registration_url = 'http://localhost:8000/account/{0}/agentregister?unique_uuid={1},groups={2}'\
-            .format(account_id, unique_uuid, groups)
-
-        try:
-            result = yield getPage(registration_url, method='GET')
-        except Exception as e:
-            log.debug("getPage failed: %s" %e)
-            pass
-
-        # Try urllib if doesn't work
-        if not result:
-            try:
-                log.info('trying urllib2')
-                req = urllib2.Request(registration_url)
-                result = urllib2.urlopen(req).read()
-            except Exception as e:
-                log.debug("urllib2 failed: %s" %e)
-                pass
-
-        if result:
-            log.debug(result)
-            for line in result.splitlines():
-                if line:
-                    returnValue(line)
-
-        returnValue('')
-
-    def is_unique_id_same(self, unique_id):
-        return str(unique_id) == str(self._get_stored_unique_id())
-
-    def _get_stored_uuid(self):
-        return self['Auth'].get('uuid', '').split('@')[0]
-
-    def _get_stored_unique_id(self):
-        return self['Auth'].get('unique_id', '')
-
-    def _get_groups(self):
-        return self['Groups'].get('groups', '')
+        
+        return unique_uuid
 
     def get_stored_account(self):
         return self['Auth'].get('account', '')
-
-    def parse_meta_data(self, json_data):
-        try:
-            meta_data = json.loads(json_data)
-            if meta_data.get('error'):
-                log.error('Invalid configuration received: %s' % meta_data['message'])
-                return None
-
-        except:
-            log.error('Invalid configuration received, will try later')
-            return None
-
-        return meta_data
 
     @staticmethod
     def _get_unique_uuid():
