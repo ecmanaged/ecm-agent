@@ -125,6 +125,7 @@ class ECMAgent():
 
         try:
             req = urllib2.Request(self.ECMANAGED_URL_INPUT, json.dumps(result))
+            req.add_header('Content-Type', 'application/json')
             urlopen = urllib2.urlopen(req)
             result = urlopen.read()
             result_dict = json.loads(result)
