@@ -27,7 +27,7 @@ import core.exceptions as exceptions
 import core.logging as log
 
 from core.runner import CommandRunner
-from core.message import ECMMessage, MonitorMessage
+from core.message import ECMMessage
 from core.functions import mem_clean, read_url
 
 
@@ -47,7 +47,6 @@ class ECMAgent():
         """
         self.config = config
         self.account = self.config['Auth']['account']
-        self.groups = self.config['Groups']['groups']
         self.unique_uuid = self.config.register()
 
         self.ECMANAGED_URL_INPUT = 'http://localhost:8000/v1/agent/ecagent/input?api_key={0}'.format(self.account)
@@ -120,12 +119,11 @@ class ECMAgent():
                 log.error('Error in main loop while generating message for task (%s): %s' % (task['command'], str(e)))
 
     def _write_result(self, result):
-        result = MonitorMessage(result, self.unique_uuid, self.groups).to_result()
-        log.debug('_write_result::start: %s' % self.ECMANAGED_URL_INPUT)
-        log.debug('_write_result::data: %s' % result)
+        log.info('_write_result::start: %s' % self.ECMANAGED_URL_INPUT)
+        log.info('_write_result::data: %s' % result)
 
         try:
-            req = urllib2.Request(self.ECMANAGED_URL_INPUT, json.dumps(result))
+            req = urllib2.Request(self.ECMANAGED_URL_INPUT, result)
             req.add_header('Content-Type', 'application/json')
             urlopen = urllib2.urlopen(req)
             result = urlopen.read()
@@ -180,7 +178,8 @@ class ECMAgent():
 
     def _send(self, result, message):
         log.debug('send result for %s %s' % (message.type, message.command))
-        self._write_result(message)
+        groups = self.config['Groups']['groups']
+        self._write_result(message.to_json(result, self.unique_uuid, groups))
 
     def _memory_checker(self):
         rss = mem_clean('periodic memory clean')

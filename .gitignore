@@ -13,3 +13,4 @@ config/ecagent.cfg
 twistd.pid
 log/
 .vscode/
+ecm-agent/monitor/mplugin/__base__/*.log

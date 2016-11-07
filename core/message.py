@@ -23,39 +23,7 @@ AGENT_VERSION_PROTOCOL = 1
 DEFAULT_TIMEOUT = 300
 MESSAGE_TYPE_RESPONSE = 'response'
 
-class MonitorMessage(object):
-    def __init__(self, result, id, groups):
-        self.id = id
-        self.result = result
-        self.groups = groups
-        self.timestamp = time.time()
-    
-    def to_result(self):
-        return {
-            'id': self.id,
-            'type': 'monitor',
-            'result': self.result,
-            'groups': self.groups,
-            'timestamp': self.timestamp
-        }
-
-class MonitorMessage(object):
-    def __init__(self, result, id, groups):
-        self.id = id
-        self.result = result
-        self.groups = groups
-        self.timestamp = time.time()
-    
-    def to_result(self):
-        return {
-            'id': self.id,
-            'type': 'task',
-            'result': self.result,
-            'groups': self.groups,
-            'timestamp': self.timestamp
-        }
-
-class ECMMessage(object):
+class ECMMessage():
     def __init__(self, task):
         self.id = task['id']
         self.type = task['type']
@@ -76,14 +44,17 @@ class ECMMessage(object):
 
         log.debug('MESSAGE - id: %s, type: %s, command: %s, params: %s' % (self.id, self.type, self.command, self.params))
 
-    def to_result(self, result, id):
-        return {
-            'id':   id,
-            'type': MESSAGE_TYPE_RESPONSE,
+    def to_json(self, result, unique_id, groups):
+        return json.dumps({
+            'id': unique_id, 
+            'task_id': self.id,
+            'type': self.type,
+            'groups': groups,
             'command': self.command,
             'result': result,
-            'duration': time.time() - self.localtime
-        }
+            'timestamp': time.time()
+        })
+    
 
     def __getitem__(self, key):
             return {}
