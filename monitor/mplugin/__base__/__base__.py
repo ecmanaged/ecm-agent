@@ -72,8 +72,7 @@ class BaseMPlugin(MPlugin):
         retval = {}
         try:
             if hasattr(psutil, 'virtual_memory'):
-                mem = psutil.virtual_memory()
-                
+                mem = psutil.virtual_memory()                
                 if hasattr(mem, 'active'):
                     retval['active'] = self.to_gb(mem.active)
                 if hasattr(mem, 'inactive'):
@@ -165,9 +164,9 @@ class BaseMPlugin(MPlugin):
             for device in device_names:
                 if not disk_io.get(device):
                     continue
-                res[device] = disk_io[device]
+                res[device] = dict(disk_io[device].__dict__)
 
-            retval = self.counters(self._to_data(res), 'disk_io')
+            retval = self.counters(res, 'disk_io')
         except:
             pass
             
@@ -198,86 +197,103 @@ class BaseMPlugin(MPlugin):
         retval = {}
 
         try:
-            retval = self.counters(self._to_dict(psutil.cpu_times(percpu=False)), 'cpu_times')
+            retval = self.counters(dict(psutil.cpu_times(percpu=False).__dict__), 'cpu_times')
         except:
             pass
 
         return retval
 
     def _get_network(self):
+        retval = {}
+        retval = _get_network_from_psutil()
+
+        if not retval:
+            retval =  self._get_network_from_file()      
+
+        return retval
+
+    @staticmethod
+    def _get_network_from_psutil():
         if psutil.version_info[:2] >= (1, 0, 0):
             from psutil import net_io_counters as network_io_counters
         else:
             from psutil import network_io_counters
 
         retval = {}
-
-        data = None
-
         try:
-            data = self._to_data(network_io_counters(pernic=True))
+            data = network_io_counters(pernic=True)
+            for key in data.keys():
+                retval[key] = dict(data[key].__dict__)
         except Exception:
             pass
-
-        if not data.get('errin') and not self.is_win():
-            # Get manualy errors
-            try: 
-                f = open("/proc/net/dev", "r")
-                lines = f.readlines()
-                for line in lines[2:]:
-                    colon = line.find(':')
-                    assert colon > 0, line
-                    name = line[:colon].strip()
-                    fields = line[colon+1:].strip().split()
-                    
-                    # Do not set counter or gauge for this values
-                    data[name]['errir'] = int(fields[2])
-                    data[name]['errout'] = int(fields[10])                
-                f.close()
-                retval = self.counters(data, 'network')
-                    
-            except:
-                pass        
-
+        return retval
+    
+    def _get_network_from_file(self):
+        retval = {}
+        data = {}
+        
+        if self.is_win():
+            return retval        
+        try:
+            f = open("/proc/net/dev", "r")
+            lines = f.readlines()
+            for line in lines[2:]:
+                colon = line.find(':')
+                assert colon > 0, line
+                name = line[:colon].strip()
+                fields = line[colon+1:].strip().split()
+                
+                # Do not set counter or gauge for this values
+                data[name]['errir'] = int(fields[2])
+                data[name]['errout'] = int(fields[10])                
+            f.close()
+            retval = self.counters(data, 'network')                    
+        except:
+            pass
         return retval
 
     def _get_inodes(self):
         if self.is_win():
-            return []
+            return {}
 
-        inode_list = []
+        inode_list = {}
         for part in psutil.disk_partitions(all=False):
             try:
                 data = os.statvfs(part.mountpoint)
                 iused = data.f_files - data.f_ffree
                 iused_p = int(iused * 100 / data.f_files)
-                inode_list.append({'Filesystem': part.device, 'Inodes': data.f_files, 'IUsed': iused, 'IFree': data.f_ffree, 'IUse%': iused_p, 'Mounted on': part.mountpoint})
-            except:
+                inode_list[part.device] = {
+                    'Inodes': data.f_files,
+                    'IUsed': iused,
+                    'IFree': data.f_ffree,
+                    'IUse%': iused_p,
+                    'Mounted on': part.mountpoint
+                    }
+            except Exception:
                 pass
 
         return inode_list
-                
+    
+    #TODO
     def _get_netstat(self):
         try:
             # Only psutil > v2
             conns = []
             for conn in psutil.net_connections(kind='all'):
-                if conn.status not in ('ESTABLISHED','NONE'): continue
+                if conn.status not in ('ESTABLISHED','NONE'):
+                    continue
                 conns.append(self._to_dict(conn))
-
             return conns
         except:
             return {}
 
     def _get_processes(self):
         processes = []
-
         # Ask CPU counters
         try:
             for p in psutil.process_iter():
                 if psutil.version_info[:2] >= (2, 0):
                     p.as_dict(['cpu_percent'])
-
                 else:
                     p.as_dict(['get_cpu_percent'])
         except:
@@ -300,7 +316,6 @@ class BaseMPlugin(MPlugin):
 
             except:
                 pass
-
         return self._process_parser(processes)
 
     def _process_parser(self, processes):
@@ -405,7 +420,18 @@ class BaseMPlugin(MPlugin):
         retval = {}
         for value in element:
             retval[value] = self._to_dict(element[value])
-
+        return retval
+        
+    @staticmethod
+    def _to_dict(obj):
+        retval = {}
+        for name in dir(obj):
+            if name == 'index':
+                continue
+            if name == 'count':
+                continue
+            if not name.startswith('_'):
+                retval[name] = getattr(obj, name)
         return retval
 
     @staticmethod
@@ -457,18 +483,6 @@ class BaseMPlugin(MPlugin):
 
         return 0
 
-    @staticmethod
-    def _to_dict(obj):
-        retval = {}
-        for name in dir(obj):
-            if name == 'index':
-                continue
-            if name == 'count':
-                continue
-            if not name.startswith('_'):
-                retval[name] = getattr(obj, name)
-
-        return retval
 
     def get_docker_info(self):
         if self.is_win():
