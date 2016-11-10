@@ -44,17 +44,17 @@ class ECMMessage():
 
         log.debug('MESSAGE - id: %s, type: %s, command: %s, params: %s' % (self.id, self.type, self.command, self.params))
 
-    def to_json(self, result, unique_id, groups):
+    def to_json(self, result, token, unique_id, groups):
         return json.dumps({
-            'id': unique_id, 
+            'unique_uuid': unique_id, 
             'task_id': self.id,
             'type': self.type,
             'groups': groups,
             'command': self.command,
             'result': result,
+            'token': token,
             'timestamp': time.time()
         })
     
-
     def __getitem__(self, key):
             return {}

@@ -51,16 +51,16 @@ class BaseMPlugin(MPlugin):
             'boottime': boottime,
             'cpu': self._get_cpu(),
             'mem': self._get_mem(),
-            # 'disk': self._get_disk(),
-            # 'net': self._get_network(),
-            # 'netstat': self._get_netstat(),
-            # 'disk_io': self._get_disk_io(),
-            # 'inodes' : self._get_inodes(),
-            # 'cputimes': self._get_cpu_times(),
-            # 'process': self._get_processes(),
-            # 'swap': self._get_swap(),
-            # 'user': self._get_users(),
-            # 'docker_info': self.get_docker_info()
+            'disk': self._get_disk(),
+            'net': self._get_network(),
+            'netstat': self._get_netstat(),
+            'disk_io': self._get_disk_io(),
+            'inodes' : self._get_inodes(),
+            'cputimes': self._get_cpu_times(),
+            'process': self._get_processes(),
+            'swap': self._get_swap(),
+            'user': self._get_users(),
+            'docker_info': self.get_docker_info()
         }
         
         if data['cpu'] and data['mem']:
@@ -205,35 +205,39 @@ class BaseMPlugin(MPlugin):
         return retval
 
     def _get_network(self):
+        if psutil.version_info[:2] >= (1, 0, 0):
+            from psutil import net_io_counters as network_io_counters
+        else:
+            from psutil import network_io_counters
+
         retval = {}
 
+        data = None
+
         try:
-            data = self._to_data(psutil.network_io_counters(pernic=True))
+            data = self._to_data(network_io_counters(pernic=True))
+        except Exception:
+            pass
 
-            if not data.get('errin') and not self.is_win():
-                # Get manualy errors
-                try: 
-                    f = open("/proc/net/dev", "r")
-                    lines = f.readlines()
-                    for line in lines[2:]:
-                        colon = line.find(':')
-                        assert colon > 0, line
-                        name = line[:colon].strip()
-                        fields = line[colon+1:].strip().split()
-                        
-                        # Do not set counter or gauge for this values
-                        data[name]['errir'] = int(fields[2])
-                        data[name]['errout'] = int(fields[10])
+        if not data.get('errin') and not self.is_win():
+            # Get manualy errors
+            try: 
+                f = open("/proc/net/dev", "r")
+                lines = f.readlines()
+                for line in lines[2:]:
+                    colon = line.find(':')
+                    assert colon > 0, line
+                    name = line[:colon].strip()
+                    fields = line[colon+1:].strip().split()
                     
-                    f.close()
-
-                except:
-                    pass
+                    # Do not set counter or gauge for this values
+                    data[name]['errir'] = int(fields[2])
+                    data[name]['errout'] = int(fields[10])                
+                f.close()
+                retval = self.counters(data, 'network')
                     
-            retval = self.counters(data, 'network')
-                    
-        except:
-            pass        
+            except:
+                pass        
 
         return retval
 

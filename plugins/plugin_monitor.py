@@ -334,7 +334,6 @@ def _run_background_file(script, run_as=None):
 
     try:
         command = [fullpath]
-        print  'hi'
         if script_name.split('.') == '.py':
             command = [sys.executable, fullpath]
         sys.path.append(MY_PATH)

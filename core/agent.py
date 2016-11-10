@@ -119,7 +119,7 @@ class ECMAgent():
                 log.error('Error in main loop while generating message for task (%s): %s' % (task['command'], str(e)))
 
     def _write_result(self, result):
-        log.info('_write_result::start: %s' % self.ECMANAGED_URL_INPUT)
+        log.debug('_write_result::start: %s' % self.ECMANAGED_URL_INPUT)
         log.info('_write_result::data: %s' % result)
 
         try:
@@ -179,7 +179,7 @@ class ECMAgent():
     def _send(self, result, message):
         log.debug('send result for %s %s' % (message.type, message.command))
         groups = self.config['Groups']['groups']
-        self._write_result(message.to_json(result, self.unique_uuid, groups))
+        self._write_result(message.to_json(result, self.account, self.unique_uuid, groups))
 
     def _memory_checker(self):
         rss = mem_clean('periodic memory clean')
