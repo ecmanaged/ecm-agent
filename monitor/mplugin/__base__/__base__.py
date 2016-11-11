@@ -53,14 +53,14 @@ class BaseMPlugin(MPlugin):
             'mem': self._get_mem(),
             'disk': self._get_disk(),
             'net': self._get_network(),
-            'netstat': self._get_netstat(),
-            'disk_io': self._get_disk_io(),
-            'inodes' : self._get_inodes(),
-            'cputimes': self._get_cpu_times(),
-            'process': self._get_processes(),
-            'swap': self._get_swap(),
-            'user': self._get_users(),
-            'docker_info': self.get_docker_info()
+            #'netstat': self._get_netstat(),
+            #'disk_io': self._get_disk_io(),
+            #'inodes' : self._get_inodes(),
+            #'cputimes': self._get_cpu_times(),
+            #'process': self._get_processes(),
+            #'swap': self._get_swap(),
+            #'user': self._get_users(),
+            #'docker_info': self.get_docker_info()
         }
         
         if data['cpu'] and data['mem']:
@@ -72,7 +72,8 @@ class BaseMPlugin(MPlugin):
         retval = {}
         try:
             if hasattr(psutil, 'virtual_memory'):
-                mem = psutil.virtual_memory()                
+                mem = psutil.virtual_memory()
+                
                 if hasattr(mem, 'active'):
                     retval['active'] = self.to_gb(mem.active)
                 if hasattr(mem, 'inactive'):
@@ -164,9 +165,9 @@ class BaseMPlugin(MPlugin):
             for device in device_names:
                 if not disk_io.get(device):
                     continue
-                res[device] = dict(disk_io[device].__dict__)
+                res[device] = disk_io[device]
 
-            retval = self.counters(res, 'disk_io')
+            retval = self.counters(self._to_data(res), 'disk_io')
         except:
             pass
             
@@ -197,7 +198,7 @@ class BaseMPlugin(MPlugin):
         retval = {}
 
         try:
-            retval = self.counters(dict(psutil.cpu_times(percpu=False).__dict__), 'cpu_times')
+            retval = self.counters(self._to_dict(psutil.cpu_times(percpu=False)), 'cpu_times')
         except:
             pass
 
@@ -205,15 +206,14 @@ class BaseMPlugin(MPlugin):
 
     def _get_network(self):
         retval = {}
-        retval = _get_network_from_psutil()
+        retval = self._get_network_from_psutil()
 
         if not retval:
             retval =  self._get_network_from_file()      
 
         return retval
 
-    @staticmethod
-    def _get_network_from_psutil():
+    def _get_network_from_psutil(self):
         if psutil.version_info[:2] >= (1, 0, 0):
             from psutil import net_io_counters as network_io_counters
         else:
@@ -254,46 +254,41 @@ class BaseMPlugin(MPlugin):
 
     def _get_inodes(self):
         if self.is_win():
-            return {}
+            return []
 
-        inode_list = {}
+        inode_list = []
         for part in psutil.disk_partitions(all=False):
             try:
                 data = os.statvfs(part.mountpoint)
                 iused = data.f_files - data.f_ffree
                 iused_p = int(iused * 100 / data.f_files)
-                inode_list[part.device] = {
-                    'Inodes': data.f_files,
-                    'IUsed': iused,
-                    'IFree': data.f_ffree,
-                    'IUse%': iused_p,
-                    'Mounted on': part.mountpoint
-                    }
-            except Exception:
+                inode_list.append({'Filesystem': part.device, 'Inodes': data.f_files, 'IUsed': iused, 'IFree': data.f_ffree, 'IUse%': iused_p, 'Mounted on': part.mountpoint})
+            except:
                 pass
 
         return inode_list
-    
-    #TODO
+                
     def _get_netstat(self):
         try:
             # Only psutil > v2
             conns = []
             for conn in psutil.net_connections(kind='all'):
-                if conn.status not in ('ESTABLISHED','NONE'):
-                    continue
+                if conn.status not in ('ESTABLISHED','NONE'): continue
                 conns.append(self._to_dict(conn))
+
             return conns
         except:
             return {}
 
     def _get_processes(self):
         processes = []
+
         # Ask CPU counters
         try:
             for p in psutil.process_iter():
                 if psutil.version_info[:2] >= (2, 0):
                     p.as_dict(['cpu_percent'])
+
                 else:
                     p.as_dict(['get_cpu_percent'])
         except:
@@ -316,6 +311,7 @@ class BaseMPlugin(MPlugin):
 
             except:
                 pass
+
         return self._process_parser(processes)
 
     def _process_parser(self, processes):
@@ -420,18 +416,7 @@ class BaseMPlugin(MPlugin):
         retval = {}
         for value in element:
             retval[value] = self._to_dict(element[value])
-        return retval
-        
-    @staticmethod
-    def _to_dict(obj):
-        retval = {}
-        for name in dir(obj):
-            if name == 'index':
-                continue
-            if name == 'count':
-                continue
-            if not name.startswith('_'):
-                retval[name] = getattr(obj, name)
+
         return retval
 
     @staticmethod
@@ -483,6 +468,18 @@ class BaseMPlugin(MPlugin):
 
         return 0
 
+    @staticmethod
+    def _to_dict(obj):
+        retval = {}
+        for name in dir(obj):
+            if name == 'index':
+                continue
+            if name == 'count':
+                continue
+            if not name.startswith('_'):
+                retval[name] = getattr(obj, name)
+
+        return retval
 
     def get_docker_info(self):
         if self.is_win():
