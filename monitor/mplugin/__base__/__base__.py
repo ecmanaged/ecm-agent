@@ -53,14 +53,14 @@ class BaseMPlugin(MPlugin):
             'mem': self._get_mem(),
             'disk': self._get_disk(),
             'net': self._get_network(),
-            #'netstat': self._get_netstat(),
-            #'disk_io': self._get_disk_io(),
-            #'inodes' : self._get_inodes(),
-            #'cputimes': self._get_cpu_times(),
-            #'process': self._get_processes(),
-            #'swap': self._get_swap(),
-            #'user': self._get_users(),
-            #'docker_info': self.get_docker_info()
+            'netstat': self._get_netstat(),
+            'disk_io': self._get_disk_io(),
+            'inodes' : self._get_inodes(),
+            'cputimes': self._get_cpu_times(),
+            'process': self._get_processes(),
+            'swap': self._get_swap(),
+            'user': self._get_users(),
+            'docker_info': self.get_docker_info()
         }
         
         if data['cpu'] and data['mem']:
@@ -207,10 +207,8 @@ class BaseMPlugin(MPlugin):
     def _get_network(self):
         retval = {}
         retval = self._get_network_from_psutil()
-
         if not retval:
-            retval =  self._get_network_from_file()      
-
+            retval =  self._get_network_from_file()
         return retval
 
     def _get_network_from_psutil(self):

@@ -1,3 +1,5 @@
 twisted
 configobj
 psutil
+requests_unixsocket
+uptime
