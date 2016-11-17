@@ -16,6 +16,7 @@
 import base64
 import simplejson as json
 import time
+from datetime import datetime
 import core.logging as log
 
 AGENT_VERSION_CORE = 4
@@ -53,7 +54,7 @@ class ECMMessage():
             'command': self.command,
             'result': result,
             'token': token,
-            'timestamp': time.time()
+            'timestamp': datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
         })
     
     def __getitem__(self, key):
