@@ -389,10 +389,10 @@ class MPlugin:
         return interval
         
     def to_gb(self, n):
-        return self._convert_bytes(n, 'G')
+        return float(self._convert_bytes(n, 'G'))
 
     def to_mb(self, n):
-        return self._convert_bytes(n, 'M')
+        return float(self._convert_bytes(n, 'M'))
 
     def _to_utf8(self, elm):
         # FIXME: Do it recursive
