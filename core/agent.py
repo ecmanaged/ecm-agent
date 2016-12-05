@@ -120,7 +120,7 @@ class ECMAgent():
 
     def _write_result(self, result):
         log.debug('_write_result::start: %s' % self.ECMANAGED_URL_INPUT)
-        log.info('_write_result::data: %s' % result)
+        log.debug('_write_result::data: %s' % result)
 
         try:
             req = urllib2.Request(self.ECMANAGED_URL_INPUT, result)

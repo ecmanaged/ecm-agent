@@ -62,7 +62,6 @@ class BaseMPlugin(MPlugin):
             'user': self._get_users(),
             'docker_info': self.get_docker_info()
         }
-        
         if data['cpu'] and data['mem']:
             self.exit(OK, data)
 
@@ -198,7 +197,7 @@ class BaseMPlugin(MPlugin):
         retval = {}
 
         try:
-            retval = self.counters(self._to_dict(psutil.cpu_times(percpu=False)), 'cpu_times')
+            retval = self.counters(dict(psutil.cpu_times(percpu=False).__dict__), 'cpu_times')
         except:
             pass
 
