@@ -21,6 +21,7 @@
 import psutil
 import os
 import sys
+from datetime import datetime
 
 from os import getpid
 from time import time, sleep
@@ -46,18 +47,19 @@ class BaseMPlugin(MPlugin):
         data = {
             'version': VERSION,
             'time': mytime,
-            'loadavg': self._get_load(),
             'uptime': uptime,
             'boottime': boottime,
+            'loadavg': self._get_load(),
             'cpu': self._get_cpu(),
             'mem': self._get_mem(),
             'disk': self._get_disk(),
             'net': self._get_network(),
-            'netstat': self._get_netstat(),
+            # 'netstat': self._get_netstat(),
             'disk_io': self._get_disk_io(),
             'inodes' : self._get_inodes(),
             'cputimes': self._get_cpu_times(),
-            'process': self._get_processes(),
+            'cpustats': self._get_cpu_stats(),
+            # 'process': self._get_processes(),
             'swap': self._get_swap(),
             'user': self._get_users(),
             'docker_info': self.get_docker_info()
@@ -68,77 +70,102 @@ class BaseMPlugin(MPlugin):
         self.exit(CRITICAL)
 
     def _get_mem(self):
-        retval = {}
+        retval = {
+            'measurement': 'memory',
+            'tags': {
+                'unit': 'GB'
+            },
+            'fields': {
+
+            }
+        }
+
         try:
             if hasattr(psutil, 'virtual_memory'):
                 mem = psutil.virtual_memory()
-                
+
                 if hasattr(mem, 'active'):
-                    retval['active'] = self.to_gb(mem.active)
+                    retval['fields']['active'] = self.to_gb(mem.active)
                 if hasattr(mem, 'inactive'):
-                    retval['inactive'] = self.to_gb(mem.inactive)
+                    retval['fields']['inactive'] = self.to_gb(mem.inactive)
                 if hasattr(mem, 'buffers'):
-                    retval['buffers'] = self.to_gb(mem.buffers)
+                    retval['fields']['buffers'] = self.to_gb(mem.buffers)
                 if hasattr(mem, 'cached'):
-                    retval['cached'] = self.to_gb(mem.cached)
+                    retval['fields']['cached'] = self.to_gb(mem.cached)
                 if hasattr(mem, 'shared'):
-                    retval['shared'] = self.to_gb(mem.shared)
+                    retval['fields']['shared'] = self.to_gb(mem.shared)
 
             else:
                 mem = psutil.phymem_usage()
-                retval['cached'] = self.to_gb(psutil.cached_phymem())
-                retval['buffers'] = self.to_gb(psutil.phymem_buffers())
-                
+                retval['fields']['cached'] = self.to_gb(psutil.cached_phymem())
+                retval['fields']['buffers'] = self.to_gb(psutil.phymem_buffers())
+
                 if not self.is_win():
                     try:
                         f = open('/proc/meminfo', 'r')
                         for line in f:
                             if line.startswith('Active:'):
-                                retval['active'] = self.to_gb(int(line.split()[1]) * 1024)
+                                retval['fields']['active'] = self.to_gb(
+                                    int(line.split()[1]) * 1024)
                             if line.startswith('Inactive:'):
-                                retval['inactive'] = self.to_gb(int(line.split()[1]) * 1024)
+                                retval['fields']['inactive'] = self.to_gb(
+                                    int(line.split()[1]) * 1024)
                             if line.startswith('Buffers:'):
-                                retval['buffers'] = self.to_gb(int(line.split()[1]) * 1024)
+                                retval['fields']['buffers'] = self.to_gb(
+                                    int(line.split()[1]) * 1024)
                             if line.startswith('Cached:'):
-                                retval['cached'] = self.to_gb(int(line.split()[1]) * 1024)
+                                retval['fields']['cached'] = self.to_gb(
+                                    int(line.split()[1]) * 1024)
                             if line.startswith('Shared:'):
-                                retval['shared'] = self.to_gb(int(line.split()[1]) * 1024)
+                                retval['fields']['shared'] = self.to_gb(
+                                    int(line.split()[1]) * 1024)
                         f.close()
-                        
+
                     except:
                         pass
-                
-            retval['total'] = self.to_gb(mem.total)
-            retval['used'] = self.to_gb(mem.used)
-            retval['free'] = self.to_gb(mem.free)
-            retval['percent'] = mem.percent
-            
+
+            retval['fields']['total'] = self.to_gb(mem.total)
+            retval['fields']['used'] = self.to_gb(mem.used)
+            retval['fields']['free'] = self.to_gb(mem.free)
+            retval['fields']['percent'] = mem.percent
+
         except:
             pass
 
-        return retval
+        return [retval]
 
     def _get_disk(self):
-        retval = {}
+        retval = []
 
         try:
             for part in psutil.disk_partitions(all=False):
                 # Ignore error on specific devices (CD-ROM)
                 try:
-                    tmp = {}
                     usage = psutil.disk_usage(part.mountpoint)
-                    if hasattr(part, 'device'):
-                        tmp['device'] = part.device
-                    if hasattr(usage, 'total'):
-                        tmp['total'] = self.to_gb(usage.total)
-                    if hasattr(usage, 'used'):
-                        tmp['used'] = self.to_gb(usage.used)
-                    if hasattr(usage, 'free'):
-                        tmp['free'] = self.to_gb(usage.free)
-                    if hasattr(usage, 'percent'):
-                        tmp['percent'] = (float(usage.total - usage.free) / float(usage.total)) * 100
+                    tmp = {
+                        'measurement': 'disk',
+                        'tags': {
+                            'unit': 'GB',
+                            'mountpoint': part.mountpoint
+                        },
+                        'fields': {
+                        }
+                    }
 
-                    retval[part.mountpoint] = tmp
+                    if hasattr(part, 'device'):
+                        tmp['tags']['device'] = part.device
+                    if hasattr(usage, 'total'):
+                        tmp['fields']['total'] = self.to_gb(usage.total)
+                    if hasattr(usage, 'used'):
+                        tmp['fields']['used'] = self.to_gb(usage.used)
+                    if hasattr(usage, 'free'):
+                        tmp['fields']['free'] = self.to_gb(usage.free)
+                    if hasattr(usage, 'percent'):
+                        tmp['fields']['percent'] = (
+                            float(usage.total - usage.free) / float(usage.total)
+                            ) * 100
+
+                    retval.append(tmp)
 
                 except:
                     pass
@@ -148,7 +175,7 @@ class BaseMPlugin(MPlugin):
         return retval
 
     def _get_disk_io(self):
-        retval = {}
+        retval = []
         from os.path import basename
 
         try:
@@ -159,55 +186,78 @@ class BaseMPlugin(MPlugin):
                 device_names.append(basename(part.device))
 
             disk_io = psutil.disk_io_counters(perdisk=True)
-            res = {}
-
             for device in device_names:
                 if not disk_io.get(device):
                     continue
-                res[device] = disk_io[device]
+                res = {
+                    'measurement': 'disk_io',
+                    'tags': {
+                        'device': device
+                    },
+                    'fields': {}
+                }
+                res['fields'] = self.counters(self._to_dict(disk_io[device]), 'disk_io')
+                retval.append(res)
 
-            retval = self.counters(self._to_data(res), 'disk_io')
         except:
             pass
-            
+
         return retval
 
-    @staticmethod
-    def _get_cpu():
-        retval = {}
-
+    def _get_cpu(self):
+        retval = []
         try:
             data = psutil.cpu_percent(interval=CPU_INTERVAL, percpu=True)
-            total = 0
-            for cpu in data:
-                total += cpu
 
-            retval = {
-                'percent': int(total / len(data)),
-                'number': len(data),
-                'cpus': data
-            }
-
+            for i in range(len(data)):
+                res = {
+                    'measurement': 'cpu',
+                    'fields': {
+                        'percent': data[i]
+                    },
+                    'tags': {
+                        'cpu': 'cpu'+str(i)
+                    }
+                }
+                retval.append(res)
         except:
             pass
 
         return retval
+
+    def _get_cpu_stats(self):
+        try:
+            retval = {
+                'measurement': 'cpu_stats',
+                'fields': {},
+                'tags': {}
+                }
+            retval['fields'] = self.counters(self._to_dict(psutil.cpu_stats()), 'cpu_stats')
+            return [retval]
+        except Exception as exp:
+            pass
+        return []
 
     def _get_cpu_times(self):
-        retval = {}
-
         try:
-            retval = self.counters(dict(psutil.cpu_times(percpu=False).__dict__), 'cpu_times')
-        except:
+            retval = {
+                'measurement': 'cpu_times',
+                'fields': {},
+                'tags': {}
+            }
+            retval['fields'] = self.counters(
+                self._to_dict(psutil.cpu_times(percpu=False)), 'cpu_times'
+                )
+            return [retval]
+        except Exception as exp:
             pass
-
-        return retval
+        return []
 
     def _get_network(self):
         retval = {}
         retval = self._get_network_from_psutil()
         if not retval:
-            retval =  self._get_network_from_file()
+            retval = self._get_network_from_file()
         return retval
 
     def _get_network_from_psutil(self):
@@ -216,35 +266,60 @@ class BaseMPlugin(MPlugin):
         else:
             from psutil import network_io_counters
 
-        retval = {}
+        retval = []
         try:
             data = network_io_counters(pernic=True)
+
             for key in data.keys():
-                retval[key] = dict(data[key].__dict__)
+                res = {
+                    'measurement': 'network',
+                    'tags': {
+                        'interface': key
+                    },
+                    'fields': {}
+                }
+                res['fields'] = self.counters(self._to_dict(data[key]), 'network')
+                retval.append(res)
         except Exception:
             pass
         return retval
-    
+
     def _get_network_from_file(self):
-        retval = {}
-        data = {}
-        
+        retval = []
+
         if self.is_win():
-            return retval        
+            return retval
         try:
             f = open("/proc/net/dev", "r")
             lines = f.readlines()
-            for line in lines[2:]:
+            lines = lines[2:]
+            for line in lines:
                 colon = line.find(':')
                 assert colon > 0, line
                 name = line[:colon].strip()
                 fields = line[colon+1:].strip().split()
-                
-                # Do not set counter or gauge for this values
-                data[name]['errir'] = int(fields[2])
-                data[name]['errout'] = int(fields[10])                
+                res = {
+                    'measurement': 'network',
+                    'tags': {
+                        'interface': name
+                    },
+                    'fields': {}
+                }
+
+                data = {
+                    'bytes_sent': fields[7],
+                    'bytes_recv': fields[0],
+                    'packets_sent': fields[8],
+                    'packets_recv': fields[1],
+                    'errin': fields[2],
+                    'errout': fields[9],
+                    'dropin': fields[3],
+                    'dropout': fields[10]
+                }
+                res['fields'] = self.counters(data, 'network')
+                retval.append(res)
             f.close()
-            retval = self.counters(data, 'network')                    
+
         except:
             pass
         return retval
@@ -259,18 +334,32 @@ class BaseMPlugin(MPlugin):
                 data = os.statvfs(part.mountpoint)
                 iused = data.f_files - data.f_ffree
                 iused_p = int(iused * 100 / data.f_files)
-                inode_list.append({'Filesystem': part.device, 'Inodes': data.f_files, 'IUsed': iused, 'IFree': data.f_ffree, 'IUse%': iused_p, 'Mounted on': part.mountpoint})
+                res = {
+                    'measurement': 'inodes',
+                    'tags': {
+                        'filesystem': part.device,
+                        'mountpoint': part.mountpoint,
+                    },
+                    'fields': {
+                        'Inodes': data.f_files,
+                        'IUsed': iused,
+                        'IFree': data.f_ffree,
+                        'IUse%': iused_p,
+                    }
+                }
+                inode_list.append(res)
             except:
                 pass
 
         return inode_list
-                
+
     def _get_netstat(self):
         try:
             # Only psutil > v2
             conns = []
             for conn in psutil.net_connections(kind='all'):
-                if conn.status not in ('ESTABLISHED','NONE'): continue
+                if conn.status not in ('ESTABLISHED', 'NONE'):
+                    continue
                 conns.append(self._to_dict(conn))
 
             return conns
@@ -320,26 +409,26 @@ class BaseMPlugin(MPlugin):
 
         if data:
             cpu_count = len(data)
-            
+
         skip_pids = [1, getpid()]
 
         for p in processes:
             if p.pid in skip_pids:
                 continue
-            
+
             # Translate
             if 'get_memory_info' in p.dict:
                 p.dict['memory_info'] = p.dict['get_memory_info']
-                
+
             if 'get_memory_percent' in p.dict:
                 p.dict['memory_percent'] = p.dict['get_memory_percent']
-                
+
             if 'get_cpu_percent' in p.dict:
                 p.dict['cpu_percent'] = p.dict['get_cpu_percent']
 
             if p.dict['memory_percent'] is not None:
                 p.dict['memory_percent'] = round(p.dict['memory_percent'], 1)
-                
+
             else:
                 p.dict['memory_percent'] = ''
 
@@ -354,16 +443,23 @@ class BaseMPlugin(MPlugin):
                 username = p.dict['username'][:8]
 
             status = str(p.dict['status'])
+            res = {
+                'measurement': 'processes',
+                'tags': {
+                    'username': username,
+                    'status': status,
+                    'name': p.dict['name'] or '',
+                    'unit': 'MB'
+                },
+                'fields': {
+                    'cpu_percent': p.dict['cpu_percent'],
+                    'memory_percent': p.dict['memory_percent'],
+                    'vms': self.to_mb(getattr(p.dict['memory_info'], 'vms', 0)),
+                    'rss': self.to_mb(getattr(p.dict['memory_info'], 'rss', 0)),
+                }
+            }
 
-            retval.append((p.pid,
-                           username,
-                           self.to_mb(getattr(p.dict['memory_info'], 'vms', 0)),
-                           self.to_mb(getattr(p.dict['memory_info'], 'rss', 0)),
-                           p.dict['cpu_percent'],
-                           p.dict['memory_percent'],
-                           p.dict['name'] or '',
-                           status
-            ))
+            retval.append(res)
         return retval
 
     @staticmethod
@@ -388,25 +484,31 @@ class BaseMPlugin(MPlugin):
         return self._boot_time_linux()
 
     def _get_swap(self):
-        retval = {}
         try:
             # Only for psutil >= 2
             if hasattr(psutil, 'swap_memory'):
                 swap = psutil.swap_memory()
-                
-            else:     
+
+            else:
                 swap = psutil.virtmem_usage()
-            
+
             retval = {
-                'percent': swap.percent,
-                'used': self.to_gb(swap.used),
-                'total': self.to_gb(swap.total),
-                'free': self.to_gb(swap.free)
+                'measurement': 'swap',
+                'fields': {
+                    'percent': swap.percent,
+                    'used': self.to_gb(swap.used),
+                    'total': self.to_gb(swap.total),
+                    'free': self.to_gb(swap.free)
+                },
+                'tags': {
+                    'unit': 'GB'
+                }
             }
+            return [retval]
         except:
             pass
 
-        return retval
+        return []
 
     # Helper functions
     def _to_data(self, element):
@@ -431,13 +533,10 @@ class BaseMPlugin(MPlugin):
 
         # Get info from proc
         try:
-            f = open('/proc/stat', 'r')
-            for line in f:
-                if line.startswith('btime'):
-                    f.close()
-                    return float(line.strip().split()[1])
-            f.close()
-            return 0
+            with open('/proc/stat', 'r') as statfile:
+                for line in statfile:
+                    if line.startswith('btime'):
+                        return float(line.strip().split()[1])
         except:
             pass
 
@@ -457,13 +556,17 @@ class BaseMPlugin(MPlugin):
         if not self.is_win():
             from os import getloadavg
             m1, m5, m15 = getloadavg()
-            return {
-                '1m': m1,
-                '5m': m5,
-                '15m': m15
-            }
+            return [{
+                'measurement': 'loadaverage',
+                'fields': {
+                    '1m': m1,
+                    '5m': m5,
+                    '15m': m15
+                },
+                'tags': {},
+            }]
 
-        return 0
+        return []
 
     @staticmethod
     def _to_dict(obj):
@@ -474,7 +577,11 @@ class BaseMPlugin(MPlugin):
             if name == 'count':
                 continue
             if not name.startswith('_'):
-                retval[name] = getattr(obj, name)
+                value = getattr(obj, name)
+                if isinstance(value, int):
+                    retval[name] = float(value)
+                else:
+                    retval[name] = value
 
         return retval
 
@@ -543,3 +650,4 @@ class BaseMPlugin(MPlugin):
 
 mplugin = BaseMPlugin()
 mplugin.run()
+
