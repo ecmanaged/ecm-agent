@@ -38,17 +38,7 @@ VERSION = 1
 
 class BaseMPlugin(MPlugin):
     def run(self):
-        mytime = int(time())
-        boottime = self._get_uptime()
-        uptime = 0
-        if boottime:
-            uptime = int(mytime - boottime)
-
         data = {
-            'version': VERSION,
-            'time': mytime,
-            'uptime': uptime,
-            'boottime': boottime,
             'loadavg': self._get_load(),
             'cpu': self._get_cpu(),
             'mem': self._get_mem(),
@@ -59,10 +49,10 @@ class BaseMPlugin(MPlugin):
             'inodes' : self._get_inodes(),
             'cputimes': self._get_cpu_times(),
             'cpustats': self._get_cpu_stats(),
-            # 'process': self._get_processes(),
+            'process': self._get_processes(),
             'swap': self._get_swap(),
             'user': self._get_users(),
-            'docker_info': self.get_docker_info()
+            # 'docker_info': self.get_docker_info()
         }
         if data['cpu'] and data['mem']:
             self.exit(OK, data)
