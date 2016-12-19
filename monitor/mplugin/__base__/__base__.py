@@ -186,7 +186,7 @@ class BaseMPlugin(MPlugin):
                     },
                     'fields': {}
                 }
-                res['fields'] = self.counters(self._to_dict(disk_io[device]), 'disk_io')
+                res['fields'] = self.counters(self._to_dict(disk_io[device]), 'disk_io'+str(device))
                 retval.append(res)
 
         except:
