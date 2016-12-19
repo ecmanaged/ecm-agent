@@ -128,7 +128,7 @@ class ECMAgent():
             urlopen = urllib2.urlopen(req)
             result = urlopen.read()
             result_dict = json.loads(result)
-            log.debug('api response: %s' %str(result_dict))
+            log.info('api response: %s' %str(result_dict))
         except urllib2.HTTPError:
             log.info('exception HTTPERROR while sending result')
         except urllib2.URLError:

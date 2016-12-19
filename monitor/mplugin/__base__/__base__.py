@@ -39,19 +39,19 @@ VERSION = 1
 class BaseMPlugin(MPlugin):
     def run(self):
         data = {
-            'loadavg': self._get_load(),
+            # 'loadavg': self._get_load(),
             'cpu': self._get_cpu(),
             'mem': self._get_mem(),
-            'disk': self._get_disk(),
+            # 'disk': self._get_disk(),
             'net': self._get_network(),
             # 'netstat': self._get_netstat(),
-            'disk_io': self._get_disk_io(),
-            'inodes' : self._get_inodes(),
-            'cputimes': self._get_cpu_times(),
-            'cpustats': self._get_cpu_stats(),
-            'process': self._get_processes(),
-            'swap': self._get_swap(),
-            'user': self._get_users(),
+            # 'disk_io': self._get_disk_io(),
+            # 'inodes' : self._get_inodes(),
+            # 'cputimes': self._get_cpu_times(),
+            # 'cpustats': self._get_cpu_stats(),
+            # 'process': self._get_processes(),
+            # 'swap': self._get_swap(),
+            # 'user': self._get_users(),
             # 'docker_info': self.get_docker_info()
         }
         if data['cpu'] and data['mem']:
@@ -257,21 +257,22 @@ class BaseMPlugin(MPlugin):
             from psutil import network_io_counters
 
         retval = []
-        try:
-            data = network_io_counters(pernic=True)
+        # try:
+        data = network_io_counters(pernic=True)
 
-            for key in data.keys():
-                res = {
-                    'measurement': 'network',
-                    'tags': {
-                        'interface': key
-                    },
-                    'fields': {}
-                }
-                res['fields'] = self.counters(self._to_dict(data[key]), 'network')
-                retval.append(res)
-        except Exception:
-            pass
+        for key in data.keys():
+            res = {
+                'measurement': 'network',
+                'tags': {
+                    'interface': key
+                },
+                'fields': {}
+            }
+            raw = self._to_dict(data[key])
+            res['fields'] = self.counters(raw, 'network'+str(key))
+            retval.append(res)
+        # except Exception:
+        #     pass
         return retval
 
     def _get_network_from_file(self):
