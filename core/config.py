@@ -17,9 +17,10 @@
 import socket
 import urllib2
 import simplejson as json
-
+from time import time
 from time import sleep
 from configobj import ConfigObj
+import platform
 
 # Twisted imports
 from twisted.internet.defer import inlineCallbacks, returnValue
@@ -27,6 +28,9 @@ from twisted.web.client import getPage
 
 # Local
 import core.logging as log
+import plugins.__helper as ecm
+from plugins.__helper import AGENT_VERSION
+import psutil
 
 URL_METADATA_TIMEOUT = 2
 URL_METADATA_INSTANCE_ID = {
@@ -43,32 +47,75 @@ class ECMConfig(ConfigObj):
     """
     def __init__(self, filename):
         ConfigObj.__init__(self, filename)
-    
-    def register(self):
+
+    @inlineCallbacks
+    def check_register(self):
+        log.info("registering agent...")
+        info = {'info': {
+            'os': str(platform.system()),
+            'machine': str(platform.machine()),
+            'uptime': self._boot_time(),
+            'hostname': platform.node(),
+            'public_ip': self._get_ip(),
+            'agent_version': AGENT_VERSION,
+            'localtime': time()
+        }}
+
+        admin_api = self['API'].get('admin', '')
+
+        if not admin_api:
+            log.error('Could not obtain admin api.')
+            raise Exception('Could not obtain admin api.')
+
+        account_id = self.get_stored_account()
+        unique_uuid = self._obtain_unique_uuid()
+
+        registration_url = '{}/{}/{}'.format(admin_api, account_id, unique_uuid)
+        log.info('registration_url: %s' %registration_url)
+        log.info('info: %s' %str(info))
+
+        for iter in range(5):
+            try:
+                req = urllib2.Request(registration_url, json.dumps(info))
+                req.add_header('Content-Type', 'application/json')
+                urlopen = yield urllib2.urlopen(req)
+                result = urlopen.read()
+                result_dict = json.loads(result)
+                log.info('api response: %s' %str(result_dict))
+                if urlopen.getcode() == 200:
+                    log.info("agent has successfully registered")
+                    returnValue(True)
+            except urllib2.HTTPError:
+                log.info('exception HTTPERROR while sending result')
+            except urllib2.URLError:
+                log.info('exception URLERROR while sending result')
+        raise Exception('failed to register agent')
+
+    def get_unique_uuid(self):
         account_id = self.get_stored_account()
 
-        if not account_id:
-            # Is not an update and no account is set
-            log.error('Please configure agent with ./configure --account=XXXXX')
-            raise Exception('Please configure agent with ./configure --account=XXXXX')
-
-        unique_uuid = self._get_unique_uuid()
+        unique_uuid = self._obtain_unique_uuid()
         if not unique_uuid:
             log.error('Could not obtain unique_uuid. Please set up Auth manually')
             raise Exception('Could not obtain server_id. Please set up Auth manually')
-        
+
         return unique_uuid
 
     def get_stored_account(self):
-        return self['Auth'].get('account', '')
+        account = self['Auth'].get('account', '')
+        if not account:
+            log.error('Please configure agent with ./configure --account=XXXXX')
+            raise Exception('Please configure agent with ./configure --account=XXXXX')
+        return account
 
     @staticmethod
-    def _get_unique_uuid():
+    def _obtain_unique_uuid():
         """
         Try to get a unique identified, Some providers may change unique_id on stop/start
         Use a low timeout to speed up agent start when no meta-data url
         """
         log.info("Trying to get unique_id...")
+
         unique_uuid = None
 
         try:
@@ -104,3 +151,52 @@ class ECMConfig(ConfigObj):
             from re import findall
             unique_uuid = 'mac::' + ':'.join(findall('..', '%012x' % getnode()))
         return unique_uuid
+
+    def _boot_time(self):
+        """ Returns server boot time """
+        if ecm.is_win():
+            return self._boot_time_windows()
+
+        return self._boot_time_linux()
+
+    @staticmethod
+    def _boot_time_linux():
+        # Old psutil versions
+        try: return psutil.BOOT_TIME
+        except: pass
+
+        # psutil v2 versions
+        try: return psutil.boot_time()
+        except: pass
+
+        # Get info from proc
+        try:
+            f = open('/proc/stat', 'r')
+            for line in f:
+                if line.startswith('btime'):
+                    f.close()
+                    return float(line.strip().split()[1])
+            f.close()
+            return 0
+        except:
+            pass
+
+        raise Exception("Cannot get uptime")
+
+    @staticmethod
+    def _boot_time_windows():
+        try:
+            from time import time
+            import uptime
+
+            return int(time() - uptime.uptime())
+        except:
+            return 0
+
+    @staticmethod
+    def _get_ip():
+        import socket
+        """ Create dummy socket to get address """
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('app.ecmanaged.com', 0))
+        return s.getsockname()[0]

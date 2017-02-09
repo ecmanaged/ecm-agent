@@ -39,7 +39,7 @@ if "." not in sys.path:
 
 # Local
 from core.config import ECMConfig
-from core.agent import ECMAgent
+from core.agent import SMAgent, ECMAgent
 import core.logging as log
 
 # Enable automatic garbage collection.
@@ -86,4 +86,4 @@ config = ECMConfig(config_file)
 application = Application("ecagent")
 log.setup(application, config['Log'])
 
-agent = ECMAgent(config)
+agent = SMAgent(config)

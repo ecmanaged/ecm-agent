@@ -30,7 +30,6 @@ from core.runner import CommandRunner
 from core.message import ECMMessage
 from core.functions import mem_clean, read_url
 
-
 _CHECK_RAM_MAX_RSS_MB = 125
 _CHECK_RAM_INTERVAL = 300
 _MAIN_LOOP_INTERVAL = 10
@@ -38,6 +37,29 @@ _E_UNKNOWN_COMMAND = 253
 _E_INVALID_MESSAGE = 252
 KEEPALIVED_TIMEOUT = 180
 SOCKET_TIMEOUT = 30
+
+class SMAgent():
+    def __init__(self, config):
+        reactor.callWhenRunning(self._agent_register)
+        self.config = config
+
+    def _agent_register(self):
+        d = self.config.check_register()
+        d.addCallback(self._on_register_passed)
+        d.addErrback(self._on_register_failed)
+
+    def _on_register_passed(self, success):
+        # Ok, now everything should be correctly configured,
+        # let's start the party.
+        log.info('registration successfull')
+        if success:
+            ECMAgent(self.config)
+
+    def _on_register_failed(self, failure):
+        log.critical("could not register agent: %s, exiting." % failure)
+        log.critical("Please check if account is valid.")
+        reactor.stop()
+
 
 
 class ECMAgent():
@@ -47,19 +69,24 @@ class ECMAgent():
         """
         self.config = config
         self.account = self.config['Auth']['account']
-        self.unique_uuid = self.config.register()
+        self.admin_api = self.config['API']['admin']
+        self.collector_api = self.config['API']['collector']
+        self.unique_uuid = self.config.get_unique_uuid()
 
-        self.ECMANAGED_URL_INPUT = 'http://localhost:8000/v1/agent/ecagent/input?api_key={0}'.format(self.account)
+        self.metric_url = "{}/{}/{}/metric".format(self.collector_api,
+                                                   self.account,
+                                                   self.unique_uuid)
 
         self.tasks = {}
-        system_health = {"__base__":
-                             {
-                                 "interval": 60,
-                                 "config": {},
-                                 "name": "SYSTEM HEALTH",
-                                 "id": "__base__"
-                              }
-                         }
+
+        system_health = {
+            "__base__": {
+                "interval": 60,
+                "config": {},
+                "name": "SYSTEM HEALTH",
+                "id": "__base__"
+            }
+        }
 
         self.tasks["system_health"] = {
             "data": u"",
@@ -74,19 +101,7 @@ class ECMAgent():
 
         self.command_runner = CommandRunner(self.config)
 
-        reactor.callLater(5, self._run_info)
         reactor.callLater(10, self._run)
-
-    def _run_info(self):
-        info_task = {
-            "data": u"",
-            "command": "system_info",
-            "timeout": "30",
-            "type": "info",
-            "id": "system_info"
-        }
-        message = ECMMessage(info_task)
-        self._run_task(message)
 
     def _run(self):
         log.info("Setting up Memory checker")
@@ -119,11 +134,11 @@ class ECMAgent():
                 log.error('Error in main loop while generating message for task (%s): %s' % (task['command'], str(e)))
 
     def _write_result(self, result):
-        log.debug('_write_result::start: %s' % self.ECMANAGED_URL_INPUT)
+        log.debug('_write_result::start: %s' % self.metric_url)
         log.info('_write_result::data: %s' % result)
 
         try:
-            req = urllib2.Request(self.ECMANAGED_URL_INPUT, result)
+            req = urllib2.Request(self.metric_url, result)
             req.add_header('Content-Type', 'application/json')
             urlopen = urllib2.urlopen(req)
             result = urlopen.read()
@@ -145,7 +160,7 @@ class ECMAgent():
             d.addCallbacks(self._on_call_finished, self._on_call_failed,
                            callbackKeywords={'message': message},
                            errbackKeywords={'message': message},
-                           )
+                          )
             del message
             return d
 
@@ -188,3 +203,4 @@ class ECMAgent():
             log.critical("Max allowed RSS memory exceeded: %s MB, exiting."
                          % _CHECK_RAM_MAX_RSS_MB)
             reactor.stop()
+
