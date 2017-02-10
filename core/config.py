@@ -166,12 +166,16 @@ class ECMConfig(ConfigObj):
     @staticmethod
     def _boot_time_linux():
         # Old psutil versions
-        try: return psutil.BOOT_TIME
-        except: pass
+        try:
+            return psutil.BOOT_TIME
+        except:
+            pass
 
         # psutil v2 versions
-        try: return psutil.boot_time()
-        except: pass
+        try:
+            return psutil.boot_time()
+        except:
+            pass
 
         # Get info from proc
         try:

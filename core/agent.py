@@ -144,9 +144,10 @@ class ECMAgent():
                 log.error('Error in main loop while generating message for task (%s): %s' % (task['command'], str(e)))
 
     def _write_result(self):
+        log.info(str(len(self.metric_cache)))
+        if len(self.file_cache):
+            self.file_cache.clear()
         while self.metric_cache:
-            if len(self.file_cache):
-                self.file_cache.clear()
             result = self.metric_cache.pop()
             try:
                 req = urllib2.Request(self.metric_url, result)
