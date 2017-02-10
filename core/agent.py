@@ -147,7 +147,6 @@ class ECMAgent():
         while self.metric_cache:
             if len(self.file_cache):
                 self.file_cache.clear()
-            log.info(str(len(self.metric_cache)))
             result = self.metric_cache.pop()
             try:
                 req = urllib2.Request(self.metric_url, result)
@@ -155,7 +154,6 @@ class ECMAgent():
                 urlopen = urllib2.urlopen(req)
                 result = urlopen.read()
                 result_dict = json.loads(result)
-                log.info('api response: %s' %str(result_dict))
             except Exception:
                 self.metric_cache.append(result)
                 self.file_cache['agent_metric'] = self.metric_cache
@@ -203,15 +201,6 @@ class ECMAgent():
             message = kwargs['message']
             result = (2, '', failure, 0)
             self._on_call_finished(result, message)
-
-    # def _flush(self, result, message):
-    #     log.debug('Flush Message')
-    #     self._send(result, message)
-
-    # def _send(self, result, message):
-    #     log.debug('send result for %s %s' % (message.type, message.command))
-    #     groups = self.config['Groups']['groups']
-    #     self._write_result(message.to_json(result, self.account, self.unique_uuid, groups))
 
     def _memory_checker(self):
         rss = mem_clean('periodic memory clean')

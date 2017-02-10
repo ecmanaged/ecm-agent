@@ -70,11 +70,8 @@ class ECMConfig(ConfigObj):
         account_id = self.get_stored_account()
         unique_uuid = self._obtain_unique_uuid()
 
-        log.info(unique_uuid)
         self['Auth']['unique_uuid'] = unique_uuid
         self.write()
-
-        log.info('unique_uuid is written to config')
 
         registration_url = '{}/{}/{}'.format(admin_api, account_id, unique_uuid)
         log.info('registration_url: %s' %registration_url)
