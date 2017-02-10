@@ -35,12 +35,16 @@ except ImportError:
     pass
 
 import core.logging as log
+import plugins.__helper as ecm
 
 
 def mem_usage():
     rss, vms = 0, 0
     try:
-        rss, vms = psutil.Process(getpid()).get_memory_info()
+        if ecm.is_linux():
+            rss, vms, _, _, _, _, _ = psutil.Process(getpid()).memory_info()
+        elif ecm.is_win():
+            rss, vms, _, _, _, _, _, _, _, _, _, _ = psutil.Process(getpid()).memory_info()
         rss /= 1000000.0
         vms /= 1000000.0
 

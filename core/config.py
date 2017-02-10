@@ -50,7 +50,6 @@ class ECMConfig(ConfigObj):
 
     @inlineCallbacks
     def check_register(self):
-        log.info("registering agent...")
         info = {'info': {
             'os': str(platform.system()),
             'machine': str(platform.machine()),
@@ -74,20 +73,15 @@ class ECMConfig(ConfigObj):
         self.write()
 
         registration_url = '{}/{}/{}'.format(admin_api, account_id, unique_uuid)
-        log.info('registration_url: %s' %registration_url)
-        log.info('info: %s' %str(info))
 
         for iter in range(10):
             try:
                 req = urllib2.Request(registration_url, json.dumps(info))
                 req.add_header('Content-Type', 'application/json')
                 urlopen = yield urllib2.urlopen(req)
-                result = urlopen.read()
-                result_dict = json.loads(result)
-                log.info('api response: %s' %str(result_dict))
                 if urlopen.getcode() == 200:
-                    log.info("agent has successfully registered")
                     returnValue(True)
+
             except urllib2.HTTPError:
                 log.info('exception HTTPERROR while sending result')
             except urllib2.URLError:

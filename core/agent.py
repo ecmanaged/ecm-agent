@@ -32,7 +32,7 @@ from core.message import ECMMessage
 from core.functions import mem_clean, read_url
 
 _CHECK_RAM_MAX_RSS_MB = 125
-_CHECK_RAM_INTERVAL = 300
+_CHECK_RAM_INTERVAL = 15
 _MAIN_LOOP_INTERVAL = 10
 _E_UNKNOWN_COMMAND = 253
 _E_INVALID_MESSAGE = 252
@@ -152,8 +152,6 @@ class ECMAgent():
                 req = urllib2.Request(self.metric_url, result)
                 req.add_header('Content-Type', 'application/json')
                 urlopen = urllib2.urlopen(req)
-                result = urlopen.read()
-                result_dict = json.loads(result)
             except Exception:
                 self.metric_cache.append(result)
                 self.file_cache['agent_metric'] = self.metric_cache
