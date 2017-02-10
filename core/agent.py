@@ -21,6 +21,7 @@ import base64
 import simplejson as json
 import socket
 import urllib2
+from fcache.cache import FileCache
 
 # Local
 import core.exceptions as exceptions
@@ -71,7 +72,16 @@ class ECMAgent():
         self.account = self.config['Auth']['account']
         self.admin_api = self.config['API']['admin']
         self.collector_api = self.config['API']['collector']
-        self.unique_uuid = self.config.get_unique_uuid()
+
+        self.unique_uuid = self.config.get_stored_unique_uuid()
+
+        self.file_cache = FileCache('file_cache', flag='cs')
+        self.metric_cache = list()
+
+        if len(self.file_cache):
+            log.info('loading data from file cache')
+            self.metric_cache = self.file_cache['agent_metric']
+            self.file_cache.clear()
 
         self.metric_url = "{}/{}/{}/metric".format(self.collector_api,
                                                    self.account,
@@ -133,28 +143,30 @@ class ECMAgent():
             except Exception as e:
                 log.error('Error in main loop while generating message for task (%s): %s' % (task['command'], str(e)))
 
-    def _write_result(self, result):
-        log.debug('_write_result::start: %s' % self.metric_url)
-        log.info('_write_result::data: %s' % result)
-
-        try:
-            req = urllib2.Request(self.metric_url, result)
-            req.add_header('Content-Type', 'application/json')
-            urlopen = urllib2.urlopen(req)
-            result = urlopen.read()
-            result_dict = json.loads(result)
-            log.info('api response: %s' %str(result_dict))
-        except urllib2.HTTPError:
-            log.info('exception HTTPERROR while sending result')
-        except urllib2.URLError:
-            log.info('exception URLERROR while sending result')
-            reactor.disconnectAll()
+    def _write_result(self):
+        while self.metric_cache:
+            if len(self.file_cache):
+                self.file_cache.clear()
+            log.info(str(len(self.metric_cache)))
+            result = self.metric_cache.pop()
+            try:
+                req = urllib2.Request(self.metric_url, result)
+                req.add_header('Content-Type', 'application/json')
+                urlopen = urllib2.urlopen(req)
+                result = urlopen.read()
+                result_dict = json.loads(result)
+                log.info('api response: %s' %str(result_dict))
+            except Exception:
+                self.metric_cache.append(result)
+                self.file_cache['agent_metric'] = self.metric_cache
+                return
 
     def _run_task(self, message):
         log.debug("_run_task::command: %s" % message.command)
-        flush_callback = self._flush
+        #flush_callback = self._flush
 
-        d = self.command_runner.run_command(message, flush_callback)
+        #d = self.command_runner.run_command(message, flush_callback)
+        d = self.command_runner.run_command(message)
 
         if d:
             d.addCallbacks(self._on_call_finished, self._on_call_failed,
@@ -175,7 +187,12 @@ class ECMAgent():
 
     def _on_call_finished(self, result, message):
         log.debug('Call Finished')
-        self._send(result, message)
+        groups = self.config['Groups']['groups']
+        data = message.to_json(result, self.account, self.unique_uuid, groups)
+        self.metric_cache.append(data)
+
+        # self._send(result, message)
+        self._write_result()
         log.debug('command finished %s' % message.command_name)
 
     def _on_call_failed(self, failure, *argv, **kwargs):
@@ -187,14 +204,14 @@ class ECMAgent():
             result = (2, '', failure, 0)
             self._on_call_finished(result, message)
 
-    def _flush(self, result, message):
-        log.debug('Flush Message')
-        self._send(result, message)
+    # def _flush(self, result, message):
+    #     log.debug('Flush Message')
+    #     self._send(result, message)
 
-    def _send(self, result, message):
-        log.debug('send result for %s %s' % (message.type, message.command))
-        groups = self.config['Groups']['groups']
-        self._write_result(message.to_json(result, self.account, self.unique_uuid, groups))
+    # def _send(self, result, message):
+    #     log.debug('send result for %s %s' % (message.type, message.command))
+    #     groups = self.config['Groups']['groups']
+    #     self._write_result(message.to_json(result, self.account, self.unique_uuid, groups))
 
     def _memory_checker(self):
         rss = mem_clean('periodic memory clean')

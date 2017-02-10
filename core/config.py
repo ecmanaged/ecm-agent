@@ -70,11 +70,17 @@ class ECMConfig(ConfigObj):
         account_id = self.get_stored_account()
         unique_uuid = self._obtain_unique_uuid()
 
+        log.info(unique_uuid)
+        self['Auth']['unique_uuid'] = unique_uuid
+        self.write()
+
+        log.info('unique_uuid is written to config')
+
         registration_url = '{}/{}/{}'.format(admin_api, account_id, unique_uuid)
         log.info('registration_url: %s' %registration_url)
         log.info('info: %s' %str(info))
 
-        for iter in range(5):
+        for iter in range(10):
             try:
                 req = urllib2.Request(registration_url, json.dumps(info))
                 req.add_header('Content-Type', 'application/json')
@@ -89,16 +95,23 @@ class ECMConfig(ConfigObj):
                 log.info('exception HTTPERROR while sending result')
             except urllib2.URLError:
                 log.info('exception URLERROR while sending result')
+            sleep(3)
         raise Exception('failed to register agent')
 
     def get_unique_uuid(self):
-        account_id = self.get_stored_account()
-
         unique_uuid = self._obtain_unique_uuid()
-        if not unique_uuid:
-            log.error('Could not obtain unique_uuid. Please set up Auth manually')
-            raise Exception('Could not obtain server_id. Please set up Auth manually')
 
+        if not unique_uuid:
+            log.error('Could not obtain unique_uuid.')
+            raise Exception('Could not obtain unique_uuid.')
+
+        return unique_uuid
+
+    def get_stored_unique_uuid(self):
+        unique_uuid = self['Auth'].get('unique_uuid', '')
+        if not unique_uuid:
+            log.error('Could not obtain unique_uuid.')
+            raise Exception('Could not obtain unique_uuid.')
         return unique_uuid
 
     def get_stored_account(self):

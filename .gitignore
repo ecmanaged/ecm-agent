@@ -13,3 +13,5 @@ twistd.pid
 log/
 .vscode/
 ecm-agent/monitor/mplugin/__base__/*.log
+.cache
+.cache/*
