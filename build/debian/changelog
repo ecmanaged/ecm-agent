@@ -1,3 +1,9 @@
+ecmanaged-ecagent (3.3-1) stable; urgency=low
+
+  * version 3.3
+
+ -- Juan Carlos Moreno (ECMANAGED) <juancarlos.moreno@ackstorm.es>  Fri, 23 May 2017 14:48:25 +0200
+
 ecmanaged-ecagent (3.2-2) stable; urgency=low
 
   * version 3.2
