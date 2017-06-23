@@ -1,0 +1,19 @@
+# Debian
+
+change build/debian/changelog and push to repo
+
+sudo apt-get update
+
+sudo apt-get upgrade
+
+sudo apt-get install build-essential git devscripts debhelper dh-python python-all python-setuptools
+
+git clone https://github.com/ecmanaged/ecm-agent.git
+
+cd ecm-agent
+
+cp -r build/debian .
+
+rm -rf build
+
+dpkg-buildpackage
