@@ -49,12 +49,13 @@ AGENT_VERSION = 4.0
 
 
 def is_win():
-        """ Returns True if is a windows system
-        """
-        if platform.startswith("win32"):
-            return True
+    """ Returns True if is a windows system
+    """
 
-        return False
+    if platform.startswith("win32"):
+        return True
+
+    return False
 
 
 def is_linux():
@@ -148,7 +149,7 @@ def download_file(url, filename=None, user=None, passwd=None):
                 if _header_filename:
                     filename = path.join(path.dirname(filename), _header_filename)
             except:
-               pass
+                pass
 
         with open(filename, 'wb') as fp:
             while True:
@@ -265,7 +266,7 @@ def install_package(packages, update=True):
 
             if update:
                 run_command(['apt-get', '-y', '-qq', 'update'], runas='root')
-                
+
             command = ['apt-get',
                        '-o',
                        'Dpkg::Options::=--force-confold',
@@ -279,7 +280,7 @@ def install_package(packages, update=True):
         elif distribution.lower() in ['centos', 'redhat', 'fedora', 'amazon']:
             if update:
                 run_command(['yum', '-y', 'clean', 'all'], runas='root')
-                
+
             command = ['yum',
                        '-y',
                        '--nogpgcheck',
@@ -587,12 +588,12 @@ def check_sudo():
         return False
 
     p = Popen(
-      [which('sudo'),'-n','id'],
-      bufsize=0,
-      stdout=PIPE,
-      stderr=PIPE,
-      universal_newlines=True,
-      close_fds=(os.name == 'posix')
+        [which('sudo'), '-n', 'id'],
+        bufsize=0,
+        stdout=PIPE,
+        stderr=PIPE,
+        universal_newlines=True,
+        close_fds=(os.name == 'posix')
     )
 
     retval = p.wait()
@@ -657,7 +658,7 @@ class ECMExec:
         self.thread_stderr = ''
         self.thread_run = 1
 
-    def command(self, command, args=None, std_input=None, run_as=None, working_dir=None, envars=None, only_stdout = False):
+    def command(self, command, args=None, std_input=None, run_as=None, working_dir=None, envars=None, only_stdout=False):
         """
         Execute command and flush stdout/stderr using threads
         """
@@ -689,7 +690,7 @@ class ECMExec:
         if run_as and not is_win():
             if not check_sudo():
                 return 255, '', 'sudo is not available:'
-            
+
             # don't use su - xxx or env variables will not be available
             command = [which('sudo'), 'su', run_as, '-c', ' '.join(map(str, command))]
 
